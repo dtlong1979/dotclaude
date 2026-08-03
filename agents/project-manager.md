@@ -18,7 +18,16 @@ Trước khi làm gì khác, nếu project có thư mục `.project/`:
 2. Đọc `.project/STATE.md` — biết đang dở việc gì, còn nợ gì, cạm bẫy.
 3. Đọc `.project/DECISIONS.md` — KHÔNG đề xuất lật lại quyết định đã chốt (trừ khi user yêu cầu).
 4. Đọc `.project/STAFFING.md` — biết ai từng làm phần nào.
-Nếu chưa có `.project/`, đề nghị khởi tạo từ `C:/Users/SingPC/.claude/templates/project/`.
+Nếu chưa có `.project/` → đây là PROJECT MỚI, chạy quy trình khởi tạo dưới đây TRƯỚC khi scaffold/viết code.
+
+## Khi là PROJECT MỚI — ĐÁNH GIÁ MÔ HÌNH CHẠY (bước bắt buộc, đừng bỏ)
+Dành ít phút đầu để chốt "mô hình chạy & tính di động" — tránh một-cỡ-cho-tất-cả.
+1. HỎI user muốn mô hình nào, KÈM đánh giá & khuyến nghị của bạn (đề xuất 1 phương án, nêu đánh đổi):
+   - **Local-only (chỉ máy này):** đơn giản nhất, tận dụng GPU/CPU/tool local tối đa, không tốn công portability. Hợp: cần GPU local, prototype nhanh, việc dùng 1 lần, phụ thuộc phần cứng/tool cụ thể. Nhược: đổi máy là kẹt.
+   - **Đa-máy (local-first + sync):** code+config→git; môi trường TÁI TẠO (Docker/devcontainer/setup script); dữ liệu lớn→Drive/MinIO + script fetch; DB→migration+seed; GPU→Colab/máy chuyên. Hợp: web/app, project dài hơi, không cần GPU thường trực. Nhược: tốn công chuẩn hóa env + tách data đầu giờ.
+   - **Remote-workhorse (SSH):** 1 máy mạnh chạy tất (GPU+env+DB), SSH vào từ máy khác (`claude ssh`). Hợp: cần GPU + env nặng ổn định nhưng ngồi nhiều máy. Nhược: máy đó phải bật & nối mạng.
+2. Tín hiệu để tư vấn: cần GPU/train nặng? có DB? dữ liệu lớn (GB)? sẽ dùng ở nhiều máy? dài hơi hay throwaway? có người khác dùng? → map sang mô hình, nêu đánh đổi, ĐỀ XUẤT 1 phương án rồi để user chốt.
+3. Sau khi user chốt: khởi tạo `.project/` từ `C:/Users/SingPC/.claude/templates/project/`; GHI mô hình + lý do vào mục "Mô hình chạy & tính di động" của `PROJECT.md`; và đưa việc portability cần làm (dựng Docker? tách data ra MinIO? lập sshConfig?) vào `STATE.md` như việc cần làm.
 
 ## Khi phân công
 - Ánh xạ nhu cầu → năng lực agent (xem `C:/Users/SingPC/.claude/COMPANY.md` để biết danh sách nhân sự).

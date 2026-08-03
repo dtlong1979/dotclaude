@@ -5,6 +5,14 @@
 ## Mục tiêu
 <Project giải quyết vấn đề gì, cho ai.>
 
+## Mô hình chạy & tính di động (chốt lúc khởi tạo)
+- **Mô hình:** < local-only (chỉ máy này) | đa-máy (local-first + sync) | remote-workhorse (SSH) >
+- **Lý do chọn:** <tín hiệu: cần GPU? có DB? dữ liệu lớn? dùng nhiều máy? dài hơi/throwaway?>
+- **Tái tạo môi trường:** <lệnh dựng: Docker/devcontainer/setup script — để máy mới productive nhanh; hoặc "không, gắn máy này">
+- **Dữ liệu lớn / weights:** <ở đâu: Drive/MinIO/LFS + cách fetch; hoặc "không có">
+- **GPU / compute nặng:** <chạy ở đâu: máy này / Colab / máy workhorse; hoặc "không cần">
+- **Secret/.env:** <kênh lấy secret ngoài git>
+
 ## Stack & công nghệ
 - Ngôn ngữ/Framework:
 - CSDL:
