@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: reference
   originSessionId: 652bdd3d-a937-4512-bb4f-f1fcc80682ba
-  modified: 2026-08-03T09:26:12.562Z
+  modified: 2026-08-03T10:00:52.863Z
 ---
 
 Đã dựng mô hình tổ chức agent kiểu công ty ở **global** `~/.claude/` (dùng cho MỌI project), ngày 2026-08-03.
@@ -26,3 +26,7 @@ metadata:
 **Mặc định hành vi (đã đặt ở `~/.claude/CLAUDE.md`):** khi bắt đầu việc quy mô project, main loop MẶC ĐỊNH đóng vai project-manager: khôi phục bối cảnh `.project/` → phân tích → phân việc cho agent theo năng lực → ghi STAFFING.md. Agent GIỮ vai xuyên suốt project, chỉ đổi khi user yêu cầu rõ. Việc vặt/1 bước thì bỏ nghi thức, làm thẳng. User ghi đè bất kỳ lúc nào ("bỏ luồng PM"...). Lưu ý: subagent không tự đẻ subagent → PM = chính main loop là hợp lý nhất.
 
 Liên quan: đây là phần "agent + bộ nhớ 2 cấp" bàn trong hướng cải thiện workflow Claude Code. Phần vector/graph auto-memory (ý 3,4) hoãn tới khi kho tri thức > ~1000 mẩu.
+
+**Đã reviewer soi + sửa 5 lỗi (2026-08-03):** (1) project-manager = VAI CỦA MAIN LOOP, không spawn như subagent (subagent không đẻ subagent); (2) luồng học: subagent chỉ NÊU "ứng viên bài học" khi trả về, MAIN LOOP mới hỏi user & ghi (subagent không có kênh hỏi user); (3) mọi đường dẫn đổi từ `~/.claude` sang tuyệt đối `C:/Users/SingPC/.claude` (Read không expand ~ trên Windows); (4) template cảnh báo import shared-knowledge chỉ khi file tồn tại; (5) CLAUDE.md self-gate CỨNG: chỉ kích hoạt nghi thức PM khi có `.project/` hoặc user nói rõ; (6) CHỈ main loop ghi STATE.md, bắt buộc sau mỗi mảng việc.
+
+**Đồng bộ đa máy (đã dựng):** `~/.claude` là git repo (init + commit "Initial import", 104 file). `.gitignore` loại sessions/telemetry/shell-snapshots/backups/session-env/.last-cleanup, GIỮ agents/experience/skills/templates/COMPANY.md/CLAUDE.md/LEARNING.md + projects/*/memory/. Remote chọn: **GitHub private** (`gh repo create dotclaude --private --source ~/.claude --push`). Máy khác bootstrap: backup `~/.claude` trước rồi `git init && remote add && fetch && reset --hard origin/main`. Nếp: pull đầu phiên, commit+push cuối phiên (chủ động để thấy xung đột, không auto). Fleet ĐỀU Windows cùng username C:/Users/SingPC nên đường tuyệt đối chạy chung được. **Bẫy slug:** memory tự động đặt tên theo đường dẫn tuyệt đối project → cùng project mở từ path khác (C:\Dev junction vs OneDrive) tạo slug khác, memory tách rời (đã thấy 3 slug: C--Dev-hou-cntt, C--Dev-ClaudeCode-Project1, C--Users-SingPC-OneDrive-...-Project1) → phải luôn mở project ở CÙNG path trên mọi máy.

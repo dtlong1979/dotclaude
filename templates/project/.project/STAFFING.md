@@ -1,6 +1,6 @@
 # STAFFING.md — Phân công nhân sự cho project này
 
-> Project này tuyển agent nào từ pool `~/.claude/agents/`, ai phụ trách phần nào.
+> Project này tuyển agent nào từ pool `C:/Users/SingPC/.claude/agents/`, ai phụ trách phần nào.
 > project-manager cập nhật khi bắt đầu và khi phân công đổi.
 
 | Agent | Phần phụ trách | Ghi chú |

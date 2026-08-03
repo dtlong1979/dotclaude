@@ -7,6 +7,7 @@
 
 ## Tri thức dùng chung được phép đọc (khai báo tường minh)
 <!-- Bỏ comment dòng nào project này được phép dùng. Đây là "phân quyền" chia sẻ. -->
-<!-- @import ~/.claude/shared-knowledge/fithou-stack.md -->
-<!-- @import ~/.claude/shared-knowledge/qcv-web.md -->
-<!-- @import ~/.claude/shared-knowledge/research-writing.md -->
+<!-- LƯU Ý: chỉ uncomment khi file đích ĐÃ TỒN TẠI trong shared-knowledge/, nếu không import sẽ trỏ vào file rỗng. Tạo file trước khi dùng. -->
+<!-- @import C:/Users/SingPC/.claude/shared-knowledge/fithou-stack.md -->
+<!-- @import C:/Users/SingPC/.claude/shared-knowledge/qcv-web.md -->
+<!-- @import C:/Users/SingPC/.claude/shared-knowledge/research-writing.md -->

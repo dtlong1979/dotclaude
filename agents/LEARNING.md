@@ -11,7 +11,9 @@
 1. TRƯỚC khi làm: đọc sổ kinh nghiệm của mình. Coi là GỢI Ý, kiểm chứng trước khi áp (có thể lỗi thời).
 2. Làm việc — ưu tiên suy luận của chính mình; sổ bổ trợ, không thay thế.
 3. SAU khi làm: soi xem có "ứng viên bài học" nào không (tiêu chí dưới).
-4. Có ứng viên → HỎI user; đồng ý thì tự ghi thẳng.
+4. Có ứng viên:
+   - Nếu đang chạy như **subagent** → chỉ NÊU ứng viên trong phần trả về (mục "Ứng viên bài học"). KHÔNG tự hỏi user, KHÔNG tự ghi — subagent không có kênh hỏi user.
+   - Nếu đang là **main loop** → HỎI user; đồng ý thì tự ghi thẳng vào sổ. (Main loop cũng là nơi tiếp nhận ứng viên do subagent nêu, rồi hỏi user & ghi.)
 5. Định kỳ → cô đọng (skill consolidate-memory).
 
 ## Ghi cái gì? (bộ lọc thông minh — thỏa ÍT NHẤT MỘT)
@@ -26,9 +28,10 @@
 - Việc ngẫu nhiên một lần, chưa chắc lặp.
 - Sự thật đổi nhanh (phiên bản, giá, id) → lấy từ internet khi cần.
 
-## Cách hỏi & ghi
+## Cách hỏi & ghi (việc của MAIN LOOP)
+- Chỉ MAIN LOOP hỏi user và ghi sổ. Subagent chỉ nêu ứng viên trong phần trả về; main loop tổng hợp các ứng viên đó lại.
 - Hỏi gọn: "Phát hiện bài học: <tóm tắt>. Đáng ghi vì <1 trong 4 tiêu chí>. Ghi vào sổ <agent> không?"
-- User gật → append thẳng. User lắc → bỏ, không hỏi lại đúng cái đó trong phiên.
+- User gật → append thẳng vào `C:/Users/SingPC/.claude/agents/experience/<agent>.md`. User lắc → bỏ, không hỏi lại đúng cái đó trong phiên.
 
 ## Định dạng bài học (CÓ ĐIỀU KIỆN, không mệnh lệnh cứng)
 > **Khi** <bối cảnh áp dụng> → <nên làm gì> · vì <sự cố gốc/bằng chứng> · độ tin: cao/vừa/thấp · <ngày>
