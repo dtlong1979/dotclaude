@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: reference
   originSessionId: 652bdd3d-a937-4512-bb4f-f1fcc80682ba
-  modified: 2026-08-03T10:21:09.874Z
+  modified: 2026-08-03T10:31:47.243Z
 ---
 
 Đã dựng mô hình tổ chức agent kiểu công ty ở **global** `~/.claude/` (dùng cho MỌI project), ngày 2026-08-03.
@@ -22,6 +22,8 @@ metadata:
 **Tài liệu điều hành:** `~/.claude/COMPANY.md`. Tri thức chia sẻ chọn lọc: `~/.claude/shared-knowledge/` (import qua @import trong CLAUDE.md project = cơ chế "phân quyền").
 
 **Quy trình khôi phục project cũ** (project-manager chạy): đọc PROJECT.md → STATE.md → DECISIONS.md → STAFFING.md trước khi làm.
+
+**Khởi tạo PROJECT MỚI — đánh giá mô hình chạy (đã đặt, 2026-08-03):** trước khi scaffold, PM bắt buộc HỎI user "mô hình chạy" + tư vấn: local-only (chỉ máy này, tận dụng GPU/tool local) / đa-máy (git+Docker tái tạo+data ra Drive/MinIO+GPU→Colab) / remote-workhorse (1 máy GPU, SSH vào). Tín hiệu tư vấn: cần GPU? DB? data lớn? nhiều máy? dài hơi/throwaway? PROJECT.md có mục "Mô hình chạy & tính di động". Lý do: user ưu tiên làm local (tiện tool + khai thác GPU/CPU) nhưng khó khi đổi máy → không one-size-fit-all, chốt mô hình đầu giờ. Nguyên tắc gốc: TÁCH "nơi gõ code" khỏi "nơi chạy nặng"; env=tái tạo không sync; data lớn/weights ra Drive/MinIO/LFS; GPU ở Colab hoặc máy chuyên.
 
 **Mặc định hành vi (đã đặt ở `~/.claude/CLAUDE.md`):** khi bắt đầu việc quy mô project, main loop MẶC ĐỊNH đóng vai project-manager: khôi phục bối cảnh `.project/` → phân tích → phân việc cho agent theo năng lực → ghi STAFFING.md. Agent GIỮ vai xuyên suốt project, chỉ đổi khi user yêu cầu rõ. Việc vặt/1 bước thì bỏ nghi thức, làm thẳng. User ghi đè bất kỳ lúc nào ("bỏ luồng PM"...). Lưu ý: subagent không tự đẻ subagent → PM = chính main loop là hợp lý nhất.
 
