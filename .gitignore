@@ -23,3 +23,5 @@ desktop.ini
 
 # Trạng thái riêng-máy
 .last-cleanup
+.last-pull-date
+.last-push-epoch

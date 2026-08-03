@@ -17,3 +17,9 @@ Tôi có thể tắt/bật luồng này bất kỳ lúc nào — ví dụ "bỏ 
 
 ## Học tập
 Các agent tuân giao thức `C:/Users/SingPC/.claude/agents/LEARNING.md`: đọc sổ kinh nghiệm trước khi làm. Agent nghiệp vụ (subagent) chỉ NÊU "ứng viên bài học" khi trả về; main loop mới HỎI tôi và ghi vào sổ.
+
+## Đồng bộ đa máy (quy tắc)
+`~/.claude` là git repo (remote GitHub private `dotclaude`). Ba quy tắc, chạy tự động qua hook (trừ điện thoại — điện thoại không có shell/git nên hook không chạy):
+1. **Pull hằng ngày:** hook `SessionStart` chạy `hooks/daily-pull.sh` — pull MỘT LẦN mỗi ngày (phiên đầu sau khi bật máy). Guard bằng `.last-pull-date`.
+2. **Auto-push khi ngơi:** hook `Stop` chạy `hooks/push-sync.sh 1800` — commit+push nếu có thay đổi, giãn cách tối thiểu 30 phút (Claude Code không có hook "idle" thật, nên đây là xấp xỉ: push ở cuối lượt, tối đa mỗi 30p). Hook `SessionEnd` push không giãn cách để không sót thay đổi cuối.
+3. **Push khi tôi yêu cầu:** khi tôi nói "push"/"đồng bộ", chạy ngay `bash ~/.claude/hooks/push-sync.sh 0` (hoặc commit+push tay).

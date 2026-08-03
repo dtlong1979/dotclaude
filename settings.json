@@ -1,4 +1,43 @@
 {
   "skipWorkflowUsageWarning": true,
-  "agentPushNotifEnabled": true
+  "agentPushNotifEnabled": true,
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "shell": "bash",
+            "command": "bash \"$HOME/.claude/hooks/daily-pull.sh\"",
+            "timeout": 30,
+            "statusMessage": "Đồng bộ ~/.claude (pull hằng ngày)..."
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "shell": "bash",
+            "async": true,
+            "command": "bash \"$HOME/.claude/hooks/push-sync.sh\" 1800"
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "shell": "bash",
+            "async": true,
+            "command": "bash \"$HOME/.claude/hooks/push-sync.sh\" 0"
+          }
+        ]
+      }
+    ]
+  }
 }
