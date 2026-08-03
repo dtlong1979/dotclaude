@@ -1,0 +1,25 @@
+# === dotclaude: chỉ đồng bộ "công ty agent" + memory, bỏ phần riêng-máy ===
+
+# Riêng máy / phát sinh liên tục — KHÔNG đồng bộ
+sessions/
+shell-snapshots/
+telemetry/
+tasks/
+backups/
+session-env/
+settings.local.json
+*.log
+*.tmp
+
+# Dữ liệu phiên theo project — CHỈ giữ lại memory/
+projects/*/*
+!projects/*/memory/
+!projects/*/memory/**
+
+# Rác hệ điều hành
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Trạng thái riêng-máy
+.last-cleanup

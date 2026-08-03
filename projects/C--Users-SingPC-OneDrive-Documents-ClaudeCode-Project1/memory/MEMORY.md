@@ -1,0 +1,46 @@
+# Memory Index
+
+- [Agent Company Model](agent_company_model.md) — mô hình "công ty agent" global ~/.claude: 13 nhân sự theo năng lực + template .project/ (PROJECT/STATE/DECISIONS/STAFFING) + quy trình khôi phục; điều hành ở COMPANY.md
+
+- [Dissertation to Practice](dissertation_to_practice.md) — phát triển luận án 2014 (tự tái cấu hình tế bào hệ đa xử lý) thành đề tài ứng dụng; 6 đề tài chính + 2 dự phòng + đề cương Đ4 CertiHeal-Edge (IoT+AI), file ở OneDrive\Luan an
+- [Project Overview](project_overview.md) — ứng dụng chat + quản lý công việc nội bộ, cross-platform, quy mô nhỏ, dùng cloud BaaS, cần audit trail + phân quyền
+- [Shadowing App](shadowing_app.md) — app học nghe/nói Tiếng Anh (shadowing), Flutter+Firebase, nội dung sinh sẵn, chấm phát âm Azure
+- [HOU CNTT App](hou_cntt_app.md) — phần mềm hỗ trợ học tập Khoa CNTT HOU; đã có CSDL 3 CTĐT (CN/KS 2022, KS 2019) trong db/, nguồn sscfit.hou.edu.vn
+- [Workload App](workload_app.md) — web nhật ký/giao việc khoa CNTT (cải tổ phân công việc 4 giai đoạn); GĐ1 đang chạy ở workload/ (FastAPI+SQLite+Jinja)
+- [HOU CNTT Paths](hou_cntt_paths.md) — mã nguồn thật ở D:\dev\hou-cntt (C:\Dev chỉ là junction hay rời ra); cách chạy PostgreSQL/backend 8000/Flutter/emulator Pixel_10_Pro
+- [CARE-Fusion Project](care_fusion_project.md) — thử nghiệm thuật toán CARE-Fusion phân loại cảm xúc tiếng Việt (bài báo KH); code ở D:\dev, GitHub dtlong1979, chạy Colab Pro A100
+- [QCV Web Project](qcv_web_project.md) — dịch vụ web trọn gói QCV. **⚠ ĐỌC `D:\dev\qcv-builder\KIEN-TRUC.md` TRƯỚC** (kiến trúc + trạng thái + việc còn lại, gọn); file memory này chỉ là nhật ký 74KB để khảo cổ. Nhớ nhanh: màu có 4 lớp đè (sửa theme.json vô dụng), `plugin/recipes/*.json` là rác, hướng chốt = B2 thư viện mẫu qcv-core
+- [HOU Sentiment Monitor](hou_sentiment_monitor.md) — phần mềm demo NCKH giám sát cảm xúc bình luận fanpage; FastAPI+SQLite+React ở D:\Dev\hou-sentiment-monitor; mock data, classifier heuristic+Gemini (không PhoBERT thật)
+- [Fithou Website Local](fithou_website_local.md) — Next.js+Directus chạy local; đã restore CSDL+uploads production (2368 bài), cần public read directus_files; script import-fithou-newest.mjs sync bài mới từ site thật
+- [QCV Origin Optimizer](qcv_origin_optimizer.md) — plugin tối ưu WP cho site QCV Origin; Perf webtrongoi vẫn ~50 do webp/cache/font chưa ăn; webtrongoi chạy bản site-specific
+- [FithouOne Deploy](fithouone_deploy.md) — đóng gói Docker tổng 3 phân hệ (website+workload+hou-cntt) trên 1 server; D:\dev\fithouone-deploy, 1 postgres 2 DB, domain base fit.hou.edu.vn; Pha 1 xong (2 image Python build OK)
+- [CARE-Fusion trong Monitor](care_fusion_in_monitor.md) — hướng đang cân nhắc: dùng CARE-Fusion (text+emoji) phân loại bình luận thay Gemini; bài viết giữ mô hình 2 luồng; train offline GPU, inference CPU/microservice API
+- [Honorifics Diss Directions](honorifics_diss_directions.md) — pipeline v2 tìm hướng Q1 từ luận án kính ngữ Hàn-Việt (Phạm Thị Ngọc 2018); KHÁC luận án 2014
+- [Emotion Anchors Paper](emotion_anchors_paper.md) — bài báo NCKH tự chạy về lexical anchor reliance của emotion classifier (matched-deletion); code+paper ở emotion-anchors/, nhánh anchor-reliance-study, CPU-only, 3 corpus EN
+- [Fake News SLR Paper](fake_news_slr_paper.md) — bài review phát hiện tin giả nộp JCTA; đã tái lập bằng corpus thật 43 nghiên cứu (verifiability-screened), docx+repo ở D:\Downloads; đính chính GPT-4 LIAR 68.2% (không phải 95.3%)
+- [AI Detector VN Study](ai_detector_vn_study.md) — pilot đo false-positive của AI detector trên abstract học thuật tiếng Việt pre-ChatGPT; code ai-detector-vn/, 110 abstract từ VJOL OAI-PMH, chờ key free Sapling+GPTZero
+- [License Checker App](license_checker_app.md) — phần mềm kiểm tra bản quyền Windows/Office + dò công cụ kích hoạt lậu, viết lại từ bản Codex; C# WinForms ở Documents/Codex/2026-07-16/to
+- [License Checker Defender Trap](license_checker_defender_trap.md) — Defender xóa chính công cụ dò lậu vì nó chứa tên tool lậu; né bằng mã hóa bảng nhận diện thành resource
+- [QCV Zip Đóng gói](qcv_zip_dong_goi.md) — đóng gói ZIP plugin WP bằng PHP ZipArchive (dấu /), KHÔNG dùng PowerShell Compress-Archive (dấu \ hỏng giải nén trên Linux); heredoc Bash nuốt dấu \
+- [QCV Xám 128](qcv_xam_128.md) — vùng ảnh hỏng LUÔN là RGB(128,128,128) chính xác (DC=0 → level shift +128); chữ ký nhận diện, thay mọi heuristic đo độ phẳng
+- [QCV Optimizer Backup Holes](qcv_optimizer_backup_holes.md) — backup từng tự ghi đè bằng ảnh hỏng (chốt ở meta, không ở file); 6 lỗ mất dữ liệu đã vá ở 0.1.94; luật "không backup thì không đụng ảnh gốc"
+- [Wedding Builder](wedding_builder.md) — SaaS tự làm website đám cưới online (VN); spec ở Project1/wedding-builder-spec.md; đã chốt bỏ ví/trả thẳng theo gói/QR trỏ thẳng TK cặp đôi
+- [Fithou MinIO Storage](fithou_minio_storage.md) — Directus website lưu file/ảnh vào MinIO bucket fithou-cms; đã migrate 3458 file cũ; bản local 837MB còn giữ làm rollback
+- [FithouOne Test Accounts](fithouone_test_accounts.md) — DS tài khoản/dữ liệu TEST trên pilot hou-cntt cần xóa trước go-live; kèm vai trò web `giangvien` mới (GV giới hạn theo lớp CVHT/dạy)
+- [QCV Chat Assistant](qcv_chat_assistant.md) — plugin Trợ lý ảo cho web QCV Origin (themes/FAQ Excel/LLM/bắt SĐT+email), Shadow DOM không đụng theme; ZIP ở D:\dev\qcv-chat-assistant
+- [Fithou Admin Log & Backup](fithou_admin_log_backup.md) — website có nhật ký hệ thống (audit `fithou_admin_logs`) + sao lưu/khôi phục CSDL+MinIO ở /quan-tri/nhat-ky & /quan-tri/sao-luu, chỉ system_admin; web image thêm pg16-client+mc, volume fithou_backups
+- [Fithou AI Knowledge Cards](fithou_ai_knowledge_cards.md) — trợ lý AI trả lời học vụ bằng thẻ tri thức có phạm vi khóa (fithou_ai_knowledge, 33 thẻ từ OCR 6 quy chế); nạp bằng SQL do Directus cache stale
+- [Fithou AI Key Config](fithou_ai_key_config.md) — khóa OpenAI nhập ở /quan-tri/cau-hinh-ai (lưu DB fithou_ai_config, fallback env), có nút Test; prod trước đây trống key nên AI không chạy
+- [Fithou Directus Branding & TZ](fithou_directus_branding_tz.md) — login Directus đã brand Fithou qua directus_settings+custom_css (logo/tiêu đề 3 dòng/nền SVG); container web chạy UTC không tzdata → phải format giờ VN bằng Intl en-GB + Asia/Ho_Chi_Minh
+- [App–Workload Bridge](app_workload_bridge.md) — app hou-cntt (GV) truy cập chức năng workload cho 26 cán bộ qua gateway (X-Ma-Cb + service token); 3 lớp đã build+verify cục bộ, chưa deploy/build APK
+- [HOU CNTT CAS Password](hou_cntt_cas_password.md) — cổng đổi/quên MK HOU CAS ở hou-cntt (CAS mở toang → siết ở app: chính sách mạnh+rate-limit); khung deploy CỜ TẮT (cas_pwd_enabled), chờ TK test + email cán bộ
+- [Password CAS vs Local](password_cas_vs_local.md) — đổi/quên MK chỉ áp tài khoản local back-safe; tài khoản HOU CAS ẩn + hướng dẫn htsv.cntt@hou.edu.vn; workload thêm cột auth_source tự nhận diện; web-admin/website đã ổn
+- [HOU CNTT Điểm rèn luyện & Cảnh báo](hou_cntt_ren_luyen_warnings.md) — bảng diem_ren_luyen + cảnh báo chi tiết (môn nợ, ĐRL<50); import qua format RENLUYEN; đã deploy+nhập 6284 ô, app chờ build
+- [Workload Trao đổi Reactions](workload_trao_doi_reactions.md) — feed workload thêm 5 reactions, vote/poll, sửa/xóa 24h, thông báo bất biến; web+backend+gateway deploy, app chờ build
+- [Fithou Messaging Consistency](fithou_messaging_consistency.md) — rà soát đồng nhất tin nhắn/trao đổi 3 hệ; đã căn chỉnh reactions chat 5 loại + admin broadcast + security headers/CSP hou-cntt; còn nợ refactor 110 onclick web-admin để siết CSP
+- [Fithou WebSocket Real-time](fithou_websocket_realtime.md) — lớp real-time WS hub ở hou-cntt (/api/ws); Pha 1 chat+workload app ĐÃ deploy (Dockerfile -w 1!), chờ user bật nginx WS 2 tầng (file sẵn ~/fithouone.conf.new)
+- [Fithou Editor Rebuild](fithou_editor_rebuild.md) — thay block editor tự viết bằng TipTap + AI trong editor (ảnh AI 3 chọn 1, cải thiện, viết lại SEO, ảnh đại diện), file inline PDF/DOCX/XLSX; BACKEND xong+tsc sạch, còn component TipTap UI
+- [Workload Báo cáo ngày theo buổi](workload_daily_report_sessions.md) — báo cáo ngày tách sáng/chiều/tối/cả ngày; chỉ 'Cả ngày' bị chặn sau giờ báo cáo; migration UNIQUE(user,ngày,buổi) đã chạy prod; nhập chỉ từ app
+- [Fithou Đính kèm Tệp](fithou_file_attachments.md) — cho gửi TỆP (pdf/office/zip) không chỉ ảnh ở chat + Trao đổi/Góp ý/Thông báo; app thêm file_picker (compileSdk≥36!), workload thêm cột file_name+allow-list opt-in; FithouOne/web-admin đã sẵn
+- [Fithou Hết phiên](fithou_session_expiry.md) — bắt 401 token hết hạn: app (Dio onError→logout+banner LoginScreen) và web-admin (api() 401→handleSessionExpired, app.js?v=9) tự về đăng nhập kèm thông báo
+- [Fithou Rà soát bản quyền trước phát hành](fithou_prepublish_audit.md) — publish=deploy nội bộ (không mở mã) nên KHÔNG vướng bản quyền; đã thay 10 ảnh Unsplash trên website bằng ảnh chỉnh từ ảnh thật của khoa qua gpt-image-1 edit, deploy prod
