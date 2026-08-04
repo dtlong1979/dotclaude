@@ -5,6 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: b2ac8b1a-f022-4b3d-8097-e7e79df865f3
+  modified: 2026-08-04T06:23:59.852Z
 ---
 
 Luận án gốc của user: Đinh Tuấn Long, MATI Moscow 2014 — *Mô hình & thuật toán tế bào tự tái cấu hình hệ đa xử lý chịu lỗi* (PDF: `C:\Users\SingPC\OneDrive\Luan an\Dissertation - Ban goc.pdf`, tiếng Nga). Nguyên thủy chuyển giao (P1–P5): tự chữa lành phi tập trung chỉ dùng dữ liệu cục bộ; biến liên tục từ **lưới dẫn dòng điện trở mô phỏng** (bộ giải Laplace/khuếch tán phân tán, spare=giếng, lỗi=nguồn); **tuyến đỉnh-rời**; hợp thành 3-automata; async/sync; metric "corrective capability".
@@ -24,5 +25,9 @@ VÒNG 4-6 (GNN + scale sweep 11.8h + RL): lớp AI YẾU hơn kỳ vọng. Learn
 2 workflow phản biện đối kháng (networking + UAV, ~93 agent): NETWORKING = ngõ cụt (0 sống sót, bị TI-LFA/MPLS-FRR/PEFT/Lightyear/Coral chiếm sạch; trường P2 chết vì `L2≠L1` + không thắng coordinated) → chỉ dùng làm related-work. UAV = CBBA/DRM chiếm ~80-85% nhưng còn 1 lát niche (score 4): coupling comm-connectivity ⊗ capability (mất mát cắt chính mạng điều phối P2P — thứ CBBA/DRM giả định vắng).
 
 BÀI #2 = UAV-Edge (giữ bài #1 CertiHeal-Edge nguyên). Đóng góp = systems+safety-lemma: tái-gán per-component + BỎ nhiệm vụ có witness + soundness ("không bao giờ bỏ task mà UAV rảnh cùng component phục vụ được"). Thực nghiệm (experiments/uav_edge_poc/uav_edge.py, networkx min-cost-flow): soundness=0 tuyệt đối; partition-unaware OVERCLAIM tăng theo mất mát & theo tỉ lệ SVR/comm_r (tới ~22% khi service-range ~2× comm-range), ta hiện thực hơn naive ~17%. Trường P2 = chỉ warm-start (KHÔNG phải certificate). Venue RA-L/IROS/DARS (KHÔNG T-RO/AAMAS-main). Báo cáo: Tham-dinh-huong-{Networking,UAV-swarm}.md + DE-CUONG-UAV-EDGE.md. Code+báo cáo: experiments/certiheal_poc/ (poc*.py, gnn_certiheal.py, gnn_scale_sweep.py, rl_router.py, PHAT-HIEN.md 6 vòng).
+
+NỘP BÀI #1 (từ 2026-08): manuscript hợp nhất = `BAI-1-CertiHeal-Edge-v3.md` (+`.docx` build bằng scratchpad/build_v3.js, cần npm docx@8). Để **TIẾNG VIỆT** (user tự dịch EN sau). Venue chốt = **JNSM (Springer, Q1, IF~3.6, $0 non-OA)**; đã theo form Springer: refs đánh số kiểu Springer (63 refs), title-page affiliation, mục Declarations 7 tiểu mục, Phụ lục A phác thảo CM. Skill `write-abstract` (6 câu hỏi + câu dẫn nhập) đã tạo ở ~/.claude/skills/.
+
+TESTBED K3s (experiments/certiheal_k3s/, k3d trên Docker Desktop, CPU-1máy, 3 agent+cp taint, 12 role cap6): chứng chỉ sống dự báo đúng (kill-1 khôi phục, kill-2 để 6 Pending), tăng đơn điệu theo #agent (1→2→3). **PHÁT HIỆN QUAN TRỌNG (chống confound reviewer):** "6,2× nhanh hơn K8s" chỉ đúng vs K8s *mặc định* (eviction-timeout 300s). Đo baseline **K8s tinh-chỉnh tolerationSeconds=2** → khôi phục ~47s (45.6/48.6), **≈ CertiHeal 56.6s** → khoảng cách wall-clock co về ~1×. Sàn chung là node-monitor-grace-period ~40-46s (cả hai đều chờ). ⇒ Định vị TRUNG THỰC: giá trị bền vững = **chứng chỉ** (cả 2 cấu hình K8s đều không phát ra) + phi tập trung, KHÔNG phải tốc độ thô. Số byte (~0.9KB/node field vs 98KB control-plane) + năng lượng (energy-aware chỉ lợi biên ~1%, results_energy.json) đã đưa vào §4. Rà soát submission (agent researcher) còn nợ: siêu tham số tái lập, repo DOI, baseline orchestrator học.
 
 Nguyên tắc user coi trọng: **novelty phải phòng thủ được** — over-claim bị hạ cấp (vd trường liên tục KHÔNG vượt ILP về tối ưu; lợi thế thật = phi tập trung + comm thấp + hội tụ bị chặn + chứng chỉ). Chạy CPU + GPU nhỏ, không cần HPC. Xem [[care_fusion_project]], [[emotion_anchors_paper]] cho các dự án NCKH khác.
