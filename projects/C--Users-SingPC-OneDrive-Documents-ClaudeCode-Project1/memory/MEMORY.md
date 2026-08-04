@@ -1,5 +1,7 @@
 # Memory Index
 
+- [Research Writing Standards](research_writing_standards.md) — chuẩn viết/rà bài NCKH của user: rõ-đơn giản-đúng vấn đề, không tự phòng thủ thừa nhưng không over-claim, phương pháp tái lập được, để số liệu tự nói, cơ sở lý thuyết phải phân tích gắn câu hỏi (không liệt kê)
+
 - [Agent Company Model](agent_company_model.md) — mô hình "công ty agent" global ~/.claude: 13 nhân sự theo năng lực + template .project/ (PROJECT/STATE/DECISIONS/STAFFING) + quy trình khôi phục; điều hành ở COMPANY.md
 
 - [Dissertation to Practice](dissertation_to_practice.md) — phát triển luận án 2014 (tự tái cấu hình tế bào hệ đa xử lý) thành đề tài ứng dụng; 6 đề tài chính + 2 dự phòng + đề cương Đ4 CertiHeal-Edge (IoT+AI), file ở OneDrive\Luan an
