@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 27152e89-3b17-4747-9e4b-63e2a071cb90
-  modified: 2026-08-05T04:01:59.911Z
+  modified: 2026-08-05T04:09:26.613Z
 ---
 
 Bổ sung **xét điều kiện tốt nghiệp qua import file "điểm tổng hợp"** cho hou-cntt admin. Liên quan [[hou_cntt_ren_luyen_warnings]] [[hou_cntt_app]].
@@ -32,4 +32,4 @@ Bổ sung **xét điều kiện tốt nghiệp qua import file "điểm tổng h
 - **CẢNH BÁO tự xác nhận (KHÔNG chặn; thiếu dữ liệu→để trống+cảnh báo)**: GPA<gpa_min (ctdt.gpa_toi_thieu hoặc 2.0); GDTC/GDQP (HP điều kiện tinh_vao_tong_tc=FALSE — hiện CTĐT seed CHƯA có nên báo "chưa khai báo"); thời gian đào tạo (chuẩn CN4/KS5 + 2, cảnh báo khi vượt); điểm rèn luyện (AVG diem_ren_luyen<50 hoặc chưa có dữ liệu). `xep_loai_du_kien` theo GPA thang4 (XS≥3.6/G≥3.2/K≥2.5/TB≥2.0).
 - UI thong_ke thêm cột Xếp loại + Cảnh báo; `du` chặt hơn (nợ bắt buộc → chưa đủ). Verify prod khóa 2022: SV nợ 6 môn BB → chưa đủ; SV đủ → xếp loại Khá.
 - **NGƯỠNG cần user xác nhận đúng QC1818**: GPA_MIN=2.0, bands, NAM_TOI_DA_THEM=2 (ở đầu quy_che_tn.py).
-- **CHƯA làm — hạ bậc xếp loại** (Giỏi+ và >5% môn học lại → hạ 1 bậc): cần dữ liệu SỐ MÔN HỌC LẠI (có ở sheet "tich luy" cột Tổng TC học lại nhưng importer chưa lấy) → bỏ qua theo yêu cầu "không có dữ liệu thì bỏ"; bổ sung khi import cột học lại.
+- **Hạ bậc xếp loại ĐÃ LÀM**: parser `bang_diem._parse_tich_luy` đọc sheet "tich luy" cột "Tổng số TC học lại/thi lại" → cột mới `sinh_vien.so_tc_hoc_lai/so_tc_thi_lai` (migration `db/26_hoc_lai.sql`, ALTER ADD IF NOT EXISTS, đã áp prod). `quy_che_tn.xet(...,so_tc_hoc_lai)`: TN Giỏi/Xuất sắc + TC học lại > 5%×tong_tc_tot_nghiep → cảnh báo "có thể hạ xuống <bậc>". Verify: parser lấy 40 SV có TC học lại; test SV Giỏi 12TC/126 → cảnh báo hạ Khá. (Cột chỉ dùng raw SQL, KHÔNG map ORM để tránh lỗi query-all.)
