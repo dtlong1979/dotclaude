@@ -1,31 +1,15 @@
 ---
 name: write-nlp-paper
 description: >-
-  DEFAULT craft + submission guide for ANY empirical IT / computer-science research paper in English
-  (AI, NLP, ML, data mining, information retrieval, software engineering, networking, security, HCI,
-  systems, and related IT fields) — apply it by default whenever the user writes, structures, revises,
-  tightens, or reviews an IT/CS paper, not only NLP/AI ones. Section-by-section: how each part (abstract,
-  introduction, related work, methods, results, discussion, conclusion) is actually written in top venues
-  (ACL/EMNLP/NAACL/TACL and Q1 journals across IEEE/ACM/Elsevier/Springer/Nature), with real
-  rhetorical-move patterns, English sentence frames, tense/voice conventions, statistics discipline,
-  reviewer red flags, and a built-in kill-list of non-native-English mistakes. Field-general in its
-  section craft, statistics, English kill-list, and submission compliance; some worked examples are
-  NLP/Vietnamese-flavored but the principles transfer to all IT subfields, and it is extra-tuned for
-  Vietnamese / low-resource-language authors. Use when drafting, structuring, revising, or reviewing ANY
-  section of an IT/CS paper, when deciding what a section should contain or in what order to write, when a
-  draft "reads translated" or "reads like a list", when responding to reviewers, or when checking a paper
-  for basic mistakes before submission. Triggers even without the word "paper": "viết phần phương pháp",
-  "làm phần results mạnh hơn", "cấu trúc related work", "bài của em đọc như dịch máy", "hạ over-claim
-  trong discussion", "checklist nộp Q1", "viết bài báo IT/khoa học máy tính", "how do I write the methods
-  section", "make my results section stronger", "structure my intro", "reviewer says my related work is
-  just a list". For the abstract ALONE, write-abstract is more specialized; for literature-review/survey
-  papers (not empirical), use strengthen-review-paper.
-  Also covers journal SUBMISSION COMPLIANCE (author-guideline requirements) — abstract/length limits,
-  Highlights, Data Availability Statement, code-sharing policy, CRediT/declarations block, where to
-  disclose AI/LLM use, anonymization, cover letters, reference style, LaTeX style-files, and novelty-vs-
-  soundness acceptance philosophy — so use it too when choosing a target journal, preparing a paper for
-  submission, avoiding desk-reject, or asking "what does journal X require", "cần khai dùng AI ở đâu",
-  "chọn tạp chí nào cho bài này", "checklist trước khi nộp", "vì sao bị desk-reject".
+  Default section-by-section craft and submission guide for any empirical IT / computer-science paper (AI, NLP, 
+  ML, data mining, IR, software engineering, security, HCI, systems) in English for Q1 journals. Covers abstract
+  , introduction, related work, methods, results, discussion, conclusion: rhetorical moves, English sentence fra
+  mes, tense and voice, statistics discipline, reviewer red flags, a non-native-English mistake kill-list, and s
+  ubmission compliance (Highlights, Data Availability, CRediT/declarations, where to disclose AI use, reference 
+  styles, novelty-vs-soundness). Extra-tuned for Vietnamese and low-resource authors. Use when drafting, structu
+  ring, revising, or reviewing any section, choosing a journal, or checking a paper before submission. Triggers 
+  even without the word paper: 'viet phan methods', 'lam results manh hon', 'cau truc related work', 'bai doc nh
+  u dich may', 'checklist nop Q1', 'how do I write the methods section'.
 ---
 
 # Write an IT/CS Q1 paper — section by section
