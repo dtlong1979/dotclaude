@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 27152e89-3b17-4747-9e4b-63e2a071cb90
-  modified: 2026-08-05T04:09:26.613Z
+  modified: 2026-08-05T04:59:39.070Z
 ---
 
 Bổ sung **xét điều kiện tốt nghiệp qua import file "điểm tổng hợp"** cho hou-cntt admin. Liên quan [[hou_cntt_ren_luyen_warnings]] [[hou_cntt_app]].
@@ -33,3 +33,4 @@ Bổ sung **xét điều kiện tốt nghiệp qua import file "điểm tổng h
 - UI thong_ke thêm cột Xếp loại + Cảnh báo; `du` chặt hơn (nợ bắt buộc → chưa đủ). Verify prod khóa 2022: SV nợ 6 môn BB → chưa đủ; SV đủ → xếp loại Khá.
 - **NGƯỠNG cần user xác nhận đúng QC1818**: GPA_MIN=2.0, bands, NAM_TOI_DA_THEM=2 (ở đầu quy_che_tn.py).
 - **Hạ bậc xếp loại ĐÃ LÀM**: parser `bang_diem._parse_tich_luy` đọc sheet "tich luy" cột "Tổng số TC học lại/thi lại" → cột mới `sinh_vien.so_tc_hoc_lai/so_tc_thi_lai` (migration `db/26_hoc_lai.sql`, ALTER ADD IF NOT EXISTS, đã áp prod). `quy_che_tn.xet(...,so_tc_hoc_lai)`: TN Giỏi/Xuất sắc + TC học lại > 5%×tong_tc_tot_nghiep → cảnh báo "có thể hạ xuống <bậc>". Verify: parser lấy 40 SV có TC học lại; test SV Giỏi 12TC/126 → cảnh báo hạ Khá. (Cột chỉ dùng raw SQL, KHÔNG map ORM để tránh lỗi query-all.)
+- **NHÓM IMPORT (batch) — xem/xuất riêng, app.js?v=13**: mỗi apply tạo `xet_tn_batch`+`xet_tn_batch_sv` (migration `db/27`, áp prod). `_xet_nhom(db,rows)` cache CTĐT KS/CN theo từng khóa (chạy nhóm nhiều khóa) dùng chung cho `thong_ke(khoa)`+`thong_ke_batch(id)`; `list_batches`; `export_batch_xlsx(id,dieu_kien=du/chua/all)` (openpyxl). Routes `/tot-nghiep/batches`, `/batch/{id}/thong-ke`, `/batch/{id}/export?dieu_kien=`. Web-admin: sau import tự hiện thống kê nhóm + 3 nút Xuất Excel ở `#bd_batch`, dropdown `#bd_batchpick` xem lại nhóm cũ, `downloadFile()` fetch kèm token→blob. Kết quả tính LẠI từ điểm hiện tại → import lại không sai lệch, chỉ thêm batch. Verify prod OK (xlsx PK header).
