@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: feedback
   originSessionId: b2ac8b1a-f022-4b3d-8097-e7e79df865f3
-  modified: 2026-08-04T15:12:56.401Z
+  modified: 2026-08-05T13:21:50.471Z
 ---
 
 Tiêu chuẩn user yêu cầu cho MỌI bài nghiên cứu (manuscript, đề cương, review) khi tôi soạn hoặc rà:
@@ -21,6 +21,7 @@ Tiêu chuẩn user yêu cầu cho MỌI bài nghiên cứu (manuscript, đề c�
    - **Cắt đuôi tự-dự-đoán/tự-an-ủi ở cuối đoạn** ("giá trị thực của nó, nếu có, sẽ lộ ra ở..."). Một câu hướng-tương-lai NGẮN thì được; đừng biến mỗi kết quả yếu thành một đoạn tự bào chữa.
    - **Bỏ throat-clearing/dẫn dắt máy móc:** *"Điều quan trọng là phải..."*, *"Có N điều cần nói thẳng..."* → vào thẳng nội dung.
    - **Nêu giới hạn MỘT LẦN, gọn;** không lặp "đóng góp là ở A chứ không phải B" nhiều lần trong bài.
+   - **Đừng khẳng định điều hiển nhiên / thông báo trước thứ sẽ tự có ở phần liên quan.** Cắt các câu kiểu *"Every number is produced by committed code"* (ở abstract), *"We report negative and boundary results"* (ở intro), *"answered by committed experiments"*. Dữ liệu/số/kết quả tái lập MẶC NHIÊN nằm ở đúng phần của nó (Reproducibility, Results…) — không cần nói trước hay tự cam kết. Thông tin tái lập chỉ nêu MỘT LẦN ở mục Reproducibility, không rải khắp bài.
 
 **Why:** User (Đinh Tuấn Long) là nhà nghiên cứu nhắm tạp chí Q1, coi liêm chính khoa học là ưu tiên số một. Đã nhiều lần chỉnh khi tôi: (a) thêm câu tự-phòng-thủ thừa (vụ "giải trình hoãn baseline AI" — user phản đối vì đó chỉ là hướng chưa đưa vào, không nợ ai); (b) để nhận định thiếu minh chứng ("[27] giòn" khi chưa test [27]); (c) để mâu thuẫn đo (0.7 s "đo trực tiếp" vs "liveness-probe mô phỏng"); (d) văn phong máy móc/tự-biện-hộ — user tự viết lại toàn bộ bản CertiHeal-Edge để cắt câu meta và viết thẳng vào việc mình làm (xem mục 6).
 
