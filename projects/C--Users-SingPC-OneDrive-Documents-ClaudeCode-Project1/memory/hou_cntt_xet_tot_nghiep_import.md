@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 27152e89-3b17-4747-9e4b-63e2a071cb90
-  modified: 2026-08-05T03:30:43.811Z
+  modified: 2026-08-05T04:01:59.911Z
 ---
 
 Bổ sung **xét điều kiện tốt nghiệp qua import file "điểm tổng hợp"** cho hou-cntt admin. Liên quan [[hou_cntt_ren_luyen_warnings]] [[hou_cntt_app]].
@@ -20,9 +20,16 @@ Bổ sung **xét điều kiện tốt nghiệp qua import file "điểm tổng h
 
 **ĐÃ LÀM (Giai đoạn 1a — validated):** `backend/app/services/importer/bang_diem.py::extract(sheets)` — hàm THUẦN (không DB), đa sheet, tái dùng `grades._courses`, tìm cột theo NHÃN (vị trí lệch giữa sheet), giữ điểm cao nhất, dự đoán loại hình. Test file thật `D:\Downloads\tông TL (long).xlsx`: 51 SV, 72 HP, KS24/CN27, bỏ đúng HTCTDT+tich luy. (Test offline stub sqlalchemy vì Python local không có; chạy thật trong Docker.)
 
-**CÒN LÀM:**
-1. Service preview/apply: khớp `ma_hp_goc`→hoc_phan (exact → bỏ đuôi .NN → theo tên; báo chưa khớp), upsert ket_qua_hoc_phan keep-max, TẠO sinh_vien mới (map (khóa,loại)→ctdt: ≥2021 CN→2022.CN, ≥2021 KS→2022.KS, ≤2020→2019.KS) + gán ctdt_id cho SV đang NULL, cập nhật tbc, rồi chạy SQL dự đoán chuyên ngành.
-2. Route ở `api/routes/tot_nghiep.py` (guard GIAOVU/ADMIN): `/tot-nghiep/bang-diem/preview` + `/apply` (multipart).
-3. **Gợi ý chéo**: gọi `du_dieu_kien` với CẢ ctdt KS lẫn CN cùng khóa → nếu đủ ĐK theo loại khác loại đang gán thì gợi ý (dữ liệu có thể sai). **Thống kê** đủ/chưa đủ theo chuyên ngành × loại hình.
-4. Web-admin: panel "Import điểm tổng hợp" + bảng thống kê trong tab Tốt nghiệp; chi tiết tận dụng `hoc_tap.chi_tiet`+`block_courses` sẵn có.
-5. Deploy (rebuild hou-cntt-api) + test với file thật.
+**ĐÃ XONG & DEPLOY (Steps 1-4, verify trên prod):**
+- `services/xet_tot_nghiep.py`: `preview/apply/thong_ke`. apply: khớp `ma_hp`→hoc_phan (exact→theo tên), upsert ket_qua_hoc_phan **keep-max** (ON CONFLICT WHERE new he4 > old), TẠO sinh_vien mới + `_ctdt_for(khóa,loại)` (≥2021 CN→2022.CN / KS→2022.KS; ≤2020→2019.KS), gán ctdt_id cho SV NULL, cập nhật tbc, chạy `_recompute_spec` (SQL db/08 scope theo mssv).
+- `thong_ke(db,khoa)`: đủ/chưa đủ theo loại hình × chuyên ngành + **gợi ý chéo** (gọi `du_dieu_kien` với ctdt loại kia cùng khóa; đủ ở loại khác → "Nên xét <loại>"/"Đủ cả 2").
+- Routes `api/routes/tot_nghiep.py` (GIAOVU/ADMIN): `POST /tot-nghiep/bang-diem/preview|apply` (multipart), `GET /tot-nghiep/thong-ke?khoa=`.
+- web-admin `pageTotNghiep`: 2 card mới — "Import điểm tổng hợp toàn khóa" (bdPreview/bdApply) + "Thống kê xét tốt nghiệp theo khóa" (tkLoad/tkRender, link chi tiết `stuDetail` sẵn có = YC4). index.html **app.js?v=10**.
+- **Verify prod:** preview file thật = 51 SV, **72/72 HP khớp 100%**, SV đều đã có. thong_ke khóa 2022 = 255 SV, CN đủ95/chưa106, KS đủ7/chưa47, 2 gợi ý chéo. **CHƯA apply file mẫu lên prod** (để user tự bấm Ghi trong UI).
+
+**ĐÃ SIẾT THEO QUY CHẾ (1818) — `services/quy_che_tn.py::xet()`, app.js?v=11:**
+- **Điều kiện CỨNG (quyết định đủ/chưa)**: qua HẾT môn BẮT BUỘC (ctdt_hoc_phan loai_hp=BAT_BUOC, tinh_vao_tong_tc=TRUE, hp.ma_tam=FALSE, common+chuyên ngành) → `no_bat_buoc[]`; đủ TC từng khối; đủ TỔNG TC (chỉ cộng HP tinh_vao_tong_tc=TRUE, dedup). `du_dieu_kien` giờ delegate sang `quy_che_tn.xet` (lấy chuyên ngành/khóa/GPA của SV).
+- **CẢNH BÁO tự xác nhận (KHÔNG chặn; thiếu dữ liệu→để trống+cảnh báo)**: GPA<gpa_min (ctdt.gpa_toi_thieu hoặc 2.0); GDTC/GDQP (HP điều kiện tinh_vao_tong_tc=FALSE — hiện CTĐT seed CHƯA có nên báo "chưa khai báo"); thời gian đào tạo (chuẩn CN4/KS5 + 2, cảnh báo khi vượt); điểm rèn luyện (AVG diem_ren_luyen<50 hoặc chưa có dữ liệu). `xep_loai_du_kien` theo GPA thang4 (XS≥3.6/G≥3.2/K≥2.5/TB≥2.0).
+- UI thong_ke thêm cột Xếp loại + Cảnh báo; `du` chặt hơn (nợ bắt buộc → chưa đủ). Verify prod khóa 2022: SV nợ 6 môn BB → chưa đủ; SV đủ → xếp loại Khá.
+- **NGƯỠNG cần user xác nhận đúng QC1818**: GPA_MIN=2.0, bands, NAM_TOI_DA_THEM=2 (ở đầu quy_che_tn.py).
+- **CHƯA làm — hạ bậc xếp loại** (Giỏi+ và >5% môn học lại → hạ 1 bậc): cần dữ liệu SỐ MÔN HỌC LẠI (có ở sheet "tich luy" cột Tổng TC học lại nhưng importer chưa lấy) → bỏ qua theo yêu cầu "không có dữ liệu thì bỏ"; bổ sung khi import cột học lại.
