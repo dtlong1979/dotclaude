@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: feedback
   originSessionId: b2ac8b1a-f022-4b3d-8097-e7e79df865f3
-  modified: 2026-08-05T13:21:50.471Z
+  modified: 2026-08-05T13:36:21.759Z
 ---
 
 Tiêu chuẩn user yêu cầu cho MỌI bài nghiên cứu (manuscript, đề cương, review) khi tôi soạn hoặc rà:
@@ -14,7 +14,7 @@ Tiêu chuẩn user yêu cầu cho MỌI bài nghiên cứu (manuscript, đề c�
 2. **Cân bằng phòng thủ ↔ khiêm tốn:** KHÔNG tự phòng thủ quá cao (đừng thêm câu "giải trình / xin lỗi / hoãn cho công trình sau" cho một lựa chọn phạm vi hợp lý — nếu một hướng không tiềm năng thì cứ không đưa vào, không nợ lời biện minh), NHƯNG cũng KHÔNG nói quá kết quả (không over-claim; mọi khẳng định phải có số/trích dẫn/chứng minh đỡ, nếu không thì làm mềm).
 3. **Phương pháp rõ ràng, minh bạch, tái lập được** — đủ tham số cụ thể, định nghĩa ký hiệu, cách đo; ghi rõ số nào là ĐO, số nào là ƯỚC TÍNH/MÔ PHỎNG (đừng để "đo trực tiếp" ở mục Kết quả mâu thuẫn với "mô phỏng/đại diện" ở mục Giới hạn).
 4. **Để số liệu tự lên tiếng** — không diễn giải quá tay, không lặp lại con số bằng tính từ ("đáng kể", "vượt trội", "mạnh", "giòn"); trình số rồi để nó nói.
-5. **Cơ sở lý thuyết KHÔNG phải bản liệt kê** — phải PHÂN TÍCH và gắn từng công trình dẫn ra với một khoảng-trống / câu-hỏi-nghiên-cứu của bài (kiểu bản đồ gap G→đóng góp C), không kể lể "ai làm gì".
+5. **Cơ sở lý thuyết / Related work KHÔNG phải bản liệt kê** — phải PHÂN TÍCH và gắn từng công trình dẫn ra với một khoảng-trống / câu-hỏi-nghiên-cứu của bài (kiểu bản đồ gap G→đóng góp C), không kể lể "ai làm gì". **Cấu trúc related work chuẩn bài báo:** (a) MỞ ĐẦU bằng mức độ QUAN TÂM của cộng đồng với hướng nghiên cứu (nó nổi lên/quan trọng thế nào, có shared task/hội thảo/tạp chí nào theo đuổi) — KHÔNG mở bằng "nghiên cứu trước liên quan làm X"; (b) gom thành vài MẢNG NỘI DUNG một cách chung chung ("các nghiên cứu hiện nay thường tập trung vào các mảng sau"), không cần nói trước bao nhiêu mảng; (c) mỗi mảng viết VĂN LIỀN có BÌNH LUẬN, đưa nghiên cứu vào trong dòng lập luận và TRÍCH kết quả/kết luận/dữ liệu của chúng để minh chứng cho nhận định, rồi liên kết tới research gap MỘT CÁCH TỰ NHIÊN (kết đoạn kiểu "...nhưng chưa ai hỏi liệu...") chứ không gán ép "đây là RQ1/RQ3 của tôi". **TRÁNH** lối "**cụm ngắn đậm.** + dấu chấm + liệt kê nghiên cứu" — không giống bất kỳ kiểu viết bài báo nào; nếu cần tiêu đề mảng thì hiếm khi dùng, và dùng dấu hai chấm chứ không phải chấm.
 6. **Viết THẲNG vào việc mình làm, cắt câu meta/tự-biện-hộ/tự-dự-đoán.** User đã tự sửa bản CertiHeal-Edge theo hướng này — các anti-pattern PHẢI tránh:
    - **Đừng dùng khung "X đưa vào đây không phải để Y mà để Z".** Viết thẳng: *"Chúng tôi đã thực nghiệm Z với X và thu được [số]."* (dẫn dắt bằng HÀNH ĐỘNG → KẾT QUẢ). Ví dụ: bỏ *"định thiên 'đi theo dòng điện' khó bị đánh bại"* → *"Chúng tôi cũng thử nghiệm ... bằng REINFORCE, nhưng kết quả kém hơn trường thuần."*
    - **Cắt câu tự-tuyên-bố-mình-trung-thực:** *"Chúng tôi báo cáo kết quả này để không cường điệu..."*, *"...mà chúng tôi định lượng thay vì cường điệu."*, *"chúng tôi cố ý tránh kiểu tuyên bố... vì nó gây hiểu nhầm"*, *"ta trình bày nó đúng như vậy"*. Số liệu trung thực TỰ NÓ đã trung thực — không cần tuyên bố mình trung thực. Chỉ cần nêu thẳng lưu ý ("cần hiểu thận trọng: ..."), không kể mình đã "cố ý" làm gì.
