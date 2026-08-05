@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 27152e89-3b17-4747-9e4b-63e2a071cb90
-  modified: 2026-08-05T04:59:39.070Z
+  modified: 2026-08-05T06:22:38.587Z
 ---
 
 Bổ sung **xét điều kiện tốt nghiệp qua import file "điểm tổng hợp"** cho hou-cntt admin. Liên quan [[hou_cntt_ren_luyen_warnings]] [[hou_cntt_app]].
@@ -33,4 +33,5 @@ Bổ sung **xét điều kiện tốt nghiệp qua import file "điểm tổng h
 - UI thong_ke thêm cột Xếp loại + Cảnh báo; `du` chặt hơn (nợ bắt buộc → chưa đủ). Verify prod khóa 2022: SV nợ 6 môn BB → chưa đủ; SV đủ → xếp loại Khá.
 - **NGƯỠNG cần user xác nhận đúng QC1818**: GPA_MIN=2.0, bands, NAM_TOI_DA_THEM=2 (ở đầu quy_che_tn.py).
 - **Hạ bậc xếp loại ĐÃ LÀM**: parser `bang_diem._parse_tich_luy` đọc sheet "tich luy" cột "Tổng số TC học lại/thi lại" → cột mới `sinh_vien.so_tc_hoc_lai/so_tc_thi_lai` (migration `db/26_hoc_lai.sql`, ALTER ADD IF NOT EXISTS, đã áp prod). `quy_che_tn.xet(...,so_tc_hoc_lai)`: TN Giỏi/Xuất sắc + TC học lại > 5%×tong_tc_tot_nghiep → cảnh báo "có thể hạ xuống <bậc>". Verify: parser lấy 40 SV có TC học lại; test SV Giỏi 12TC/126 → cảnh báo hạ Khá. (Cột chỉ dùng raw SQL, KHÔNG map ORM để tránh lỗi query-all.)
+- **ĐỐI KHỚP MỀM môn (khóa ≤21 CTĐT 2019 lệch tên/mã), app.js?v=15**: `services/mon_khop.py` — `chuan_hoa()` bỏ dấu + giãn VIẾT TẮT chuyên ngành (cndpt→công nghệ đa phương tiện, cnpm, attt, httt…); `satisfied_names()` nới NHÓM TƯƠNG ĐƯƠNG lý luận chính trị cũ↔mới (có "đường lối cách mạng"/"nguyên lý cơ bản" → coi đủ 5 môn mới). Áp vào: `quy_che_tn._mon_bb_chua_dat` (môn bắt buộc chưa đạt), `graduation.block_credits` + `tc_tich_luy` (ĐẾM TÍN CHỈ khối+tổng theo học phần KHUNG đã "thỏa" khớp mã HOẶC tên/tương đương, thay vì JOIN mã cứng — nên môn đổi mã/tên vẫn được cộng), `block_courses` (chưa học), `hoc_ngoai_khung` (môn đã đạt ngoài khung = nghi học thừa, hiện ở chi tiết SV). Verify: CNĐPT khớp; SV 18A…038 khối chính trị hết báo thiếu (137/141, còn thiếu thật); khóa 2022 CN đủ 95→107 (phục hồi false-neg), KS giữ nguyên. Bảng viết tắt/tương đương MỞ RỘNG được trong mon_khop.py.
 - **NHÓM IMPORT (batch) — xem/xuất riêng, app.js?v=13**: mỗi apply tạo `xet_tn_batch`+`xet_tn_batch_sv` (migration `db/27`, áp prod). `_xet_nhom(db,rows)` cache CTĐT KS/CN theo từng khóa (chạy nhóm nhiều khóa) dùng chung cho `thong_ke(khoa)`+`thong_ke_batch(id)`; `list_batches`; `export_batch_xlsx(id,dieu_kien=du/chua/all)` (openpyxl). Routes `/tot-nghiep/batches`, `/batch/{id}/thong-ke`, `/batch/{id}/export?dieu_kien=`. Web-admin: sau import tự hiện thống kê nhóm + 3 nút Xuất Excel ở `#bd_batch`, dropdown `#bd_batchpick` xem lại nhóm cũ, `downloadFile()` fetch kèm token→blob. Kết quả tính LẠI từ điểm hiện tại → import lại không sai lệch, chỉ thêm batch. Verify prod OK (xlsx PK header).
