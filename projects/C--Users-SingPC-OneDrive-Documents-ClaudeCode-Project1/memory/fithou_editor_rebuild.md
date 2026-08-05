@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 27152e89-3b17-4747-9e4b-63e2a071cb90
-  modified: 2026-08-05T10:13:31.660Z
+  modified: 2026-08-05T10:26:44.876Z
 ---
 
 Cải tổ editor soạn bài viết website Fithou (Next.js 16/React 19 + Directus). Xem [[fithou-website-local]], [[fithou-ai-key-config]].
@@ -30,7 +30,10 @@ Cải tổ editor soạn bài viết website Fithou (Next.js 16/React 19 + Direc
 **CÒN LẠI:** chỉ kiểm THỰC TẾ trên trình duyệt (chèn từng loại, mở lại bài cũ) khi chạy dev/deploy — chưa test runtime (cần full stack Directus+auth). 413 = deploy nginx 25m. Gói chung đợt deploy với [[app-workload-bridge]] + [[password-cas-vs-local]]. ĐÃ DEPLOY prod 2026-07-30 (server sscfit, build 3 image + up + verify xanh).
 
 **TINH CHỈNH CÔNG CỤ AI (2026-08-05):**
-- **`ai/rewrite` đổi HẲN hành vi**: trước là "viết lại toàn bài SEO 800-1000 từ" lấy `getText()` rồi `setContent` (mất cấu trúc/link/ảnh/file — user chê). Nay = **BIÊN TẬP VĂN PHONG giữ nguyên cấu trúc**: nhận `html` (`editor.getHTML()`), route `protect()` thay ảnh/iframe/video/`a[data-file-chip]` → `[[FMEDIA n]]` và href liên kết → `[[FHREF n]]` (AI KHÔNG sửa/xóa được), prompt yêu cầu giữ số/thứ tự đoạn+thẻ HTML, chỉ làm chữ phong phú, KHÔNG kéo dài máy móc, cân đối bullet, giữ giọng văn; `restore()` khôi phục nguyên trạng rồi `sanitizeLegacyHtml`. Frontend `aiRewrite` gửi html, đổi confirm/tooltip. (Thứ tự protect: file-chip → iframe → video → img → href; test round-trip OK: mọi src/href/data-filename giữ nguyên, chữ đổi, không sót placeholder.)
+- **HAI NÚT AI văn bản (chốt) — 1 route `ai/rewrite` có `mode`**: `protect()` thay ảnh/iframe/video/`a[data-file-chip]`→`[[FMEDIA n]]`, href liên kết→`[[FHREF n]]` (AI không sửa/xóa được); `restore()` khôi phục + NỐI LẠI media AI bỏ sót (không mất ảnh/tệp) rồi `sanitizeLegacyHtml`. Thứ tự protect: file-chip→iframe→video→img→href.
+  - **Nút 1 (Wand2) = "Biên tập lại văn phong"** `mode:"style"` (`aiEditStyle`): GIỮ NGUYÊN cấu trúc từng đoạn (mỗi <p>/<li>/<h*> vào = 1 ra, KHÔNG gộp thành 1 <p> — chính là bug user báo "gom hết thành 1 paragraph"), chỉ làm mượt câu chữ, không kéo dài 800-1000, cân đối bullet. temp 0.35.
+  - **Nút 2 (RefreshCw) = "Viết lại cả bài"** `mode:"full"` (`aiRewriteFull`): ĐƯỢC tái cấu trúc/thêm đề mục/mở rộng, vẫn giữ đủ placeholder media/link. temp 0.6, có confirm.
+  - Cả 2 gửi `editor.getHTML()` + `{title, html, mode}` → `setContent(data.html)`. BỎ nút "cải thiện đoạn bôi đen" (ai/text plain-text `insertContentAt` — chính nó gộp nhiều đoạn thành 1 khi bôi đen nhiều đoạn); route ai/text còn đó nhưng editor không gọi. Test protect/restore round-trip + nối media bỏ sót: ĐẠT.
 - **`ai/text`** (cải thiện đoạn bôi đen): nới cho "diễn đạt phong phú hơn" nhưng giữ ý + độ dài, không thêm số liệu.
 - **`ai/image` đa phong cách + hướng SINH VIÊN**: `autoPrompt` mô tả CẢNH (đối tượng sinh viên đại học VN, bối cảnh học tập/công nghệ), KHÔNG cố định style; thêm `STYLE_VARIANTS` (ảnh thật/flat vector/3D/editorial) — khi prompt tự sinh thì 3 ảnh preview mỗi ảnh MỘT phong cách (`finalPrompt(i)`); khi user tự nhập prompt thì tôn trọng nguyên văn. Vẫn "no text/logo".
 - Chỉ build lại `fithou-web`. Verify: tsc sạch, 2 route trả 401 (đã phục vụ), marker có trong build. E2E thật cần đăng nhập content_admin (chưa chạy).
