@@ -1,20 +1,25 @@
 ---
 name: write-nlp-paper
 description: >-
-  Section-by-section craft guide for writing a Q1 empirical AI/NLP paper in English — how each
-  part (abstract, introduction, related work, methods, results, discussion, conclusion) is actually
-  written in top venues (ACL/EMNLP/NAACL/TACL and Q1 journals), with real rhetorical-move patterns,
-  English sentence frames, tense/voice conventions, statistics discipline, reviewer red flags, and a
-  built-in kill-list of non-native-English mistakes. Tuned for Vietnamese / low-resource-language
-  authors and studies. Use when drafting, structuring, revising, tightening, or reviewing ANY section
-  of an NLP/AI/ML research paper, when deciding what a section should contain or in what order to
-  write, when a draft "reads translated" or "reads like a list", when responding to reviewers on an
-  empirical NLP paper, or when checking a paper for basic mistakes before submission. Triggers even
-  without the word "paper": "viết phần phương pháp cho bài NLP", "làm phần results mạnh hơn", "cấu trúc
-  related work", "bài của em đọc như dịch máy", "hạ over-claim trong discussion", "checklist nộp Q1",
-  "how do I write the methods section", "make my results section stronger", "structure my intro for an
-  ACL paper", "reviewer says my related work is just a list". For the abstract ALONE, write-abstract is
-  more specialized; for literature-review/survey papers (not empirical), use strengthen-review-paper.
+  DEFAULT craft + submission guide for ANY empirical IT / computer-science research paper in English
+  (AI, NLP, ML, data mining, information retrieval, software engineering, networking, security, HCI,
+  systems, and related IT fields) — apply it by default whenever the user writes, structures, revises,
+  tightens, or reviews an IT/CS paper, not only NLP/AI ones. Section-by-section: how each part (abstract,
+  introduction, related work, methods, results, discussion, conclusion) is actually written in top venues
+  (ACL/EMNLP/NAACL/TACL and Q1 journals across IEEE/ACM/Elsevier/Springer/Nature), with real
+  rhetorical-move patterns, English sentence frames, tense/voice conventions, statistics discipline,
+  reviewer red flags, and a built-in kill-list of non-native-English mistakes. Field-general in its
+  section craft, statistics, English kill-list, and submission compliance; some worked examples are
+  NLP/Vietnamese-flavored but the principles transfer to all IT subfields, and it is extra-tuned for
+  Vietnamese / low-resource-language authors. Use when drafting, structuring, revising, or reviewing ANY
+  section of an IT/CS paper, when deciding what a section should contain or in what order to write, when a
+  draft "reads translated" or "reads like a list", when responding to reviewers, or when checking a paper
+  for basic mistakes before submission. Triggers even without the word "paper": "viết phần phương pháp",
+  "làm phần results mạnh hơn", "cấu trúc related work", "bài của em đọc như dịch máy", "hạ over-claim
+  trong discussion", "checklist nộp Q1", "viết bài báo IT/khoa học máy tính", "how do I write the methods
+  section", "make my results section stronger", "structure my intro", "reviewer says my related work is
+  just a list". For the abstract ALONE, write-abstract is more specialized; for literature-review/survey
+  papers (not empirical), use strengthen-review-paper.
   Also covers journal SUBMISSION COMPLIANCE (author-guideline requirements) — abstract/length limits,
   Highlights, Data Availability Statement, code-sharing policy, CRediT/declarations block, where to
   disclose AI/LLM use, anonymization, cover letters, reference style, LaTeX style-files, and novelty-vs-
@@ -23,10 +28,17 @@ description: >-
   "chọn tạp chí nào cho bài này", "checklist trước khi nộp", "vì sao bị desk-reject".
 ---
 
-# Write an NLP/AI Q1 paper — section by section
+# Write an IT/CS Q1 paper — section by section
 
-Kỹ năng này giúp viết/soát **từng phần** của một bài báo NLP/AI thực nghiệm nhắm tạp chí Q1 hoặc hội nghị
-top (ACL/EMNLP/NAACL/TACL). Bài đích viết **tiếng Anh**; giải thích tiếng Việt, mẫu câu tiếng Anh. Nội dung
+> **Phạm vi mặc định:** đây là guide MẶC ĐỊNH cho **mọi bài báo thực nghiệm chuyên ngành IT/khoa học máy tính**
+> (AI, NLP, ML, khai phá dữ liệu, IR, kỹ nghệ phần mềm, mạng, an ninh, HCI, hệ thống…), không chỉ NLP/AI. Phần
+> **văn phong từng phần, kỷ luật thống kê, kill-list lỗi tiếng Anh, và tuân thủ nộp bài (file 08)** đúng cho mọi
+> tiểu ngành IT. Một số **ví dụ minh hoạ** mang màu NLP/tiếng Việt, nhưng **nguyên tắc & mẫu câu chuyển giao được**;
+> khi viết bài ngoài NLP, giữ nguyên khung/quy tắc và thay ví dụ cho khớp tiểu ngành.
+
+Kỹ năng này giúp viết/soát **từng phần** của một bài báo IT/CS thực nghiệm nhắm tạp chí Q1 hoặc hội nghị top
+(ACL/EMNLP/NAACL/TACL, IEEE/ACM Transactions, Elsevier/Springer/Nature). Bài đích viết **tiếng Anh**; giải thích
+tiếng Việt, mẫu câu tiếng Anh. Nội dung
 được chưng cất từ ví dụ THẬT trong ~35 bài mở (PhoBERT, ViSoBERT, ViHSD, HANS, Gururangan, DetectGPT, XLM-R,
 Joshi, EURO-5K, FormosanBench…) + lý thuyết genre-analysis (Swales CARS, Hyland). Tuned riêng cho tác giả
 người Việt / nghiên cứu ít tài nguyên.

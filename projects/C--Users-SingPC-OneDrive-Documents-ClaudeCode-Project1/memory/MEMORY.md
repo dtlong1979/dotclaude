@@ -21,7 +21,8 @@
 - [Emotion Anchors Paper](emotion_anchors_paper.md) — bài báo NCKH tự chạy về lexical anchor reliance của emotion classifier (matched-deletion); code+paper ở emotion-anchors/, nhánh anchor-reliance-study, CPU-only, 3 corpus EN
 - [Fake News SLR Paper](fake_news_slr_paper.md) — bài review phát hiện tin giả nộp JCTA; đã tái lập bằng corpus thật 43 nghiên cứu (verifiability-screened), docx+repo ở D:\Downloads; đính chính GPT-4 LIAR 68.2% (không phải 95.3%)
 - [AI Detector VN Study](ai_detector_vn_study.md) — pilot đo false-positive của AI detector trên abstract học thuật tiếng Việt pre-ChatGPT; code ai-detector-vn/, 110 abstract từ VJOL OAI-PMH, chờ key free Sapling+GPTZero
-- [Write NLP Paper Skill](write_nlp_paper_skill.md) — skill `write-nlp-paper` ở ~/.claude/skills: hướng dẫn viết bài Q1 AI/NLP theo từng phần (7 reference + GUIDELINE tổng hợp), grounding bài thật, tuned tiếng Việt/low-resource
+- [Write NLP Paper Skill](write_nlp_paper_skill.md) — skill `write-nlp-paper` ở ~/.claude/skills: hướng dẫn viết bài Q1 AI/NLP theo từng phần (8 reference + GUIDELINE), grounding bài thật, tuned tiếng Việt/low-resource; reference 08 = tuân thủ nộp bài (audit 50 tạp chí)
+- [IT Paper Default Skill](it_paper_default_skill.md) — quy ước: dùng write-nlp-paper làm MẶC ĐỊNH cho mọi bài báo chuyên ngành IT/CS (không chỉ NLP/AI); chỉ thay ví dụ cho khớp tiểu ngành
 - [License Checker App](license_checker_app.md) — phần mềm kiểm tra bản quyền Windows/Office + dò công cụ kích hoạt lậu, viết lại từ bản Codex; C# WinForms ở Documents/Codex/2026-07-16/to
 - [License Checker Defender Trap](license_checker_defender_trap.md) — Defender xóa chính công cụ dò lậu vì nó chứa tên tool lậu; né bằng mã hóa bảng nhận diện thành resource
 - [QCV Zip Đóng gói](qcv_zip_dong_goi.md) — đóng gói ZIP plugin WP bằng PHP ZipArchive (dấu /), KHÔNG dùng PowerShell Compress-Archive (dấu \ hỏng giải nén trên Linux); heredoc Bash nuốt dấu \
