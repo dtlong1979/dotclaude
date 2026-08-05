@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 27152e89-3b17-4747-9e4b-63e2a071cb90
-  modified: 2026-08-05T10:26:44.876Z
+  modified: 2026-08-05T10:58:13.523Z
 ---
 
 Cải tổ editor soạn bài viết website Fithou (Next.js 16/React 19 + Directus). Xem [[fithou-website-local]], [[fithou-ai-key-config]].
@@ -35,7 +35,8 @@ Cải tổ editor soạn bài viết website Fithou (Next.js 16/React 19 + Direc
   - **Nút 2 (RefreshCw) = "Viết lại cả bài"** `mode:"full"` (`aiRewriteFull`): ĐƯỢC tái cấu trúc/thêm đề mục/mở rộng, vẫn giữ đủ placeholder media/link. temp 0.6, có confirm.
   - Cả 2 gửi `editor.getHTML()` + `{title, html, mode}` → `setContent(data.html)`. BỎ nút "cải thiện đoạn bôi đen" (ai/text plain-text `insertContentAt` — chính nó gộp nhiều đoạn thành 1 khi bôi đen nhiều đoạn); route ai/text còn đó nhưng editor không gọi. Test protect/restore round-trip + nối media bỏ sót: ĐẠT.
 - **`ai/text`** (cải thiện đoạn bôi đen): nới cho "diễn đạt phong phú hơn" nhưng giữ ý + độ dài, không thêm số liệu.
-- **`ai/image` đa phong cách + hướng SINH VIÊN**: `autoPrompt` mô tả CẢNH (đối tượng sinh viên đại học VN, bối cảnh học tập/công nghệ), KHÔNG cố định style; thêm `STYLE_VARIANTS` (ảnh thật/flat vector/3D/editorial) — khi prompt tự sinh thì 3 ảnh preview mỗi ảnh MỘT phong cách (`finalPrompt(i)`); khi user tự nhập prompt thì tôn trọng nguyên văn. Vẫn "no text/logo".
+- **`ai/image` đa phong cách + BÁM CHỦ ĐỀ**: `autoPrompt` sinh prompt tiếng Anh, `STYLE_VARIANTS` (ảnh thật/flat vector/3D/editorial) — 3 ảnh preview mỗi ảnh MỘT phong cách khi prompt tự sinh (`finalPrompt(i)`); user tự nhập prompt thì giữ nguyên văn. Vẫn "no text/logo".
+  - **SỬA 2026-08-05 (v2)**: bản đầu ÉP cảnh "sinh viên/teamwork/campus" bất kể nội dung → ảnh nào cũng "4 SV chụm đầu thảo luận" (user báo với bài "thu văn bằng gốc thẩm định"). Sửa: (1) `autoPrompt` yêu cầu SUY chủ đề cụ thể từ title+content rồi tả cảnh LITERAL đúng chủ đề (vd văn bằng→bằng tốt nghiệp+giấy tờ trên bàn hành chính, cán bộ kiểm tra), CHỈ thêm người khi chủ đề về người, cấm mặc định "nhóm SV thảo luận"; (2) `STYLE_VARIANTS` bỏ hết từ bối cảnh ("campus/classroom setting", "education/technology feel") — chỉ còn PHONG CÁCH render; (3) frontend gửi `topic = getText().slice(0,900)` (trước 600). Verify thật bằng khóa OpenAI prod: title "thu văn bằng gốc" → prompt "administrative office desk with original graduation diplomas... staff member verifying papers" (đúng chủ đề). Cách test không lộ khóa: `ssh ... "docker exec -i fithou-web node" < script.js` (đọc key qua Directus `fithou_ai_config` bằng DIRECTUS_STATIC_TOKEN trong container).
 - Chỉ build lại `fithou-web`. Verify: tsc sạch, 2 route trả 401 (đã phục vụ), marker có trong build. E2E thật cần đăng nhập content_admin (chưa chạy).
 
 **BUG SAU MIGRATION (đã sửa 2026-08-05):** đăng/xuất bản báo "Bài viết cần có ít nhất một khối nội dung" DÙ bài đủ nội dung. Nguyên nhân: editor TipTap LUÔN gửi `blocks:[]` (nội dung ở `content_html`, xem fithou-visual-editor.tsx ~L657), nhưng `app/api/fithou-editor/articles/route.ts` chặn cứng `!payload.blocks?.length` TRƯỚC khi tới `saveEditorArticle`/`validateEditorArticleWorkflow` (2 hàm này đã hỗ trợ HTML-mode). Sửa: đổi gate thành `hasContent` = có blocks HOẶC content_html có chữ/ảnh/iframe/table/video/data-file-chip. Verify prod curl (gate nằm TRƯỚC auth, `isSameOriginRequest` trả true khi thiếu header origin): payload rỗng→400 "khối nội dung"; payload có content_html+blocks rỗng→401 auth (qua gate). Chỉ build lại `fithou-web` (context ../Fithou Website).
