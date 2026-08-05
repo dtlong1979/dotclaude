@@ -46,3 +46,4 @@
 - [Fithou Đính kèm Tệp](fithou_file_attachments.md) — cho gửi TỆP (pdf/office/zip) không chỉ ảnh ở chat + Trao đổi/Góp ý/Thông báo; app thêm file_picker (compileSdk≥36!), workload thêm cột file_name+allow-list opt-in; FithouOne/web-admin đã sẵn
 - [Fithou Hết phiên](fithou_session_expiry.md) — bắt 401 token hết hạn: app (Dio onError→logout+banner LoginScreen) và web-admin (api() 401→handleSessionExpired, app.js?v=9) tự về đăng nhập kèm thông báo
 - [Fithou Rà soát bản quyền trước phát hành](fithou_prepublish_audit.md) — publish=deploy nội bộ (không mở mã) nên KHÔNG vướng bản quyền; đã thay 10 ảnh Unsplash trên website bằng ảnh chỉnh từ ảnh thật của khoa qua gpt-image-1 edit, deploy prod
+- [HOU CNTT Xét tốt nghiệp qua import điểm](hou_cntt_xet_tot_nghiep_import.md) — MỞ RỘNG feature graduation sẵn có; parser bang_diem.py::extract() đã validate (51SV/72HP file thật); còn service apply+route+gợi ý chéo+thống kê+UI+deploy
