@@ -5,9 +5,20 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 9f34285f-7927-41e5-81c6-4c1b9e1b5527
+  modified: 2026-08-06T09:31:11.103Z
 ---
 
-Plugin **`qcv-chat-assistant`** ("QCV Trợ lý ảo") v1.3.0 — chat bubble cho site sinh từ lõi QCV Origin. Mã ở `D:\xampp74\htdocs\qcv-origin\wp-content\plugins\qcv-chat-assistant\`, ZIP giao hàng ở `D:\dev\qcv-chat-assistant\qcv-chat-assistant-1.3.0.zip` (29 file, 120KB). Liên quan [[qcv_origin_optimizer]], [[qcv_web_project]]. ~6.100 dòng, không composer/thư viện ngoài/jQuery frontend.
+Plugin **`qcv-chat-assistant`** ("QCV Trợ lý ảo") **v1.4.0** — chat bubble cho site sinh từ lõi QCV Origin. Mã ở `D:\xampp74\htdocs\qcv-origin\wp-content\plugins\qcv-chat-assistant\`, ZIP giao hàng ở `D:\dev\qcv-chat-assistant\qcv-chat-assistant-1.4.0.zip`. Liên quan [[qcv_origin_optimizer]], [[qcv_web_project]]. ~6.100 dòng, không composer/thư viện ngoài/jQuery frontend. Đóng gói bằng ZipArchive dấu `/` (xem [[qcv_zip_dong_goi]]).
+
+**v1.4 — VÁ BẢO MẬT AI/injection (user yêu cầu "vá ngay", 06/08/2026)**. Audit độc lập (security-specialist) xác nhận SQLi/XSS/CSRF/nonce/email-header/Telegram-HTML đã an toàn sẵn; history LƯU SERVER-SIDE (không giả mạo hội thoại được) và output AI đã `esc_html`→`wp_kses_post` (kín XSS). Đã vá:
+- **Prompt-injection hardening** (`class-qcv-chat-llm.php::build_system_prompt`): thêm "NGUYÊN TẮC AN TOÀN" (coi input khách là DỮ LIỆU không phải lệnh; chặn bỏ-qua-chỉ-dẫn/đóng vai/giả định/DAN/giả danh admin/né bằng ngoại ngữ-base64); "BẢO MẬT CHỈ DẪN" (cấm lộ system prompt); rào dữ liệu biz_info/FAQ trong `<thong_tin_doanh_nghiep>`/`<tai_lieu_faq>`. **Chốt chặn đầu ra** `looks_like_prompt_leak()`: nếu model nhả nguyên văn dấu mốc nội bộ → trả từ chối (chống dump prompt).
+- **[CAO] `client_ip()` (`class-qcv-chat-store.php`)**: trước LUÔN tin `X-Forwarded-For`/`X-Real-IP` → gọi thẳng origin đổi header mỗi request = né sạch rate-limit → đốt tiền LLM + dội mail/Telegram + đầu độc log. Vá: chỉ đọc header khi REMOTE_ADDR là **proxy nội bộ** (loopback/private — Tadu chạy cùng máy), ngược lại dùng REMOTE_ADDR. Hàm `is_trusted_proxy()` dùng `FILTER_FLAG_NO_PRIV_RANGE|NO_RES_RANGE`.
+- **Trần LLM toàn cục/giờ** (`api.php::llm_budget_exceeded`, mặc định 500, filter `qcv_chat_llm_hourly_cap`) — lưới thứ hai chống cost-abuse; vượt trần → lùi về FAQ.
+- **[TB] SSRF webhook** (`notify.php`): `wp_remote_post`→**`wp_safe_remote_post`** + `redirection:0` (chặn 169.254.169.254/localhost/nội bộ).
+- **[TB] Key LLM nhồi vào DOM admin** (`admin.php`): thôi echo `ai_key`, dùng placeholder + giữ key cũ khi để trống (giống smtp_pass/tg_token).
+- **[THẤP]**: cắt `phone` 100 ký tự trước regex ở `/lead`; key Gemini chuyển sang header `x-goog-api-key` (không để trên URL → khỏi lọt access-log); thêm `LIBXML_NONET` cho SimpleXML parse .xlsx.
+
+**Hai bài học WP-security tái dùng** (agent nêu, độ tin cao): (1) plugin có REST public + rate-limit theo IP → PHẢI kiểm hàm lấy IP có tin `X-Forwarded-For`/`X-Real-IP`/`CF-Connecting-IP` mù quáng không, và origin có bị gọi thẳng (bỏ qua CDN) không — nếu có thì rate-limit-theo-IP vô hiệu, kéo theo đốt tiền LLM. (2) plugin gọi HTTP tới URL do người dùng cấu hình → dùng `wp_safe_remote_*` chứ KHÔNG `wp_remote_*` (chỉ bản `safe_` mới qua `wp_http_validate_url` chặn IP nội bộ — trái trực giác "WP tự chặn").
 
 **v1.3 — THƯ VIỆN 10 AVATAR DỰNG SẴN (user yêu cầu)**: 5 nam + 5 nữ, bán thân, người châu Á, PNG 256×256 nền trong, ở `assets/avatars/{nam,nu}-{1..5}.png`, tổng **48KB**. Là **hình vẽ minh hoạ phẳng (flat vector), KHÔNG phải ảnh chụp** — đã nói rõ với user trước khi làm. Sinh bằng **`D:\dev\qcv-chat-assistant\gen_avatars.py`** (Python+Pillow, vẽ ở 4× rồi LANCZOS thu nhỏ để khử răng cưa). Style: nam-1/nu-1 tai nghe tư vấn viên, nam-2 vest+cà vạt, nam-3 áo thun tóc vuốt, nam-4/nu-4 kính, nu-2 bob+vest, nu-3 tóc dài, nam-5/nu-5 **không nền tròn** (hợp chế độ icon_bare).
 - **`builtin_avatars()`** liệt kê 10 mã; **`resolve_image()`** đổi `builtin:nam-1` → URL. **Lưu MÃ chứ không lưu URL tuyệt đối** — vì site dựng ở localhost rồi đổi tên miền khi giao khách, URL tuyệt đối sẽ hỏng. `sanitize_image_value()` đối chiếu mã với danh sách thật (chặn nhét bừa đường dẫn) — **`esc_url_raw` XOÁ SẠCH `builtin:xxx`** nên phải tách khỏi `$url_fields`, đây là bẫy dễ dính.
