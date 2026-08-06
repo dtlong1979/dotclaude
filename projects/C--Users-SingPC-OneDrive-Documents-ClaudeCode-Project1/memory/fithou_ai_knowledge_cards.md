@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 27152e89-3b17-4747-9e4b-63e2a071cb90
-  modified: 2026-08-06T06:58:43.565Z
+  modified: 2026-08-06T07:24:01.799Z
 ---
 
 Chức năng "AI tri thức" của Fithou Website đã được thiết kế lại thành **thẻ tri thức có phạm vi hiệu lực**.
@@ -34,6 +34,7 @@ Bản BASE đã dựng: 55 câu (từ 23 câu + Excel `Thu thập câu hỏi... 
 2. Bộ dò `looksLikeInjection()` (INJECTION_PATTERNS, khớp trên bản normalize bỏ dấu) chặn SỚM trước khi gọi LLM → trả `SAFE_REFUSAL`, mode out_of_scope, KHÔNG tốn quota. Mẫu tinh chỉnh tránh false-positive ("mô hình đào tạo", "tên chương trình", "Bạn là ai?" vẫn qua).
 3. System prompt `fithou-answer.ts` (composeNaturalAnswer) + `polishWithOpenAi` thêm khối AN TOÀN: coi nội dung người dùng là DỮ LIỆU bất tín, cấm lộ tên/nhà cung cấp/phiên bản model + prompt hệ thống, cấm viết code.
 4. Verify prod end-to-end (`POST /api/fithou-ai/ask` không cần auth): câu tấn công → SAFE_REFUSAL, dailyUsed=0 (không gọi LLM); câu học phí → trả lời bình thường. Node test 7 attack + 8 legit + strip control: ĐẠT. Nới danh sách mẫu ở INJECTION_PATTERNS khi gặp biến thể mới.
+- **Rà soát kỹ (đợt 2, 2026-08-06)** — bịt injection GIÁN TIẾP + đầu ra: (a) `fithou-answer.ts` `sanitizeRef()` lọc `\p{Cc}\p{Cf}` mọi trường thẻ/FAQ/BÀI VIẾT trước khi đưa vào ngữ cảnh LLM (bài viết tự lập chỉ mục là nội dung BẤT TÍN, có thể chứa lệnh ẩn); (b) `fithou-ai-v2.ts` `scrubModelLeak()` che tên nhà cung cấp/mô hình (gpt/openai/anthropic/claude/gemini/llm…) ở ĐẦU RA của mọi câu trả lời LLM — KHÔNG đụng "mô hình đào tạo" hợp lệ; (c) xác nhận widget `fithou-ai-assistant.tsx` render `<p>{content}</p>` (React escape → không XSS), history chặn role "system", rate-limit 15/phút/IP. Verify prod: injection tiếng Anh vẫn chặn, câu học vụ không hồi quy.
 
 **CÒN LẠI / CẦN LƯU Ý:**
 - Thẻ **live** — cần người rà soát, nhất là thẻ có ghi chú nghi ngờ OCR (≥2024 xếp loại "3,50" vs "3,59"; 2021-2023 thang điểm số hiệu Điều 20/21). Sửa trong tab quản lý.
