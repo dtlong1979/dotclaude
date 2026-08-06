@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 27152e89-3b17-4747-9e4b-63e2a071cb90
-  modified: 2026-08-06T07:24:01.799Z
+  modified: 2026-08-06T07:45:13.831Z
 ---
 
 Chức năng "AI tri thức" của Fithou Website đã được thiết kế lại thành **thẻ tri thức có phạm vi hiệu lực**.
@@ -35,6 +35,9 @@ Bản BASE đã dựng: 55 câu (từ 23 câu + Excel `Thu thập câu hỏi... 
 3. System prompt `fithou-answer.ts` (composeNaturalAnswer) + `polishWithOpenAi` thêm khối AN TOÀN: coi nội dung người dùng là DỮ LIỆU bất tín, cấm lộ tên/nhà cung cấp/phiên bản model + prompt hệ thống, cấm viết code.
 4. Verify prod end-to-end (`POST /api/fithou-ai/ask` không cần auth): câu tấn công → SAFE_REFUSAL, dailyUsed=0 (không gọi LLM); câu học phí → trả lời bình thường. Node test 7 attack + 8 legit + strip control: ĐẠT. Nới danh sách mẫu ở INJECTION_PATTERNS khi gặp biến thể mới.
 - **Rà soát kỹ (đợt 2, 2026-08-06)** — bịt injection GIÁN TIẾP + đầu ra: (a) `fithou-answer.ts` `sanitizeRef()` lọc `\p{Cc}\p{Cf}` mọi trường thẻ/FAQ/BÀI VIẾT trước khi đưa vào ngữ cảnh LLM (bài viết tự lập chỉ mục là nội dung BẤT TÍN, có thể chứa lệnh ẩn); (b) `fithou-ai-v2.ts` `scrubModelLeak()` che tên nhà cung cấp/mô hình (gpt/openai/anthropic/claude/gemini/llm…) ở ĐẦU RA của mọi câu trả lời LLM — KHÔNG đụng "mô hình đào tạo" hợp lệ; (c) xác nhận widget `fithou-ai-assistant.tsx` render `<p>{content}</p>` (React escape → không XSS), history chặn role "system", rate-limit 15/phút/IP. Verify prod: injection tiếng Anh vẫn chặn, câu học vụ không hồi quy.
+
+**TƯ LIỆU CÔNG KHAI mới (2026-08-06):** sinh 16 thẻ auto (`note='auto-ctdt-detail'`, status approved) từ CSDL `hou_cntt` → nạp `fit_hou_cms.fithou_ai_knowledge`: **danh sách môn chi tiết** (học phần bắt buộc + từng chuyên ngành + tự chọn) cho cả 3 CTĐT (CN 126TC, KS 150TC ≥2021, KS 141TC 2015–2020) + 1 thẻ **SV tự tra cứu** (điểm/lịch/công nợ cá nhân → tự kiểm tra trên hệ thống, không lộ). Script `scratchpad/gen_cards.py` (đọc hou_cntt qua SessionLocal, xuất SQL dollar-quote `$c$`); nạp: `docker exec hou-cntt-api cat /tmp/cards_fitcms.sql | docker exec -i postgres psql -U fit_hou -d fit_hou_cms`; **clear cache Directus phải chạy TRONG mạng docker** (`docker exec fithou-web node -e "fetch(DIRECTUS_URL+/utils/cache/clear,POST,Bearer TOKEN)"` — host không phân giải "directus"); có **cache app 60s** trong `fithou-knowledge.ts loadApprovedCards` nên chờ >60s mới thấy thẻ mới. Verify prod: hỏi "môn CNPM cử nhân" → liệt kê đúng 4 môn; "xem điểm" → hướng dẫn tự tra. Re-sinh khi CTĐT đổi.
+**GIẢNG VIÊN — thiếu dữ liệu:** `hou_cntt.can_bo` = 169 dòng, TẤT CẢ ma_dv='A2Tin' (=Khoa CNTT), chỉ có ho_ten + dien_thoai (KHÔNG công khai SĐT) + ma_dv. **KHÔNG có chức danh/chủ đề nghiên cứu** user muốn (Trưởng khoa, tổ trưởng bộ môn, phụ trách lab, văn phòng, nghiên cứu) → chờ user cấp bảng vai trò/nghiên cứu; mặc định "giảng viên"; chỉ cán bộ A2Tin, ngoài CNTT thì bỏ. Chưa dựng thẻ GV.
 
 **CÒN LẠI / CẦN LƯU Ý:**
 - Thẻ **live** — cần người rà soát, nhất là thẻ có ghi chú nghi ngờ OCR (≥2024 xếp loại "3,50" vs "3,59"; 2021-2023 thang điểm số hiệu Điều 20/21). Sửa trong tab quản lý.
