@@ -5,7 +5,10 @@ metadata:
   node_type: memory
   type: project
   originSessionId: cc57e5d5-636d-414f-859f-282a0675e00b
+  modified: 2026-08-06T12:29:47.949Z
 ---
+
+**CHUẨN BỊ LÊN STORE (thử nghiệm) — 2026-08-06:** app Flutter ở `D:\dev\hou-cntt\mobile`, applicationId/namespace `vn.edu.hou.fit.fithouone`, label "Fithou One", version 0.1.0+1, icon adaptive tùy biến, API mặc định HTTPS prod (`https://api.fit.hou.edu.vn/api`, cấu hình `lib/core/config.dart` — dev override bằng `--dart-define=API_BASE=http://10.0.2.2:8000/api`). ĐÃ VÁ 3 điểm release: (1) `android/app/build.gradle.kts` thêm signingConfig đọc `android/key.properties` (chưa có file→fallback debug); (2) bỏ `usesCleartextTraffic=true` → `res/xml/network_security_config.xml` cấm HTTP trừ host dev 10.0.2.2/localhost; (3) manifest `allowBackup=false`. BLOCKER còn lại (user tự làm): tạo upload keystore (`keytool -genkey ... -keystore fithouone-upload.jks -alias upload`) + key.properties, `flutter build appbundle --release`, **targetSdk≥35** (Play bắt buộc từ 08/2025 — cần Flutter mới, đang lấy `flutter.targetSdkVersion`), Data Safety + URL chính sách bảo mật (xin FINE_LOCATION/CAMERA/RECORD_AUDIO/POST_NOTIFICATIONS), tăng versionCode mỗi lần upload. `.gitignore` đã chặn keystore. Chưa cấu hình iOS (icon ios:false). Quyền RECORD_AUDIO=speech_to_text điểm danh giọng nói GV; FINE_LOCATION=điểm danh QR.
 
 Hệ thống quản lý & hỗ trợ học tập nội bộ Khoa CNTT (HOU). Backend Python (FastAPI), mobile Flutter/RN, web admin React. Chức năng: tra cứu lịch/điểm, thủ tục hành chính một cửa, điểm danh QR (GPS Haversine ≤50m + pitch gyroscope), chat lớp học phần, tin tức.
 
