@@ -1,7 +1,15 @@
 ---
 name: write-nlp-paper
 description: >-
-  Default master coordinator for empirical IT / computer-science papers. (rewritten at build time)
+  Default master coordinator for writing any empirical IT / computer-science paper (AI, NLP, ML, data mining, IR
+  , software engineering, security, HCI, systems) in English for Q1 journals; apply by default for any IT/CS pap
+  er. Holds cross-cutting essentials: the whole-paper through-line, the abstract, statistics discipline, hedging
+   vs booster, a non-native-English mistake kill-list, the Vietnamese/low-resource playbook, writing order, and 
+  journal submission compliance (Highlights, Data Availability, CRediT/declarations, where to disclose AI use, r
+  eference styles, novelty-vs-soundness, desk-reject list). Routes to companions write-nlp-intro-related, write-
+  nlp-method-results, write-nlp-discussion-conclusion. Use for any IT/CS paper task, writing the abstract, choos
+  ing a venue, or checking a paper before submission. Triggers: 'viet bai IT', 'viet abstract', 'checklist nop Q
+  1', 'cau truc bai bao', 'bai doc nhu dich may', 'chon tap chi', 'submission compliance'.
 ---
 
 # Write an IT/CS Q1 paper — MASTER coordinator

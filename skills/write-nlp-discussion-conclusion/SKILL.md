@@ -1,7 +1,15 @@
 ---
 name: write-nlp-discussion-conclusion
 description: >-
-  Discussion and conclusion for empirical IT/CS papers. (rewritten at build time)
+  How to write the DISCUSSION and CONCLUSION of an empirical IT / computer-science paper (AI, NLP, ML, IR, softw
+  are engineering, security) in English for Q1 journals. Discussion: interpret WHY/SO-WHAT not repeat results, a
+  nswer the research questions, hedge causal and generalization claims, compare with prior work, and state concr
+  ete limitations. Conclusion: a takeaway message without new numbers, a broader 'so what', and concrete future 
+  work (not 'more data, more models'). Includes English sentence frames, tense and voice, reviewer red flags, no
+  n-native-English fixes, and anti-over-claim discipline. Extra-tuned for Vietnamese/low-resource scope. Pair wi
+  th the write-nlp-paper master. Use when drafting or reviewing the discussion, analysis, limitations, conclusio
+  n, or future work. Triggers: 'ha over-claim trong discussion', 'viet ket luan', 'limitations', 'future work', 
+  'discussion section'.
 ---
 
 # IT/CS paper — Discussion + Conclusion

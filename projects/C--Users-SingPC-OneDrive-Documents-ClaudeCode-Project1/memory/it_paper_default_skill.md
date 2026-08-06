@@ -5,10 +5,10 @@ metadata:
   node_type: memory
   type: feedback
   originSessionId: 10f52cab-5b52-4c22-8c8e-667442039952
-  modified: 2026-08-05T16:04:25.278Z
+  modified: 2026-08-06T02:43:43.584Z
 ---
 
-Khi user viết/soát/chuẩn bị nộp BẤT KỲ bài báo khoa học nào thuộc **chuyên ngành IT/khoa học máy tính** (AI, NLP, ML, khai phá dữ liệu, IR, kỹ nghệ phần mềm, mạng, an ninh, HCI, hệ thống…), MẶC ĐỊNH áp dụng skill [[write-nlp-paper-skill]] (`~/.claude/skills/write-nlp-paper/`) — không chỉ riêng bài NLP/AI.
+Khi user viết/soát/chuẩn bị nộp BẤT KỲ bài báo khoa học nào thuộc **chuyên ngành IT/khoa học máy tính** (AI, NLP, ML, khai phá dữ liệu, IR, kỹ nghệ phần mềm, mạng, an ninh, HCI, hệ thống…), MẶC ĐỊNH áp dụng bộ skill [[write-nlp-paper-skill]] — không chỉ riêng bài NLP/AI. Bộ này nay là **master `write-nlp-paper` + 3 skill con** (intro-related, method-results, discussion-conclusion); master tự định tuyến sang skill con theo phần đang viết.
 
 **Why:** user chốt (2026-08-05) rằng bộ guideline + skill này là chuẩn viết bài dùng chung cho mọi bài IT về sau, không phải công cụ một lần cho project surface-reliance.
 

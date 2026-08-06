@@ -5,10 +5,10 @@ metadata:
   node_type: memory
   type: reference
   originSessionId: 10f52cab-5b52-4c22-8c8e-667442039952
-  modified: 2026-08-05T16:00:14.075Z
+  modified: 2026-08-06T02:43:32.263Z
 ---
 
-Skill **`write-nlp-paper`** ở `~/.claude/skills/write-nlp-paper/` (user-level, sync đa máy qua dotclaude) — hướng dẫn viết/soát TỪNG PHẦN bài báo Q1 AI/NLP tiếng Anh.
+Skill viết bài Q1 IT/CS tiếng Anh. **TÁCH 4 SKILL** (để mỗi description ≤1024 + gọn theo cụm): master `write-nlp-paper` (Abstract 01 + tuân thủ nộp bài 08 + GUIDELINE + 8 nguyên tắc + định tuyến) · `write-nlp-intro-related` (02,03) · `write-nlp-method-results` (04,05) · `write-nlp-discussion-conclusion` (06,07). Skill con đều [[write-nlp-paper]]. Ở `~/.claude/skills/` (sync đa máy qua dotclaude). Bundle upload ở Project1/skill-bundles/ (8 zip: 4 nlp + 4 onomastics).
 
 - `SKILL.md` = điểm vào: 7 nguyên tắc trùm, thẻ tiếng Việt/ít tài nguyên, kill-list lỗi non-native, thứ tự viết, lưu ý tra cứu.
 - `references/01..07-*.md` = phân tích từng phần (moves, sentence frames EN, thì/giọng, reviewer red flag, lỗi non-native, checklist, ví dụ trước→sau). Do 7 subagent `researcher` chạy song song, mỗi agent grounding bằng ví dụ THẬT từ ACL/EMNLP/arXiv (PhoBERT, ViSoBERT, HANS, Gururangan, EURO-5K…).

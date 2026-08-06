@@ -1,7 +1,15 @@
 ---
 name: write-nlp-intro-related
 description: >-
-  Introduction and related work for empirical IT/CS papers. (rewritten at build time)
+  How to write the INTRODUCTION and RELATED WORK of an empirical IT / computer-science paper (AI, NLP, ML, IR, s
+  oftware engineering, security, HCI) in English for Q1 journals. Introduction: the Swales CARS moves (territory
+  , gap, occupy), a falsifiable research gap, and contributions mapping one-to-one to results. Related work: the
+  matic synthesis by research line (one claim per sentence, grouped citations) not an annotated bibliography, po
+  sitioning 'unlike X, we...', and polite limitation framing. Includes English sentence frames, tense and voice,
+   reviewer red flags, and non-native-English fixes. Extra-tuned for Vietnamese/low-resource framing (typology, 
+  not 'first for Vietnamese'). Pair with the write-nlp-paper master. Use when drafting or reviewing the introduc
+  tion, motivation, research gap, contributions, related work, or background. Triggers: 'viet phan mo dau', 'cau
+   truc related work', 'related work doc nhu liet ke', 'contributions', 'research gap'.
 ---
 
 # IT/CS paper — Introduction + Related work

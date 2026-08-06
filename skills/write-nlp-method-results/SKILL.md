@@ -1,7 +1,16 @@
 ---
 name: write-nlp-method-results
 description: >-
-  Methods and results for empirical IT/CS papers. (rewritten at build time)
+  How to write the METHODS and RESULTS/EXPERIMENTS of an empirical IT / computer-science paper (AI, NLP, ML, IR,
+   software engineering, security) in English for Q1 journals. Methods: reproducibility-first — data and preproc
+  essing, model, training details (seeds, hardware, model selection), fair baselines, metrics with a reason, eth
+  ics/data statements. Results: present WHAT not WHY, mean and standard deviation over seeds, significance tests
+  , points vs percent, honest reporting of losses, ablations and error analysis, table-text consistency. Include
+  s English sentence frames, tense and voice, reviewer red flags, non-native-English fixes. Extra-tuned for Viet
+  namese/low-resource data (word segmentation, diacritics, Unicode NFC, annotation and inter-annotator agreement
+  ). Pair with the write-nlp-paper master. Use when drafting or reviewing the methods, experimental setup, resul
+  ts, or experiments. Triggers: 'viet phan methods', 'lam results manh hon', 'reproducibility', 'significance te
+  st', 'ablation'.
 ---
 
 # IT/CS paper — Methods + Results/Experiments
