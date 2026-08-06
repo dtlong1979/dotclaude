@@ -5,10 +5,15 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 27152e89-3b17-4747-9e4b-63e2a071cb90
-  modified: 2026-07-27T13:33:42.602Z
+  modified: 2026-08-06T13:29:31.911Z
 ---
 
 Tài khoản test tạo trong quá trình dựng pilot hou-cntt (DB `hou_cntt` trên sscfit). **XÓA hết trước khi go-live.** Mật khẩu tất cả: `Test@2026`.
+
+**TÀI KHOẢN PLAY REVIEW (2026-08-06) — GIỮ LẠI, KHÔNG xóa như đám trên:** để điền mục "App access" của Google Play (reviewer đăng nhập). Tạo trong `hou_cntt.tai_khoan`, hash pbkdf2_sha256, mật khẩu chung `Fithou#Review2026`:
+- `sv.review.play` — vai_tro SV, gắn sinh_vien `TEST000001` (Cử nhân 2022, lớp TEST-REVIEW, ghi_chu "KHONG XOA").
+- `gv.review.play` — vai_tro GV (ma_cb null → dashboard GV rỗng nhưng app điều hướng được).
+Đã verify login qua API nội bộ: HTTP 200, đúng vai_tro, có token. Tạo bằng script python trong container `docker exec ... fithouone-hou-cntt-api-1 python -` dùng `app.core.security.hash_password`. Package name app: `vn.edu.hou.fit.fithouone`.
 
 - Vai trò web-admin test: `admin_test`, `giaovu_test`, `vanphong_test` (đều vai_tro=GV + admin_role tương ứng), `sv_test` (SV, mssv 21A100100036), `gv_test` (GV).
 - **`giangvien_test`** — vai trò web `giangvien` (mới), gán ma_cb=CH0159 (mượn 3 lớp CVHT của chính Đinh Tuấn Long: 2110A05, 2110A05KS, 2510A01 = 68 SV) để test scoping. Xóa cả bản ghi này.
