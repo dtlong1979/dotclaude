@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 098983c5-111d-4c37-8f4b-0192c1ed7235
-  modified: 2026-08-10T06:24:56.520Z
+  modified: 2026-08-10T06:36:25.838Z
 ---
 
 Nhập Thời khóa biểu (importer `schedule.py`, format LICH) + lịch giảng của GV ở hou-cntt (D:\dev\hou-cntt, deploy `~/code/fithouone/fithouone-deploy`, container `fithouone-hou-cntt-api-1`, DB `fithouone-postgres-1`).
@@ -21,6 +21,8 @@ Nhập Thời khóa biểu (importer `schedule.py`, format LICH) + lịch giản
 **Hiển thị THEO TUẦN:** `lich_giang` (GV) và `/me/schedule` (SV) chỉ trả buổi THỰC SỰ diễn ra trong tuần chứa tham số `ngay` (mặc định tuần hiện tại) — buổi chưa tới/đã hết ngày học thì ẩn. Điều kiện `_TRONG_TUAN`: `date_trunc('week', ngay)::date + (thu-2)` phải nằm trong `[tu_ngay, den_ngay]`. Endpoint nhận `?ngay=YYYY-MM-DD` để điều hướng tuần; trả thêm `tuan{tu_ngay,den_ngay}`. Frontend Flutter (`mobile/`, màn `schedule_screen.dart` dùng `/me/schedule`) chưa có nút chuyển tuần — backend default tuần hiện tại đã đủ ẩn buổi chưa tới; muốn chuyển tuần phải build lại APK.
 
 **Import KHÔNG PHÁ / không trùng (lần import sau):** đồng bộ `lich_hoc` theo khóa tự nhiên `(thu, ca_hoc, tu_tiet, ma_gv)` — chỉ CẬP NHẬT buổi khác + THÊM buổi mới cho lớp CÓ trong file; KHÔNG xóa buổi/lớp nào, KHÔNG tạo trùng. `ma_gv` đã BỎ khỏi `FormatSpec.cot` (framework không quản) để `_after_apply` đặt mã chuẩn, tránh báo "capnhat" giả. BẪY tên trùng: `_resolve_gv` suy mã theo tên chỉ khi tên DUY NHẤT; "Bùi Anh Tuấn" có TG3001 (người khác) nên KHÔNG suy được TG5663→KG0528 → dùng dict `_MA_GV_SUA={TG5663:KG0528, CH0148:TG5712}` trong schedule.py (bổ sung khi gặp mã nhầm mới). Đã verify nhập lại 2 lần: 0 thêm/0 sửa/0 trùng.
+
+**Chính sách NGÀY BẮT ĐẦU theo khóa:** file TKB để ngày bắt đầu chung (10/08) không đúng thực tế; dict `_KHOA_START` trong schedule.py chỉnh: buổi sớm nhất của khóa rơi vào ngày cấu hình, cả khối dời theo độ lệch cố định (giữ số tuần). Đã đặt `K26 -> 2026-09-07` (SV năm nhất bắt đầu sau tuần đầu tháng 9; +28 ngày). Áp trong `_after_apply` (bước 2b) nên import lại KHÔNG lùi về tháng 8 (đã verify idempotent). Đã dời prod 32 buổi K26 (backup `lich_hoc_bak_k26_20260810`). CẬP NHẬT dict này mỗi kỳ.
 
 **CÒN TREO (chờ dữ liệu):** user muốn XÓA các lớp 0 SV (chưa chính thức), nhưng hiện `dang_ky_hoc_ky` chỉ có 1 dòng → đăng ký học phần SV CHƯA nhập, mọi lớp đều 0 SV. Nếu xóa ngay sẽ mất sạch 110 lớp. Đã chốt: TẠM CHƯA LÀM GÌ, chờ user cấp file đăng ký học phần (SV↔ma_lop_tc) → nhập (format REGIST, registration.py) → rồi mới dọn lớp còn 0 SV.
 
