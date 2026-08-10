@@ -1,0 +1,21 @@
+---
+name: hou_cntt_lich_giang_import
+description: "HOU-CNTT nhập TKB + nối GV: chỉ sheet Full, GV theo buổi (LT/TH), bảng mã cas_canbo"
+metadata: 
+  node_type: memory
+  type: project
+  originSessionId: 098983c5-111d-4c37-8f4b-0192c1ed7235
+  modified: 2026-08-10T05:59:28.738Z
+---
+
+Nhập Thời khóa biểu (importer `schedule.py`, format LICH) + lịch giảng của GV ở hou-cntt (D:\dev\hou-cntt, deploy `~/code/fithouone/fithouone-deploy`, container `fithouone-hou-cntt-api-1`, DB `fithouone-postgres-1`).
+
+**Quy tắc nhập TKB (đã chốt):** chỉ lấy sheet tên chứa "Full" (HKI_Full); BỎ lớp không có GV (`Ma_giao_vien` = #N/A/rỗng); khử trùng buổi; **đối chiếu TÊN để sửa mã GV sai** (mã không có trong `can_bo` nhưng tên "Giáo viên" — hàng tiêu đề phụ, row 3 — khớp DUY NHẤT 1 cán bộ thì dùng mã đó); tự thêm GV thiếu vào `can_bo`; DỌN lớp cùng kỳ không thuộc Full (xóa buổi; xóa lớp nếu 0 đăng ký). Kết quả kỳ I 2026-2027: 110 lớp / 132 buổi.
+
+**Lớp dạy ghép (lý thuyết + thực hành = 2 GV khác nhau):** đã thêm cột `lich_hoc.ma_gv` (GV theo TỪNG BUỔI). `lop_tin_chi.ma_gv` chỉ là GV đầu tiên (nhãn/fallback). `diem_danh_gv.lich_giang/lop_cua_gv/_so_huu` + dashboard `dac_biet` (giang_vien.py) đã sửa để nhận GV theo buổi qua `COALESCE(h.ma_gv, l.ma_gv)` / `EXISTS(lich_hoc.ma_gv=cb)`. Mỗi GV chỉ thấy buổi mình dạy.
+
+**Nối cán bộ khi đăng nhập:** bảng `cas_canbo(tk_cas→ma_cb, ho_ten, don_vi)` là "bảng mã ánh xạ" (nạp từ HR `Danh sách cán bộ...xls`, cột TKCAS). `core_auth._lookup_canbo` tra bảng này. ĐÃ vá `cas.py` callback: khi GV đăng nhập CAS-ticket lần đầu (username không phải mã SV dạng số) → tạo TK vai trò GV + gán `ma_cb` từ cas_canbo (trước đây để trống → lịch giảng rỗng). Không tạo sẵn tai_khoan; để CAS tự sinh khi đăng nhập lần đầu. Chỉ 26 cán bộ dùng workload; còn lại đăng nhập app đều vào vai trò GV.
+
+**Mã bị gán nhầm trong file TKB 2026.08:** CH0148 = Trương Tiến Tùng (đúng TG5712, CAS tttung); TG5663 = Bùi Anh Tuấn (đúng KG0528, CAS batuan). Trần Tiến Dũng: (B)=CH0170/ttdung, (C)=CH0411/ttdung2. 10 GV thỉnh giảng ngoài HR (Ngô Quốc Tạo, Đào Thanh Tĩnh…) không có tài khoản CAS — ADMIN vẫn xem được lịch.
+
+Backup trước khi sửa prod: `lop_tin_chi_bak_20260810`, `lich_hoc_bak_20260810` (349 gốc), `lich_hoc_bak2_20260810` (233). Liên quan [[hou_cntt_app]], [[hou_cntt_xet_tot_nghiep_import]], [[password_cas_vs_local]].
