@@ -5,13 +5,15 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 27152e89-3b17-4747-9e4b-63e2a071cb90
-  modified: 2026-08-11T10:36:33.386Z
+  modified: 2026-08-11T11:24:05.671Z
 ---
 
 **NGUYÊN TẮC (giáo vụ chốt 2026-08-11):** Môn chuyên ngành + môn tự chọn đều là "tự chọn". SV thuộc chuyên ngành nào thì khối **"Chọn 1 khối" (K6.CN)** CHỈ tính môn **định hướng đúng track** của SV; môn định hướng của **track KHÁC** và môn **tự do (ma_cn='NONE')** → **dồn sang khối "Tự chọn" (TC)**.
 
 **BUG đã sửa (graduation.py):** chuyên ngành `NONE` ("Không theo chuyên ngành") có **id thật** (vd id=4, ctdt 1) chứ không NULL. Code cũ `_tc_khoi` lấy MAX-theo-track với logic chia sẻ `None in cns` → NONE biến thành **1 track riêng**, MAX chọn nhầm → đếm SAI (đồng thời **giấu** SV chưa hoàn tất chuyên ngành nào). Vd 22A1001D0268(SE) hiện 11 (đúng 10); 22A1001D0368(MT) hiện 8 (đúng: 8/10 **thiếu thật** vì thiếu "Lý thuyết thiết kế giao diện người dùng").
 
-**MÔ HÌNH MỚI (`block_credits`):** dùng `chuyen_nganh_du_doan` của SV (`_declared_ma`). Khối CN: `dat = Σ TC môn ĐẠT có declared ∈ ma_cn`; môn ĐẠT khác track/tự do → `spill` → cộng vào khối TC (khử trùng theo hid). `_FW_CN` trả `cn.ma_cn` (SE/MT/NS/NONE), `_fw_by_block` gom set ma_cn. `cheo=True` hoặc SV chưa rõ CN → gộp mọi môn (nới). `block_courses` drill-down khớp: khối CN chỉ hiện môn đúng track + `da_dat_ngoai_track` (môn track khác, ghi "tính sang Tự chọn"); khối TC gộp thêm spillover (cờ `tu_chuyen_nganh`). Web app.js?v=22 + app graduation_section.dart đã render nhóm mới.
+**ĐẶC THÙ "CNTT KHÔNG PHÂN CHUYÊN NGÀNH" (track NONE) — QUAN TRỌNG:** NONE là 1 LỰA CHỌN chuyên ngành thật, yêu cầu = **4 môn**: 1 môn cố định (Nhập Môn CNPM, `nhom_tu_chon` NULL) + **mỗi CẶP chọn 1** trong 3 nhóm `nhom_tu_chon` (CN.NONE.G1 Web|Mobile; G2 Lý thuyết TKGDND|Quản trị Linux; G3 An ninh mạng|Thiết kế đồ họa) = 10 TC. Cột **`ctdt_hoc_phan.nhom_tu_chon`** mã hóa các cặp này.
 
-**HỆ QUẢ (đã kiểm chứng):** nhiều SV rải đều nhiều track mà không hoàn tất track nào giờ hiện **CN thiếu ĐÚNG** (vd 22A1001D0034/0109: mỗi track 5 TC, tổng ≥129 nhưng không track nào đủ 10). Đây là ca "đủ tổng TC nhưng chưa xong chuyên ngành" — cần bổ sung môn track. Liên quan [[hou_cntt_xet_tot_nghiep_import]] [[hou_cntt_ren_luyen_warnings]] [[hou_cntt_grade_import_scale_bug]].
+**MÔ HÌNH (`block_credits` + `_cn_patterns`):** khối K6.CN `dat = MAX` hoàn tất trong {track SE, MT, NS (gộp môn định hướng của track = 10), gói NONE (cố định + mỗi cặp chọn 1)}. `du = dat>=10`. Môn ĐẠT KHÔNG thuộc pattern THẮNG → `spill` → cộng khối TC (khử trùng hid). `_FW_CN` trả `cn.ma_cn`+`nhom_tu_chon`; `_fw_by_block` gom set `(ma_cn,nhom)`. `_cn_patterns` trả `(dat, used_hids, label)`. `cheo=True` → gộp mọi môn (nới). `block_courses` khớp pattern thắng: khối CN chỉ hiện môn trong pattern + `da_dat_ngoai_track`; khối TC gộp spillover (`tu_chuyen_nganh`); trả `pattern_chuyen_nganh` (SE/MT/NS/NONE) để UI hiện "Xét đủ khối theo:". Web app.js?v=23 + app 0.1.4+5.
+
+**HỆ QUẢ (đã kiểm chứng):** SV rải nhiều track mà thỏa gói NONE giờ **ĐỦ đúng** qua pattern NONE (vd 22A1001D0034/0109). SV không hoàn tất track nào LẪN NONE mới thiếu thật (vd 22A1001D0368 thiếu "Lý thuyết TK GDND"). Khóa 2022: 71 đủ (MT34/SE30/NS4/NONE3), chỉ 1 SV "đủ tổng nhưng CN thiếu". **CẢNH BÁO còn treo:** `chuyen_nganh_du_doan` (db/08) KHÔNG dự đoán NONE → SV thắng qua NONE vẫn hiện nhãn "dự đoán MT/SE" ở header (lệch); block vẫn đúng. Nên nâng dự đoán nhận NONE sau. Liên quan [[hou_cntt_xet_tot_nghiep_import]] [[hou_cntt_ren_luyen_warnings]] [[hou_cntt_grade_import_scale_bug]].
