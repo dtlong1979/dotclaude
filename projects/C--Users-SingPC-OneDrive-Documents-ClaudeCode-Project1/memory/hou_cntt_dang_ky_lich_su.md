@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 27152e89-3b17-4747-9e4b-63e2a071cb90
-  modified: 2026-08-13T07:44:23.087Z
+  modified: 2026-08-13T08:45:46.063Z
 ---
 
 Bảng **`dang_ky_lich_su`** (hou-cntt, DB `fithouone-postgres-1`) lưu LỊCH SỬ đăng ký tín chỉ của SV theo từng học kỳ — mục đích: phát hiện SV **có dấu hiệu bỏ học** (không đăng ký môn nào trong các kỳ CHÍNH liên tiếp). Chỉ cần biết SV có đăng ký học phần nào trong kỳ cụ thể hay không.
@@ -32,4 +32,9 @@ Bảng **`dang_ky_lich_su`** (hou-cntt, DB `fithouone-postgres-1`) lưu LỊCH S
 
 **Xếp lớp GỘP (services/xep_lop.py `goi_y_tong_hop` + `GET /admin/xep-lop/ket-hop[/excel]`):** 1 luồng = (1) bỏ SV nghi bỏ học + xếp vào lớp đã mở còn chỗ (`goi_y(exclude=)`, trả `_assigned`); (2) `de_xuat_mo_lop(exclude=, already=)` cho nhu cầu CÒN LẠI (trừ SV đã xếp bước 1). Trả 2 DS tách bạch `bo_sung`/`mo_moi`. UI `pageXepLop` gộp 1 nút "Xếp lớp" (bỏ tab-switch cũ ①/②), Excel 2 sheet. Tại build: bỏ 27, bước1 xếp 273 SV-lớp/67 lớp, bước2 mở 9 lớp/382 SV. web-admin **v=50**.
 
-Liên quan [[hou_cntt_app]], [[hou_cntt_lich_giang_import]], [[hou_cntt_ren_luyen_warnings]].
+**Sửa lỗi (đợt test thực tế):**
+1) **JOIN điểm phải theo `hoc_phan_id`, KHÔNG theo `ma_hp_goc`** — `ket_qua_hoc_phan.ma_hp_goc` RỖNG ở ~15% bản ghi (6180/39888; vd Toán rời rạc `7C2018.17` rỗng 139/422) → học bạ & logic "trượt hết prev2" bị hụt điểm. Đã đổi cả `admin.lich_su_sinh_vien` và `dropout.nghi_bo_hoc` sang `JOIN hoc_phan hp ON hp.id=k.hoc_phan_id AND hp.ma_hp=split_part(reg.ma_hp,'(',1)`. Sau fix dropout 27→22 (bớt false "trượt hết").
+2) **Xếp lớp thiếu-TC phải theo CTĐT + TRACK của SV** — trước lấy BỪA mọi môn còn trống chỗ (vd nhét "Chuyên đề TT CNĐPT" `7C2073.17` = CTĐT cũ .17 cho SV K22/23 track khác). Đã thêm `_eligible(m)` = `ctdt_hoc_phan` của `sinh_vien.ctdt_id`, lọc `chuyen_nganh` theo `sinh_vien.chuyen_nganh_du_doan` (ma_cn None/NONE=môn chung, hoặc == track SV). `other` chỉ lấy từ `_eligible`. Kết quả: SV 22A1001D0255 (ctdt 2, track NS) hết bị nhét CNĐPT; môn CNĐPT chỉ còn SV K19/20.
+3) **Mở lớp (bước 2) = nhu cầu CHƯA xếp của SV nợ/thiếu (KHÔNG toàn bộ SV)** — `goi_y` trả `_unmet{hpid:{mssv}}` (bounded theo thiếu hụt TC còn lại, duyệt nợ trước) + `_proposed_lich`; `de_xuat_mo_lop(demand=, extra_lich=)` dùng demand thay vì tự tính owing. Verify: 6 lớp đề xuất (Lập trình HSK, Giải tích 2, XSTK…) 30–54 SV, 0 nghi-bỏ-học lẫn vào.
+
+Liên quan [[hou_cntt_app]], [[hou_cntt_lich_giang_import]], [[hou_cntt_ren_luyen_warnings]], [[hou_cntt_block_credit_model]].
