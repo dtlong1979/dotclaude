@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 27152e89-3b17-4747-9e4b-63e2a071cb90
-  modified: 2026-08-13T08:45:46.063Z
+  modified: 2026-08-13T09:23:49.292Z
 ---
 
 Bảng **`dang_ky_lich_su`** (hou-cntt, DB `fithouone-postgres-1`) lưu LỊCH SỬ đăng ký tín chỉ của SV theo từng học kỳ — mục đích: phát hiện SV **có dấu hiệu bỏ học** (không đăng ký môn nào trong các kỳ CHÍNH liên tiếp). Chỉ cần biết SV có đăng ký học phần nào trong kỳ cụ thể hay không.
@@ -36,5 +36,11 @@ Bảng **`dang_ky_lich_su`** (hou-cntt, DB `fithouone-postgres-1`) lưu LỊCH S
 1) **JOIN điểm phải theo `hoc_phan_id`, KHÔNG theo `ma_hp_goc`** — `ket_qua_hoc_phan.ma_hp_goc` RỖNG ở ~15% bản ghi (6180/39888; vd Toán rời rạc `7C2018.17` rỗng 139/422) → học bạ & logic "trượt hết prev2" bị hụt điểm. Đã đổi cả `admin.lich_su_sinh_vien` và `dropout.nghi_bo_hoc` sang `JOIN hoc_phan hp ON hp.id=k.hoc_phan_id AND hp.ma_hp=split_part(reg.ma_hp,'(',1)`. Sau fix dropout 27→22 (bớt false "trượt hết").
 2) **Xếp lớp thiếu-TC phải theo CTĐT + TRACK của SV** — trước lấy BỪA mọi môn còn trống chỗ (vd nhét "Chuyên đề TT CNĐPT" `7C2073.17` = CTĐT cũ .17 cho SV K22/23 track khác). Đã thêm `_eligible(m)` = `ctdt_hoc_phan` của `sinh_vien.ctdt_id`, lọc `chuyen_nganh` theo `sinh_vien.chuyen_nganh_du_doan` (ma_cn None/NONE=môn chung, hoặc == track SV). `other` chỉ lấy từ `_eligible`. Kết quả: SV 22A1001D0255 (ctdt 2, track NS) hết bị nhét CNĐPT; môn CNĐPT chỉ còn SV K19/20.
 3) **Mở lớp (bước 2) = nhu cầu CHƯA xếp của SV nợ/thiếu (KHÔNG toàn bộ SV)** — `goi_y` trả `_unmet{hpid:{mssv}}` (bounded theo thiếu hụt TC còn lại, duyệt nợ trước) + `_proposed_lich`; `de_xuat_mo_lop(demand=, extra_lich=)` dùng demand thay vì tự tính owing. Verify: 6 lớp đề xuất (Lập trình HSK, Giải tích 2, XSTK…) 30–54 SV, 0 nghi-bỏ-học lẫn vào.
+
+4) **Tách nhãn NỢ vs BỔ SUNG TC khi xếp lớp** — trước gộp chung nên nhìn như "nợ rất nhiều" (vd Toán RR xếp 85 SV nhưng chỉ 13 nợ thật, 71 là SV thiếu TC học lần đầu theo CTĐT). Mỗi SV được xếp có `loai` = 'no'/'bo_sung'; kết quả có `so_goi_y_no`/`so_goi_y_bo_sung`, mỗi lớp có `so_no`/`so_bo_sung`; UI + Excel (cột Diện) tách rõ.
+
+5) **LỚP HỌC GHÉP (`_merge_groups`)** — nhiều mã lớp KHÁC nhau (thường khác khóa/CTĐT: vd "Toán rời rạc" mã K22 `7C2018.17` + mã K24 `7E1005.22`) nhưng **cùng buổi+phòng+GV** = 1 lớp VẬT LÝ, chung sức chứa 48-55. `xep_lop._merge_groups(db)` union-find các ma_lop_tc chia sẻ ≥1 buổi `(thu,tu_tiet,den_tiet,ma_phong,ma_gv)`. `goi_y` tính sức chứa theo NHÓM (`group_base`=Σ sĩ số mọi thành viên, `group_add` chung) thay vì từng mã → hết nhồi quá phòng (trước P44 base 7 nhưng thật 7+60=67 đã quá 55 vẫn bị +47). SV vẫn route vào MÃ đúng khóa (tự động vì xếp theo hoc_phan_id của CTĐT SV), nhưng chiếm chỗ tính chung phòng. Output mỗi lớp có `ghep/ghep_ma/si_so_nhom/occ_nhom/con_trong_nhom/suc_chua_phong`.
+**Quy tắc gộp (đã tinh chỉnh):** phòng VẬT LÝ gộp theo `(thu, tu_tiet, ma_phong)` — BẤT KỂ GV (nhiều lớp ghép để TRỐNG mã GV ở 1 mã, vd K22-7C2072.17-1 GV rỗng ghép K23-7E1026.22-1 GV CH0435 tại P52; có 26 buổi phòng vật lý GV rỗng). Phòng ONLINE/ảo (tên chứa "online") mới cần cùng GV (nhiều lớp online trùng 'phòng' ảo). 1 phòng vật lý = 1 lớp/thời điểm nên trùng phòng+buổi chắc chắn là ghép.
+**Sức chứa theo PHÒNG:** P51/P52 = phòng học ghép LỚN, trần **80** SV (`_cap_phong`, regex `P5[12]\b`); còn lại 48 chuẩn/55 max. `goi_y` dùng `cap_std(g)/cap_max(g)` theo `group_room`. Verify: 11 nhóm ghép (23 mã), 0 lớp vượt trần phòng; lớp Design-UI ghép P52 base 64→nạp 80/80. web-admin v=53.
 
 Liên quan [[hou_cntt_app]], [[hou_cntt_lich_giang_import]], [[hou_cntt_ren_luyen_warnings]], [[hou_cntt_block_credit_model]].
