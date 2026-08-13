@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 27152e89-3b17-4747-9e4b-63e2a071cb90
-  modified: 2026-08-13T13:58:49.784Z
+  modified: 2026-08-13T14:42:06.044Z
 ---
 
 Xây **Cổng Sinh viên** (bản web của app di động) tại `fit.hou.edu.vn/sinhvien`, định hướng về sau có **portfolio public xác thực được** (gửi nhà tuyển dụng/minh chứng) và **SV tự kê khai rèn luyện + ảnh minh chứng** (KHÔNG chấm điểm — chấm ĐRL ở hệ khác; chỉ kê khai theo khung 5 tiêu chí TT16/2015-BGDĐT + cấp link public xem).
@@ -25,4 +25,12 @@ Backend mount `/sinhvien` = StaticFiles `web-sv/` (giống web-admin ở `/admin
 
 **Nguồn hồ sơ K25:** `D:\Downloads\Phiếu thông tin sinh viên mới (Responses).xlsx` — Google Form 369 SV, các trường: cơ bản+giới tính+ngày sinh+SĐT, địa chỉ thường trú/trọ, THPT, 6 hoạt động đoàn thể (bool), phụ huynh (họ tên/SĐT/email/nơi làm/địa chỉ), tự giới thiệu, công việc mơ ước, 16 kỹ năng CNTT thang 1-5. CHỈ K25 có bộ này; K21-24 trống → cần importer map.
 
-**Việc còn (chưa làm):** importer form K25 → sv_ho_so_mo_rong; nối SPA vào API thật (prefs/hồ sơ/lịch 3 ca/nhiệm vụ/portfolio); endpoints portfolio + kê khai rèn luyện + upload ảnh (MinIO 2 bucket); trang public `/sv/{slug}` + QR xác thực; deploy (scp fithouone-deploy + build hou-cntt-api + reload nginx). Liên quan [[hou_cntt_app_audit_log]] [[fithou_minio_storage]] [[fithou_server_infra]].
+**ĐÃ DEPLOY PROD + verify (2026-08-13), LIVE tại `https://fit.hou.edu.vn/sinhvien`** (200, same-origin, không lộ api.*). Đường phục vụ: website Next.js (`Fithou Website/next.config.ts` thêm `rewrites()` `/sinhvien(/:path*)` → `http://hou-cntt-api:8000/sinhvien/...`) → backend. Backend middleware `SinhVienPathRewrite` đổi `/sinhvien/api`→`/api`, `/sinhvien/uploads`→`/uploads`. BẪY đã vá: StaticFiles mount `/sinhvien` redirect 307 ra URL tuyệt đối nội bộ (hou-cntt-api:8000) vỡ qua proxy → thêm route `@app.get('/sinhvien','/sinhvien/')` trả FileResponse(index.html) TRƯỚC mount. Fallback `admin.fit.hou.edu.vn/sinhvien` cũng chạy (nhưng cert LE chỉ cho sscfit.hou.edu.vn → SAN mismatch, dùng fit.hou.edu.vn là chính).
+
+**Deploy cơ chế THỰC (khác memory cũ):** server sscfit, deploy dir `/home/fitadm/code/fithouone/fithouone-deploy`, siblings `hou-cntt`/`Fithou Website`/`workload`. KHÔNG có sudo (không sửa/reload nginx host `/etc/nginx/conf.d/fithouone.conf` được) → PHẢI đi đường docker + Next rewrite. Docker chạy KHÔNG cần sudo (fitadm trong group docker). Edge = **nginx HOST** (không phải container). `docker compose build/up <svc>` từ deploy dir; Dockerfile `COPY . .` nên web-sv baked vào image. Rollback images đã tag: `houcntt-rollback:pre-svportal`, `fithouweb-rollback:pre-svportal`; backup `.bak.svportal` cho main.py & next.config.ts.
+
+**Import K25 XONG:** `python -m app.scripts.import_k25 <json>` chạy trong container. Khớp theo họ tên+lớp+ngày sinh, KHÓA `khoa=2025` (KHÔNG phải 25!), lớp form `25A05` ↔ DB `2510A05` (khớp bằng 2 số đầu + đuôi `A05`). Kết quả: **306 SV K25 có hồ sơ dày** (SĐT+phụ huynh+kỹ năng), 347 lượt khớp gộp còn 306 (form nộp trùng), 22 chưa khớp (sai chính tả/biến thể dấu — cần rà tay), backfill ngày sinh 338 SV (validate 1990-2012, bỏ ngày rác).
+
+**Bảo mật đã rà (agent) + vá:** không IDOR/SQLi. Vá: lọc URL http/https (chống XSS javascript:) ở links/avatar; SPA/p.html escape mọi field bằng `esc()`; upload giới hạn 5MB + validate mssv `^[A-Za-z0-9]+$`. CHẤP NHẬN v1: `/uploads` world-readable (uuid) — minh chứng vốn để chia sẻ public; private-bucket MinIO để pha sau.
+
+**CÒN LẠI:** (1) chưa thêm NÚT ĐĂNG NHẬP trên trang chủ fit.hou.edu.vn (cần chốt vị trí/thiết kế — chưa đụng homepage website); (2) chưa verify luồng ĐĂNG NHẬP SV thật (không có tài khoản/mật khẩu SV — user tự kiểm online); (3) 22 SV K25 chưa khớp import; (4) MinIO private-bucket cho minh chứng; (5) QR xác thực khi xuất PDF portfolio. Liên quan [[hou_cntt_app_audit_log]] [[fithou_minio_storage]] [[fithou_server_infra]].
