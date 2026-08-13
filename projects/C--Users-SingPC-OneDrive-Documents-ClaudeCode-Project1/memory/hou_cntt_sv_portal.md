@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 27152e89-3b17-4747-9e4b-63e2a071cb90
-  modified: 2026-08-13T14:42:06.044Z
+  modified: 2026-08-13T15:51:42.772Z
 ---
 
 Xây **Cổng Sinh viên** (bản web của app di động) tại `fit.hou.edu.vn/sinhvien`, định hướng về sau có **portfolio public xác thực được** (gửi nhà tuyển dụng/minh chứng) và **SV tự kê khai rèn luyện + ảnh minh chứng** (KHÔNG chấm điểm — chấm ĐRL ở hệ khác; chỉ kê khai theo khung 5 tiêu chí TT16/2015-BGDĐT + cấp link public xem).
@@ -33,4 +33,6 @@ Backend mount `/sinhvien` = StaticFiles `web-sv/` (giống web-admin ở `/admin
 
 **Bảo mật đã rà (agent) + vá:** không IDOR/SQLi. Vá: lọc URL http/https (chống XSS javascript:) ở links/avatar; SPA/p.html escape mọi field bằng `esc()`; upload giới hạn 5MB + validate mssv `^[A-Za-z0-9]+$`. CHẤP NHẬN v1: `/uploads` world-readable (uuid) — minh chứng vốn để chia sẻ public; private-bucket MinIO để pha sau.
 
-**CÒN LẠI:** (1) chưa thêm NÚT ĐĂNG NHẬP trên trang chủ fit.hou.edu.vn (cần chốt vị trí/thiết kế — chưa đụng homepage website); (2) chưa verify luồng ĐĂNG NHẬP SV thật (không có tài khoản/mật khẩu SV — user tự kiểm online); (3) 22 SV K25 chưa khớp import; (4) MinIO private-bucket cho minh chứng; (5) QR xác thực khi xuất PDF portfolio. Liên quan [[hou_cntt_app_audit_log]] [[fithou_minio_storage]] [[fithou_server_infra]].
+**NÚT ĐĂNG NHẬP + CHUYỂN APP (ĐÃ deploy 2026-08-13):** website `components/login-button.tsx` (client) nhét vào `site-header.tsx` cạnh nút Search (góc phải) — form đăng nhập nhanh: tài khoản SỐ hoặc `svdemo` → POST `/sinhvien/api/auth/login`, lưu localStorage svtoken (cùng origin nên /sinhvien tự nhận, SSO 1 lần) → vào /sinhvien; tài khoản CHỮ (cán bộ) → chuyển `https://canbo.fit.hou.edu.vn`. "Quên mật khẩu" → /sinhvien. Nút chuyển app 2 chiều: web-admin (`web-admin/app.js` header, bump `app.js?v=66`) có nút "🗂️ Quản lý Công việc" → canbo; workload (`workload/templates/base.html` nav-user) có nút "🎓 Quản lý Sinh viên" → admin.fit.hou.edu.vn/admin. Đã rebuild+up 3 container (fithou-web, hou-cntt-api, workload), verify: homepage 200 + có "Đăng nhập"; web-admin có nút; workload base có nút.
+
+**CÒN LẠI:** (1) chưa verify luồng ĐĂNG NHẬP SV thật + click nút (không có tài khoản/mật khẩu SV — user tự kiểm online); (2) 22 SV K25 chưa khớp import; (3) MinIO private-bucket cho minh chứng; (4) QR xác thực khi xuất PDF portfolio. Liên quan [[hou_cntt_app_audit_log]] [[fithou_minio_storage]] [[fithou_server_infra]].
