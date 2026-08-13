@@ -1,0 +1,35 @@
+---
+name: hou_cntt_dang_ky_lich_su
+description: "HOU-CNTT bảng dang_ky_lich_su: lưu ĐK tín chỉ theo kỳ (3 kỳ/năm) làm cơ sở phát hiện SV bỏ học"
+metadata: 
+  node_type: memory
+  type: project
+  originSessionId: 27152e89-3b17-4747-9e4b-63e2a071cb90
+  modified: 2026-08-13T07:44:23.087Z
+---
+
+Bảng **`dang_ky_lich_su`** (hou-cntt, DB `fithouone-postgres-1`) lưu LỊCH SỬ đăng ký tín chỉ của SV theo từng học kỳ — mục đích: phát hiện SV **có dấu hiệu bỏ học** (không đăng ký môn nào trong các kỳ CHÍNH liên tiếp). Chỉ cần biết SV có đăng ký học phần nào trong kỳ cụ thể hay không.
+
+**Vì sao bảng RIÊNG (không dồn vào `dang_ky_hoc_ky`):** `dang_ky_hoc_ky` (id,mssv,ma_lop_tc,hoc_ky,nam_hoc) là bảng SỐNG chỉ chứa kỳ HIỆN TẠI; các consumer (xếp lớp, cảnh báo TC) query nó KHÔNG lọc theo kỳ → trộn lịch sử vào sẽ hỏng tính TC/nợ môn hiện tại. Nên tách.
+
+**Schema:** `(mssv, nam_hoc, hoc_ky, ma_lop_tc, ma_hp, ten_hp, so_tc)`, PK `(mssv,nam_hoc,hoc_ky,ma_lop_tc)`, index `(mssv,nam_hoc,hoc_ky)`. `ma_lop_tc` đã chuẩn hóa (gộp LT/TH bằng `norm_lop`: bỏ hậu tố `.N_LT/_TH`).
+
+**Mô hình lịch học kỳ (chốt):** 1 năm học = **3 học kỳ** — HK **I** bắt đầu tháng **8**, HK **II** tháng **12**, HK **III** (hè) tháng **5**. HK III thưa (chủ yếu QPAN/GDTC/học lại) → KHI xét bỏ học chỉ tính các **kỳ chính (I, II)** liên tiếp, đừng tính vắng-HK-III là bỏ học. `nam_hoc` dạng `'2025-2026'`, `hoc_ky` dạng `'I'|'II'|'III'`.
+
+**Đã nạp (13/8/2026):** năm học 2025-2026, 3 file `Dot1-HK{I,II,III}-2025-2026.xlsx` (format `grdLopTinChi` — GIỐNG file đăng ký DANGKY: cột Mã SV, Lớp tín chỉ, Ngày hủy...). Kết quả lưu: **HKI 7700 dòng/1369 SV, HKII 6939/1334, HKIII 1745/892** (tổng 16384). Quy tắc lọc khi nạp: (1) BỎ dòng có "Ngày hủy" (đã hủy ĐK — 0 dòng trong đợt này); (2) **BỎ SV không có mã trong `sinh_vien`** (đã ra trường — HKI có 121 SV/205 dòng bị bỏ, HKII/III đủ trong hệ thống). `hoc_ky/nam_hoc` lấy từ TÊN FILE (tin cậy hơn mã).
+
+**Cách nạp:** KHÔNG qua importer tự-nhận-dạng (format y hệt file đăng ký kỳ hiện tại → không phân biệt được cấu trúc; chỉ khác ở KỲ). Nạp bằng script sinh SQL (parse file + gán nam_hoc/hoc_ky theo tên file + lọc + `CREATE TABLE IF NOT EXISTS` + `DELETE WHERE nam_hoc=...` + INSERT trong 1 transaction) rồi pipe vào `docker exec -i ... psql`. Idempotent theo năm học. Kết nối: `ssh sscfit` (192.168.1.20, fitadm) → `docker exec fithouone-postgres-1 psql -U hou_cntt -d hou_cntt`.
+
+**Tính năng đã build (web-admin v=49 + admin.py):** tab **"Học bạ"** (`page==='lichsu'`, admin/giáo vụ/văn phòng thấy; GV không có tab nhưng dùng nút trong chi tiết SV) gồm:
+- **Chốt kỳ (snapshot):** `POST /api/admin/lich-su/snapshot?nam_hoc=&hoc_ky=` (quyền `_can_import`=admin+giáo vụ) — copy `dang_ky_hoc_ky` (theo nam_hoc,hoc_ky) → `dang_ky_lich_su`, JOIN sinh_vien (bỏ SV ngoài HT), LEFT JOIN lop_tin_chi lấy ten_hp/so_tc; DELETE kỳ đó trước rồi INSERT (idempotent, chốt lại = ghi đè). Dùng khi kỳ KẾT THÚC (đừng chốt kỳ đang chạy). `GET /api/admin/lich-su/ky` liệt kê kỳ đã lưu + kỳ sống kèm cờ `da_chot`.
+- **Tra cứu học bạ:** `GET /api/admin/lich-su/sinh-vien/{mssv}` (require_admin_access + `_gv_check_sv` scope GV theo CVHT) — gộp kỳ từ `dang_ky_lich_su` (đã chốt) + `dang_ky_hoc_ky` (kỳ sống chưa chốt, đánh dấu `src='now'`, dùng NOT EXISTS tránh trùng kỳ đã chốt); mỗi môn LEFT JOIN LATERAL `ket_qua_hoc_phan` lấy điểm. **Nối điểm theo `split_part(ma_hp_goc,'(',1)=split_part(ma_hp,'(',1)`** (bỏ hậu tố ngoặc GDTC; KHÔNG dùng hoc_ky trong bảng điểm vì để trống). UI: nút "📚 Học bạ (theo kỳ)" trong chi tiết SV (`#hocba_sub`) + ô tra MSSV trong tab. Frontend: `hocBaHTML()`, `pageLichSu()`, `snapshotKy()`, `stuHocBa()`.
+
+**Đường mở rộng:** khi 1 kỳ KẾT THÚC, bấm "Chốt kỳ" (hoặc gọi snapshot API). Snapshot thử 2026-2027 I → 5155 dòng/1096 SV (chưa chốt — chờ hết kỳ). Truy vấn dropout đã kiểm chứng: EXISTS theo (mssv,nam_hoc,hoc_ky); tại thời điểm nạp — 93 SV vắng cả HKII 25-26 + kỳ hiện tại, 63 SV vắng cả HKI+HKII+hiện tại.
+
+**Phát hiện NGHI BỎ HỌC (services/dropout.py):** dùng lịch sử + kỳ sống. Kỳ hiện tại = kỳ sống mới nhất; prev1=kỳ liền trước, prev2=trước nữa. Tín hiệu **A**: không ĐK cả prev1 & prev2 (2 kỳ gần nhất); **B**: trượt/không qua TOÀN BỘ môn prev2 rồi không học prev1 (vd HK2 trượt hết + HK3 nghỉ → cảnh báo tại HK1). Loại trừ: đã ĐK kỳ hiện tại, có trong `di_hoc_lai`, đã tích lũy đủ TC tốt nghiệp, SV test, SV chưa active tới prev2 (năm nhất mới vào). "Trượt hết prev2" nối điểm qua `split_part(ma_hp_goc,'(',1)` (điểm để cả kỳ trống). Tại thời điểm build: **27 SV** (11 A, 16 B). API `GET /admin/warnings/nghi-bo-hoc` (GV scope theo CVHT), `POST /admin/warnings/di-hoc-lai?mssv=` (đánh dấu tay). UI: tab Cảnh báo có nút chuyển "🚨 Nghi bỏ học" (`_warnView`), mỗi SV có nút "Đã đi học lại".
+
+**Bảng `di_hoc_lai(mssv, ghi_chu, cap_nhat)`** — SV đã đi học lại, gỡ khỏi cảnh báo (dùng chung cảnh báo + xếp lớp). Nạp qua **importer `DIHOCLAI`** (schedule_di_hoc_lai... thực ra `importer/di_hoc_lai.py`): tự nhận dạng qua chữ "học lại"/"đi học lại"/"quay lại"/"trở lại" trong 6 hàng đầu + 1 cột toàn mã SV (≥2 ô khớp `^\d{2}[A-Za-z]\d{4,}`); score 0.95 (không lẫn CANBO/DANGKY). Bỏ SV ngoài hệ thống. **BẪY:** file phải có CHỮ đánh dấu "học lại" (marker) nếu không sẽ bị nhận nhầm là CANBO (list mã+tên).
+
+**Xếp lớp GỘP (services/xep_lop.py `goi_y_tong_hop` + `GET /admin/xep-lop/ket-hop[/excel]`):** 1 luồng = (1) bỏ SV nghi bỏ học + xếp vào lớp đã mở còn chỗ (`goi_y(exclude=)`, trả `_assigned`); (2) `de_xuat_mo_lop(exclude=, already=)` cho nhu cầu CÒN LẠI (trừ SV đã xếp bước 1). Trả 2 DS tách bạch `bo_sung`/`mo_moi`. UI `pageXepLop` gộp 1 nút "Xếp lớp" (bỏ tab-switch cũ ①/②), Excel 2 sheet. Tại build: bỏ 27, bước1 xếp 273 SV-lớp/67 lớp, bước2 mở 9 lớp/382 SV. web-admin **v=50**.
+
+Liên quan [[hou_cntt_app]], [[hou_cntt_lich_giang_import]], [[hou_cntt_ren_luyen_warnings]].
