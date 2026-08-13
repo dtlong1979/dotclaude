@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 098983c5-111d-4c37-8f4b-0192c1ed7235
-  modified: 2026-08-10T06:36:25.838Z
+  modified: 2026-08-13T06:58:15.679Z
 ---
 
 Nhập Thời khóa biểu (importer `schedule.py`, format LICH) + lịch giảng của GV ở hou-cntt (D:\dev\hou-cntt, deploy `~/code/fithouone/fithouone-deploy`, container `fithouone-hou-cntt-api-1`, DB `fithouone-postgres-1`).
@@ -25,5 +25,9 @@ Nhập Thời khóa biểu (importer `schedule.py`, format LICH) + lịch giản
 **Chính sách NGÀY BẮT ĐẦU theo khóa:** file TKB để ngày bắt đầu chung (10/08) không đúng thực tế; dict `_KHOA_START` trong schedule.py chỉnh: buổi sớm nhất của khóa rơi vào ngày cấu hình, cả khối dời theo độ lệch cố định (giữ số tuần). Đã đặt `K26 -> 2026-09-07` (SV năm nhất bắt đầu sau tuần đầu tháng 9; +28 ngày). Áp trong `_after_apply` (bước 2b) nên import lại KHÔNG lùi về tháng 8 (đã verify idempotent). Đã dời prod 32 buổi K26 (backup `lich_hoc_bak_k26_20260810`). CẬP NHẬT dict này mỗi kỳ.
 
 **CÒN TREO (chờ dữ liệu):** user muốn XÓA các lớp 0 SV (chưa chính thức), nhưng hiện `dang_ky_hoc_ky` chỉ có 1 dòng → đăng ký học phần SV CHƯA nhập, mọi lớp đều 0 SV. Nếu xóa ngay sẽ mất sạch 110 lớp. Đã chốt: TẠM CHƯA LÀM GÌ, chờ user cấp file đăng ký học phần (SV↔ma_lop_tc) → nhập (format REGIST, registration.py) → rồi mới dọn lớp còn 0 SV.
+
+**Format TKB thứ 2 — LICH_TH (13/8/2026):** hệ thống trường xuất được báo cáo "Tổng hợp số liệu TKB tín chỉ" (1 sheet `grdViewLopTinChi`), KHÁC format LICH (sheet Full): cột "Lịch học" GỘP dạng "Thứ 3 (T1-4)", chỉ có TÊN GV (không mã), KHÔNG có số tuần. Đã thêm `importer/schedule_tonghop.py` (key `LICH_TH`) TỰ NHẬN DẠNG qua tiêu đề "Tên lớp TC"+"Lịch học"+"Phòng học" (điểm 1.0; DANGKY/LICH=0 — không lẫn). Cơ chế: **THAY SẠCH THEO LỚP** (mỗi lớp trong file → DELETE buổi cũ + INSERT lại → hết trùng lặp; lớp NGOÀI file giữ nguyên, framework chỉ upsert lop_tin_chi không xóa). Ca suy từ tiết (1-4 Sáng/5-8 Chiều/9-12 Tối); tu_tuan để NULL (endpoint `/admin/lich-tuan` hiển thị "học" theo khoảng tu_ngay..den_ngay, chỉ dùng tuần để xám khi có). GV: khớp tên DUY NHẤT→ma_cb, else kế thừa `lop_tin_chi.ma_gv` cũ, else null (môn đại cương khoa khác). Buổi "Lịch học" rỗng (Đồ án/Khóa luận/Chuyên đề TN) → giữ lớp, không tạo buổi. Bỏ dòng rác ("Kinh phí xét tuyển").
+
+**BẪY năm-mã lớp:** hậu tố `.2526` = năm 2025-2026 (HK III/QPAN mùa hè — khoa KHÔNG quản, tự ẩn); `.2627` = 2026-2027 (HK hiện tại). File xuất nhầm bộ lọc năm → toàn `.2526`/ngày 2025 → KHÔNG khớp đăng ký `.2627` (4/47 overlap). Luôn kiểm cột "Từ ngày" (2026?) + mã lớp (`.2627`?) trước khi nhập. K25 quân sự: 47-48/50 buổi bắt đầu 24/8 (file mới đã đúng, khớp chỉnh tay). Rebuild 13/8: 146 lớp/161 buổi, backup `lich_hoc_bak_tkb_20260813`, `dang_ky_hoc_ky_bak_20260813` (đăng ký refresh 6359→6380).
 
 Backup trước khi sửa prod: `lop_tin_chi_bak_20260810`, `lich_hoc_bak_20260810` (349 gốc), `lich_hoc_bak2_20260810` (233). Liên quan [[hou_cntt_app]], [[hou_cntt_xet_tot_nghiep_import]], [[password_cas_vs_local]].
