@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 27152e89-3b17-4747-9e4b-63e2a071cb90
-  modified: 2026-08-13T10:15:02.820Z
+  modified: 2026-08-13T11:34:25.503Z
 ---
 
 Bảng **`dang_ky_lich_su`** (hou-cntt, DB `fithouone-postgres-1`) lưu LỊCH SỬ đăng ký tín chỉ của SV theo từng học kỳ — mục đích: phát hiện SV **có dấu hiệu bỏ học** (không đăng ký môn nào trong các kỳ CHÍNH liên tiếp). Chỉ cần biết SV có đăng ký học phần nào trong kỳ cụ thể hay không.
@@ -49,5 +49,7 @@ Bảng **`dang_ky_lich_su`** (hou-cntt, DB `fithouone-postgres-1`) lưu LỊCH S
 **Mở lớp LINH HOẠT + HẠN CHẾ lớp <30:** `MO_MIN=20` (floor tuyệt đối); chia sao cho mỗi lớp trong [30,55] với SỐ LỚP ÍT NHẤT: `lo=ceil(F/55); hi=F//30; n = lo nếu hi>=lo else 1; size=min(55, ceil(F/n))` (vd 56→1×55 thay vì 2×28; 70→2×35). Lớp <30 còn lại là môn ÍT SV thật / kẹt lịch / không có lớp bước-1 để rebalance mượn SV → UI gắn nhãn "⚠ dưới 30". Verify: 13 lớp đề xuất (cỡ 21-39), kiểm tra tách nghi_bo_hoc=22, chua_dk 123→101.
 **Rebalance lớp mới nhỏ** (`_rebalance_lop_moi` trong goi_y_tong_hop): lớp MỚI <30 SV → chuyển bớt SV (hợp lịch, chỉ SV xếp-thêm bước 1, giữ lớp nguồn >30) từ lớp CÓ SẴN cùng học phần sang, để cả hai >30. Best-effort (lớp không có sibling dư/hợp lịch thì giữ nguyên).
 **Chi tiết SV — bảng "Đăng ký học kỳ này"** (hoc_tap.chi_tiet + stuDetail): thêm cột **Buổi/Tiết, Phòng, Giảng viên** (gộp LT/TH; GV từ can_bo qua l.ma_gv). **Sắp theo thời gian T2→CN** (không theo môn). **Cảnh báo TRÙNG LỊCH**: mọi cặp buổi khác lớp cùng thứ + tiết chồng + ngày chồng → `co_trung`/`buoi.trung`, UI tô ĐỎ + ⚠. **Rút gọn phòng** (JS `phongNgan`): "KGĐ FITHOU-FIT.P52"→"P52", phòng online→"Online" (title giữ tên đầy đủ); áp cả Lịch học kỳ + đề xuất mở lớp. web-admin v=58.
+
+8) **RÀNG BUỘC HỌC PHẦN (tiên quyết / học trước)** — bảng `hoc_phan_rang_buoc(ma_hp, ma_hp_lien_quan, loai ∈ tien_quyet|hoc_truoc|song_hanh)` lưu THEO MÃ, nạp từ CTĐT 2022 (file `2025-CTĐT-Tổng hợp...xlsx` sheet CTĐT-Toàn bộ, cột U=học trước/V=tiên quyết/W=song hành, tách `;`, khớp tên bằng `mon_khop.chuan_hoa` + sửa tay 4 tên lệch + "Lập trình di động"→7E1019.22, BỎ song hành). 84 ràng buộc (47 học trước, 37 tiên quyết), 67 resolve được cả 2 mã. `xep_lop.load_rang_buoc(db)` → `{hpid:{tq:{req},ht:{req}}}` (bỏ mã chưa có trong hoc_phan). **Kiểm tra:** cờ `vi_pham_rb` trong `kiem_tra_dang_ky` — SV đăng ký môn khi CHƯA QUA tiên quyết (không có trong passed) / CHƯA HỌC môn trước (không có trong passed∪failed); chi tiết ở `vi_pham[]`. **Xếp lớp:** `_eligible` (SV THIẾU TC) loại môn nếu `tq ⊄ passed` hoặc `ht ⊄ (passed∪failed)` — SV NỢ (thi lại môn đã học) KHÔNG cần xét. Verify: 2 SV vi phạm, bổ sung TC 103→87. Sơ đồ ràng buộc: 4 ảnh PNG (gen_png.py, xương sống + 3 track, màu-theo-đường + nét liền/đứt) đã gửi user.
 
 Liên quan [[hou_cntt_app]], [[hou_cntt_lich_giang_import]], [[hou_cntt_ren_luyen_warnings]], [[hou_cntt_block_credit_model]].
