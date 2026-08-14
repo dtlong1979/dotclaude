@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 27152e89-3b17-4747-9e4b-63e2a071cb90
-  modified: 2026-08-14T03:36:12.826Z
+  modified: 2026-08-14T04:13:31.928Z
 ---
 
 Tính năng LỚN đang xây (bắt đầu 2026-08-14): **đăng ký/điều chỉnh tín chỉ** sau khi Xếp lớp. Code ở hou-cntt (D:\dev\hou-cntt). Subtab "Đăng ký tín chỉ" trong Sinh viên/Học vụ (SPA); giáo vụ ở web-admin tab Xếp lớp.
@@ -29,5 +29,10 @@ Tính năng LỚN đang xây (bắt đầu 2026-08-14): **đăng ký/điều ch�
 Dữ liệu ở **thẻ FITHOU AI** DB `fit_hou_cms` bảng `fithou_ai_knowledge` (cập nhật hằng năm) — **cần ĐỒNG BỘ sang hou_cntt** (grant SELECT cross-DB + nút "Đồng bộ học phí" cho admin). Thẻ id 41 = ĐH chính quy CNTT 2026-2027, `value_json`={hoc_phan_chuyen_mon:782000, hoc_phan_dai_cuong:658000, don_vi:VND/tin_chi}. (id 42 thường xuyên, 43 thạc sĩ.)
 **Phân loại (user chốt CHÍNH XÁC):** mức **658k CHỈ cho 10 môn có tên**: 5 lý luận chính trị (Triết Mác-Lênin, Kinh tế chính trị ML, CNXH khoa học, Tư tưởng HCM, Lịch sử Đảng), 3 anh văn (Tiếng Anh 1/2/3), Pháp luật đại cương, Tin học đại cương. **Tất cả còn lại 782k** (KHÔNG phải cả khối đại cương — khối còn có Toán/Lý…). Học phí dự kiến = Σ(TC×mức); hạn đóng = ngày bắt đầu kỳ + 21 ngày. Ngày bắt đầu kỳ + đơn giá đồng bộ vào `dk_dot`.
 
-## Đã làm (2026-08-14)
-Pha 1 nền: `backend/app/services/dang_ky_tc.py` (`ensure_tables`, `khoa_active`, `dot_hien_tai`). Bảng đã tạo trên prod: `dk_dot`, `dk_yeu_cau`, `dk_xac_nhan`; cột `dang_ky_hoc_ky.nguon/trang_thai/tao_luc`, `lop_tin_chi.suc_chua/trang_thai`. Kỳ sống hiện tại: 2026-2027 HKI. Chia 3 pha: (1) giáo vụ Giả lập, (2) trang SV + học phí, (3) chốt + Excel + gửi kết quả. Liên quan [[hou_cntt_ren_luyen_warnings]] [[fithou_ai_knowledge_cards]] [[hou_cntt_dang_ky_lich_su]].
+## ĐÃ XONG CẢ 3 PHA — LIVE PROD (2026-08-14), CHỜ USER KIỂM ONLINE
+Code: `backend/app/services/dang_ky_tc.py` (service chính) + `hoc_phi.py` (học phí 2 mức) + endpoint trong `admin.py` (giáo vụ, dependencies=_can_import) & `sv_me.py` (SV, /me/dang-ky/*). UI: web-admin `app.js` v72 (subtab "Điều chỉnh ĐK" trong tab Xếp lớp: 4 thẻ — Đợt/Giả lập, Chỉnh lớp, Duyệt lớp đề xuất, Duyệt & Chốt) + SPA `web-sv/index.html` (chip "Đăng ký TC" trong Học vụ + banner Trang chủ).
+- **Pha 1 giáo vụ**: `POST /admin/dang-ky/gia-lap` (ghi bổ sung từ xep_lop.goi_y vào lớp đã có, cập nhật suc_chua theo phòng), `GET/POST .../lop/{ma}` (chi tiết/thêm tay CHO vượt sĩ số/hủy CHỈ non-import), `.../ung-vien` (SV đủ track), `.../de-xuat` + `.../de-xuat/duyet` (mở lớp mới GL-<ma_hp>-<n>). `POST/GET .../dot` cấu hình đợt (khóa/cửa sổ giờ VN +07:00/đơn giá/ngày bắt đầu).
+- **Pha 2 SV**: `GET /me/dang-ky` (2 nhóm da_dang_ky[import]/bo_sung + hoc_phi + da_xac_nhan + dot), `GET .../co-the-them`, `POST .../them` (ATOMIC: dot_mo→_kiem_lop[track+chưa học+tiên quyết+trùng lịch+TC_TOI_DA]→SELECT FOR UPDATE+count<suc_chua+INSERT ON CONFLICT — không lố ghế), `POST .../huy` (tạo dk_yeu_cau chờ duyệt, GIỮ ghế), `POST .../xac-nhan` form{password} (xác thực lại local/CAS).
+- **Pha 3 chốt**: `GET .../yeu-cau` + `POST .../yeu-cau/{id}/xu-ly` (duyệt hủy→xóa đăng ký+ThongBao MSSV), `POST .../chot` (gia_lap→chinh_thuc, da_duyet→thuc, đợt→chot, ThongBao KHOA — 1 transaction), `GET .../lop-nho` + `POST .../lop/{ma}/dong` (CHỈ xóa lớp da_duyet, chặn lớp thực), `GET .../excel` (xlsx).
+- **Học phí**: `hoc_phi_config`(he,chuyen_mon=782000,dai_cuong=658000) seed sẵn; `hoc_phi.la_dai_cuong` khớp 10 môn tên; `hoc_phi.dong_bo(db)` đọc thẻ fithou_ai_knowledge qua engine phụ tới fit_hou_cms (đã GRANT SELECT cho hou_cntt). Hạn đóng = ngay_bat_dau_ky+21.
+**CẦN USER KIỂM (không login được để test)**: luồng giáo vụ (giả lập→chỉnh→duyệt lớp→chốt→excel) + SV (thêm/hủy/xác nhận + banner + học phí). **BẪY/giả định**: chốt chuyển gia_lap→chinh_thuc TOÀN CỤC (giả định 1 đợt mở/thời điểm; dang_ky_hoc_ky chưa có dot_id); suc_chua NULL bị coi là đầy→phải chạy Giả lập trước khi mở đợt; ThongBao dùng bảng chính thong_bao (MSSV/KHOA/ALL, ép str(gia_tri)), KHÔNG bảng phụ; server UTC nên mo_tu/mo_den gắn +07:00. Liên quan [[hou_cntt_ren_luyen_warnings]] [[fithou_ai_knowledge_cards]] [[hou_cntt_dang_ky_lich_su]].
