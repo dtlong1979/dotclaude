@@ -1,5 +1,7 @@
 # Memory Index
 
+- [HOU CNTT Đăng ký Giữ chỗ & Load-test](hou_cntt_dang_ky_giu_cho_loadtest.md) — mô hình ghế đăng ký tín chỉ CHỐT: giữ tạm TTL 10p (bảng dk_giu_cho, atomic), hết hạn tự hủy, Xác nhận chốt hiện trạng; + kế hoạch index→load-test 300 step100 tìm điểm chết→đề xuất snapshot/circuit-breaker; nền tảng: khớp đã-đạt/tiên-quyết theo TÊN (mon_khop.passed_failed_bac_cau) + block_credits tôn trọng chuyên ngành gán
+
 - [HOU CNTT Mobile Release](hou_cntt_mobile_release.md) — repo git mobile RIÊNG ở D:\dev\hou-cntt\mobile (github dtlong1979/fithouone-mobile, nhánh master); push master = Codemagic tự build iOS(TestFlight)+Android; Claude được phép tự chạy git/PS/CLI trên máy user; group android_signing (CM_KEYSTORE base64)
 
 - [Research Writing Standards](research_writing_standards.md) — chuẩn viết/rà bài NCKH của user: rõ-đơn giản-đúng vấn đề, không tự phòng thủ thừa nhưng không over-claim, phương pháp tái lập được, để số liệu tự nói, cơ sở lý thuyết phân tích gắn câu hỏi (không liệt kê), VIẾT THẲNG vào việc mình làm (chúng tôi đã làm X thu được Y) — cắt câu meta/tự-biện-hộ/tự-dự-đoán
