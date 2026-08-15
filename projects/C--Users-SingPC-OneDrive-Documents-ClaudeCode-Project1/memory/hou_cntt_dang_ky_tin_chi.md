@@ -5,10 +5,14 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 27152e89-3b17-4747-9e4b-63e2a071cb90
-  modified: 2026-08-14T04:13:31.928Z
+  modified: 2026-08-15T15:44:07.930Z
 ---
 
 Tính năng LỚN đang xây (bắt đầu 2026-08-14): **đăng ký/điều chỉnh tín chỉ** sau khi Xếp lớp. Code ở hou-cntt (D:\dev\hou-cntt). Subtab "Đăng ký tín chỉ" trong Sinh viên/Học vụ (SPA); giáo vụ ở web-admin tab Xếp lớp.
+
+**XÁC NHẬN LỊCH HỌC (deploy 2026-08-15):** mọi SV phải xác nhận lịch/đăng ký (bảng `dk_xac_nhan(mssv, dot_id, thoi_diem)` — cột thời gian thật là `thoi_diem` KHÔNG phải xac_nhan_luc). `dang_ky_tc.trang_thai_xac_nhan(db)` (đếm đã/chưa theo đợt hiện tại, SV = có dòng dang_ky_hoc_ky khớp hoc_ky+nam_hoc đợt) + `sv_can_xac_nhan(db,mssv)`. Endpoint `GET /admin/dang-ky/xac-nhan` (giáo vụ) + `GET /me/dang-ky/can-xac-nhan` (SV). web-admin: tab **"✅ Xác nhận lịch học"** trong Xếp lớp (`pageXacNhan`, đếm+lọc Đã/Chưa+tìm, mặc định Chưa; app.js v88). web-sv: banner ⚠ trên Trang chủ (`xacNhanBannerHTML`, fetch can-xac-nhan trong renderers.home) khi chưa xác nhận → nút vào Đăng ký tín chỉ. Hiện trạng đầu: 1180 SV có ĐK, 7 đã xác nhận.
+
+**ĐIỀU KIỆN ĐỀ XUẤT CN/NÂNG BẬC (deploy 2026-08-15, `ctdt_de_xuat.py`):** `du_dieu_kien_de_xuat` chặn NGAY KHI NHẬP nếu chưa đủ đk theo lộ trình công bố (≥60TC, GPA≥2.0, không cảnh báo học vụ [chỉ NO_MON/TIEN_DO, KHÔNG tính điểm danh/rèn luyện], TB môn cốt lõi CN≥2.5; nâng KS: SE/NS + GPA≥2.5 + ≥106TC + trọn track). Map CN→môn cốt lõi: SE(KT LT cơ sở/LT HĐT/LT hướng sự kiện), NS(Mạng và truyền thông/An ninh và bảo mật dữ liệu), MT(Thiết kế TN người dùng/Thiết kế Web); NONE fallback luôn cho; IS legacy chặn. `sv_info` trả `dieu_kien` per option. Đăng ký thêm môn nhiều lớp: `sv_khoi_mon` trả `lop_list` (mọi lớp + ten_gv/phong/lich_text), web-sv `dkMonRow` hiện nhiều lớp có GV·phòng·giờ.
 
 ## Quy trình (đã chốt với user)
 2 nguồn đăng ký (`dang_ky_hoc_ky.nguon`): `import` (từ hệ thống trường) | `gia_lap` (xếp lớp FithouOne) | `sv_them` | `gv_them`.
