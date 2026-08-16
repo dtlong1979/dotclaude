@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 27152e89-3b17-4747-9e4b-63e2a071cb90
-  modified: 2026-08-15T15:44:07.930Z
+  modified: 2026-08-16T09:58:08.812Z
 ---
 
 Tính năng LỚN đang xây (bắt đầu 2026-08-14): **đăng ký/điều chỉnh tín chỉ** sau khi Xếp lớp. Code ở hou-cntt (D:\dev\hou-cntt). Subtab "Đăng ký tín chỉ" trong Sinh viên/Học vụ (SPA); giáo vụ ở web-admin tab Xếp lớp.
@@ -13,6 +13,14 @@ Tính năng LỚN đang xây (bắt đầu 2026-08-14): **đăng ký/điều ch�
 **XÁC NHẬN LỊCH HỌC (deploy 2026-08-15):** mọi SV phải xác nhận lịch/đăng ký (bảng `dk_xac_nhan(mssv, dot_id, thoi_diem)` — cột thời gian thật là `thoi_diem` KHÔNG phải xac_nhan_luc). `dang_ky_tc.trang_thai_xac_nhan(db)` (đếm đã/chưa theo đợt hiện tại, SV = có dòng dang_ky_hoc_ky khớp hoc_ky+nam_hoc đợt) + `sv_can_xac_nhan(db,mssv)`. Endpoint `GET /admin/dang-ky/xac-nhan` (giáo vụ) + `GET /me/dang-ky/can-xac-nhan` (SV). web-admin: tab **"✅ Xác nhận lịch học"** trong Xếp lớp (`pageXacNhan`, đếm+lọc Đã/Chưa+tìm, mặc định Chưa; app.js v88). web-sv: banner ⚠ trên Trang chủ (`xacNhanBannerHTML`, fetch can-xac-nhan trong renderers.home) khi chưa xác nhận → nút vào Đăng ký tín chỉ. Hiện trạng đầu: 1180 SV có ĐK, 7 đã xác nhận.
 
 **ĐIỀU KIỆN ĐỀ XUẤT CN/NÂNG BẬC (deploy 2026-08-15, `ctdt_de_xuat.py`):** `du_dieu_kien_de_xuat` chặn NGAY KHI NHẬP nếu chưa đủ đk theo lộ trình công bố (≥60TC, GPA≥2.0, không cảnh báo học vụ [chỉ NO_MON/TIEN_DO, KHÔNG tính điểm danh/rèn luyện], TB môn cốt lõi CN≥2.5; nâng KS: SE/NS + GPA≥2.5 + ≥106TC + trọn track). Map CN→môn cốt lõi: SE(KT LT cơ sở/LT HĐT/LT hướng sự kiện), NS(Mạng và truyền thông/An ninh và bảo mật dữ liệu), MT(Thiết kế TN người dùng/Thiết kế Web); NONE fallback luôn cho; IS legacy chặn. `sv_info` trả `dieu_kien` per option. Đăng ký thêm môn nhiều lớp: `sv_khoi_mon` trả `lop_list` (mọi lớp + ten_gv/phong/lich_text), web-sv `dkMonRow` hiện nhiều lớp có GV·phòng·giờ.
+
+## Rà thuật toán + CẢNH BÁO mâu thuẫn (deploy 2026-08-16)
+- **Cổng KLTN/ĐATN siết** (`xep_lop.goi_y` `_thesis_ok=_near_grad AND _du_dk_thesis`): chỉ TỰ XẾP thực tập/khóa luận/đồ án khi SV đã HOÀN THÀNH mọi môn BẮT BUỘC/đúng track (đã đạt hoặc đang ĐK kỳ này) — chỉ còn thesis. Nghiêm hơn `_near_grad` cũ (chỉ xét tổng TC còn ≤23 nên SV còn 7-8 môn vẫn lọt).
+- **Cảnh báo SV không có môn nào kỳ này** (`goi_y` trả `sv_khong_dk` + `so_khong_dk`/`so_khong_dk_near_grad`, đẩy qua `goi_y_tong_hop.bo_sung`): mỗi SV 0-môn kèm lý do (chưa mở lớp / lớp đầy / thiếu tiên quyết / chỉ còn KLTN chưa mở); near_grad 🎓 lên đầu. web-admin hiện ở thẻ Xếp lớp (app.js v95).
+- **CẢNH BÁO mâu thuẫn đăng ký trên trang SV** (`dang_ky_tc._canh_bao_dang_ky`, gắn vào `sv_dang_ky.canh_bao` + `sv_can_xac_nhan.so_canh_bao`): 3 loại — qua_max (vượt 23TC) / trung_lich / vi_pham_rb. web-sv: thẻ đỏ đầu trang Đăng ký + banner ⛔ Trang chủ (`canhBaoDkBannerHTML`) dẫn vào kiểm tra-hủy bớt-xác nhận lại.
+- **QUY TẮC CHỐT (user 2026-08-16):** (1) trần 23TC **KHÔNG tính GDQP-AN & GDTC** (`_mien_tc_vuot`: "quốc phòng"/"thể chất"/"quân sự"; KHÔNG match "an ninh" trần trụi vì đụng "An ninh mạng"); (2) môn **HỌC LẠI** (đã học/thi trước — tập `dahoc` bắc cầu theo tên) KHÔNG chặn/không cảnh báo tiên quyết (chấp nhận lỗi quá khứ, không hạn chế trả nợ); (3) THÊM bất kỳ mà vượt trần TC thì CHẶN tuyệt đối.
+- **Siết `_kiem_lop`/`_sv_ctx`:** `tong_tc` giờ CỘNG cả giữ-chỗ còn hạn (chặn giữ nhiều ghế cộng lại vượt/trùng buổi) + LOẠI GDQP-AN/GDTC; prereq chỉ chặn môn học lần đầu (bỏ qua nếu hpid∈dahoc).
+- **Phân tích dữ liệu thật (đợt 2026-2027 HK I, trang_thai=gia_lap, 5153 import+402 gia_lap+6 sv_them):** mâu thuẫn THẬT (chỉ import) = **11 trùng lịch + 2 tiên quyết lần đầu, 0 vượt TC**. Giả lập thêm: **5 SV vượt-23TC** (đều do gia_lap CŨ SÓT thêm 'Lập trình hướng sự kiện' 4TC cho SV vốn 20-22TC — import tăng SAU khi giả lập chạy; gia_lap idempotent ON CONFLICT DO NOTHING nên không tự dọn) + 6 "tiên quyết" thực chất là môn HỌC LẠI (báo nhầm, đã sửa bỏ). Ràng buộc user: KHÔNG tự xoá/sửa dữ liệu đang chạy — 5 ca vượt-cap để warning surface, SV/giáo vụ tự hủy.
 
 ## Quy trình (đã chốt với user)
 2 nguồn đăng ký (`dang_ky_hoc_ky.nguon`): `import` (từ hệ thống trường) | `gia_lap` (xếp lớp FithouOne) | `sv_them` | `gv_them`.
