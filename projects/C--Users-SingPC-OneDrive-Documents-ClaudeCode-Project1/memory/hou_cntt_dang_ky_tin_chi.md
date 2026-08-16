@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 27152e89-3b17-4747-9e4b-63e2a071cb90
-  modified: 2026-08-16T10:38:04.151Z
+  modified: 2026-08-16T15:36:59.192Z
 ---
 
 Tính năng LỚN đang xây (bắt đầu 2026-08-14): **đăng ký/điều chỉnh tín chỉ** sau khi Xếp lớp. Code ở hou-cntt (D:\dev\hou-cntt). Subtab "Đăng ký tín chỉ" trong Sinh viên/Học vụ (SPA); giáo vụ ở web-admin tab Xếp lớp.
@@ -22,6 +22,14 @@ Tính năng LỚN đang xây (bắt đầu 2026-08-14): **đăng ký/điều ch�
 - **Siết `_kiem_lop`/`_sv_ctx`:** `tong_tc` CỘNG cả giữ-chỗ còn hạn (chặn giữ nhiều ghế cộng lại vượt/trùng buổi) + LOẠI GDQP-AN/GDTC; prereq chặn MỌI môn (kể cả học lại). Prereq: tiên quyết phải ĐẠT, học trước phải đã HỌC (passed∪failed) — theo `_eligible`/`_fneed`.
 - **DỌN DỮ LIỆU đã làm (user cho phép, backup ở scratchpad):** (a) xóa 5 gia_lap vượt-cap 'Lập trình hướng sự kiện'; (b) xóa 4 điểm F + 4 gia_lap của **nợ NGOÀI CTĐT** (K19/K20 CNTT.2019.KS nợ môn CTĐT 2022: 'Nhập môn KPDL' hpid20, 'Thiết kế trải nghiệm người dùng' hpid21) — `fix_backup_cross_ctdt.json`; (c) xóa 5 gia_lap **vi phạm tiên quyết** (4×'Lập trình cho thiết bị di động' thiếu HT 'Lập trình hướng sự kiện', 1×'Tiếng Anh cơ bản 3' thiếu TQ 'Tiếng Anh cơ bản 2') — `clean_rb_backup.json`. Nguyên tắc xóa: chốt `nguon='gia_lap'` (không đụng import) + `dat=false` khi xóa điểm.
 - **Phân tích dữ liệu thật (đợt 2026-2027 HK I, trang_thai=gia_lap, 5153 import+402 gia_lap+6 sv_them):** mâu thuẫn THẬT (chỉ import) = **11 trùng lịch + 2 tiên quyết lần đầu, 0 vượt TC**. Giả lập thêm: **5 SV vượt-23TC** (đều do gia_lap CŨ SÓT thêm 'Lập trình hướng sự kiện' 4TC cho SV vốn 20-22TC — import tăng SAU khi giả lập chạy; gia_lap idempotent ON CONFLICT DO NOTHING nên không tự dọn) + 6 "tiên quyết" thực chất là môn HỌC LẠI (báo nhầm, đã sửa bỏ). Ràng buộc user: KHÔNG tự xoá/sửa dữ liệu đang chạy — TRỪ KHI user cho phép rõ. **User đã cho phép + đã XÓA 5 dòng gia_lap vượt-cap** (đều lớp đề xuất GL-7E1012.22-1 'Lập trình hướng sự kiện' 4TC; chốt `nguon='gia_lap'` nên import nguyên vẹn) → 0 SV vượt trần. Sau dọn: cảnh báo với/không giả lập BẰNG NHAU = 13 SV (11 trùng lịch + 2 tiên quyết lần đầu, đều là mâu thuẫn THẬT trong đăng ký import).
+
+## ĐỀ XUẤT MỞ LỚP theo NGUYỆN VỌNG SV (B1+B2, deploy 2026-08-16)
+- **Bảng mới `dk_nguyen_vong_lop`** (additive): id, dot_id, mssv, hoc_phan_id, ten_hp, nam_hoc, hoc_ky, trang_thai (cho_khop→duyet_mo|huy), ma_lop_de_xuat, duyet_luc. UNIQUE(mssv,hoc_phan_id,dot_id).
+- **B1 SV nêu nguyện vọng** (`sv_de_xuat_mo_lop`, endpoint POST `/me/dang-ky/de-xuat-mo-lop`): môn `trang_thai='chua_co_lop'` trong `sv_khoi_mon` hiện nút "📣 Đề xuất mở lớp" — CHỈ khi: đủ tiên quyết, KHỐI CHƯA đủ TC (tính cả **tín đang học/giữ**, vd 0+3/3=đủ→ẩn), KHÔNG vượt trần 23TC (ctx.tong_tc gồm giữ chỗ, loại GDQP/GDTC), không phải GDQP/GDTC. web-sv: nút + thẻ "Nguyện vọng của bạn" + banner. Khối đủ TC mà vẫn Thêm → confirm "học thêm có thể không xét TN".
+- **B2 so khớp + duyệt** (giáo vụ): `de_xuat_list_nguyen_vong` gom demand nguyện vọng → `xep_lop.de_xuat_mo_lop(demand=..., min_mo=1)`. Đã sửa `de_xuat_mo_lop`: thêm `min_mo` (nguyện vọng=1 → 1 SV cũng mở), **sort demand giảm dần** (môn đông giành slot trước), **giữ chỗ phòng** (busy_room.add sau khi chọn → lớp đề xuất KHÔNG trùng phòng+giờ). web-admin tab "📣 Nguyện vọng mở lớp" (app.js v97): So khớp → mỗi lớp sửa GV(ma_cb)/phòng/thứ/tiết, đổi buổi → `de-xuat/loc-buoi` lọc SV không theo được, "Duyệt mở lớp" → `de-xuat/duyet` (dùng CHUNG endpoint mở lớp mới). **`duyet_mo_lop` mở rộng: THÔNG BÁO từng SV + đánh dấu nguyện vọng 'duyet_mo' — KHÔNG cần SV xác nhận lại** (chốt user).
+
+## LOGIN FIX quan trọng (2026-08-16): trang /sinhvien SPA
+Trang /sinhvien CHƯA BAO GIỜ đăng nhập được trên di động (modal thì được). Nguyên nhân THẬT (qua chẩn đoán tại chỗ): `api()` gọi `/auth/login` **quên `method:'POST'`** → mặc định GET+body → Chromium mới ném "GET cannot have body" (không phải cache/CSP/mạng — 2 hướng đó bắt nhầm nhưng vẫn giữ: no-cache header + CSP `connect-src 'self' https: wss:`). **Vá: `api()` tự đặt POST khi có body** (fix cả login/forgot/chat; `/me/prefs` set rõ PUT). SPA /sinhvien giờ là **CỔNG CHUNG** như modal: SV→cổng SV, giangvien→api.fit/admin, cán bộ→canbo.fit qua `/auth/sso-code`. + Fix web-admin `renderPage` KHÔNG await page async → GV không lớp kẹt "Đang tải…"; giờ await + hiện thông báo rỗng rõ ràng + `/admin/warnings` thoát sớm khi GV không lớp.
 
 ## Quy trình (đã chốt với user)
 2 nguồn đăng ký (`dang_ky_hoc_ky.nguon`): `import` (từ hệ thống trường) | `gia_lap` (xếp lớp FithouOne) | `sv_them` | `gv_them`.
