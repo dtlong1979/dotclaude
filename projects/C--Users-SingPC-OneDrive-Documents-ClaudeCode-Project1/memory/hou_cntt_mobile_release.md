@@ -5,14 +5,16 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 27152e89-3b17-4747-9e4b-63e2a071cb90
-  modified: 2026-08-14T12:17:44.039Z
+  modified: 2026-08-16T08:37:40.472Z
 ---
 
 App mobile Flutter của hou-cntt phát hành qua **Codemagic** (CI, không cần máy Mac). Claude **được phép tự chạy** git/PowerShell/CLI trên máy user (Bash tool = Git Bash trên Windows) để commit/push/phát hành — user đã đồng ý làm chủ động, không hỏi lại từng lần. Với git cần `export HOME=/c/Users/SingPC` và `git config --global --add safe.directory '*'`.
 
 **BẪY quan trọng:** repo git của mobile là **RIÊNG**, gốc ở `D:\dev\hou-cntt\mobile` (KHÔNG phải `D:\dev\hou-cntt` — chạy git ở đó báo "not a git repository"). Remote: `github.com/dtlong1979/fithouone-mobile`, nhánh **master**. `codemagic.yaml` nằm ở gốc repo = `mobile/`.
 
-**Phát hành = commit + `git push origin master`** (từ trong `mobile/`). Push lên master **tự kích hoạt** 2 workflow trong `mobile/codemagic.yaml`: `ios-testflight` (build IPA → TestFlight, integration App Store Connect `FithouOneASC`, tự tăng build number) và `android-release` (APK+AAB đã ký release). Cả hai lấy versionName từ `pubspec.yaml` (`version: X.Y.Z+build`); iOS auto-tăng build number theo TestFlight.
+**Phát hành = commit + `git push origin master`** (từ trong `mobile/`), RỒI **GỌI API TRIGGER** (xem dưới). ⚠ Push KHÔNG tự kích hoạt build (auto-trigger trên UI Codemagic chưa bật, user tìm không thấy chỗ thiết lập — 2026-08-16 xác nhận lại). 2 workflow trong `mobile/codemagic.yaml`: `ios-testflight` (build IPA → TestFlight, integration App Store Connect `FithouOneASC`, tự tăng build number) và `android-release` (APK+AAB đã ký release + **publish Google Play Closed Test**). Cả hai lấy versionName từ `pubspec.yaml` (`version: X.Y.Z+build`); iOS auto-tăng build number theo TestFlight — nhưng **Android versionCode = số +N trong pubspec**, phải BUMP +N mỗi lần (trùng code đã có trên Play sẽ bị từ chối).
+
+**Publish Google Play (từ 2026-08-16):** `android-release` có `publishing.google_play` — `credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS` (biến Codemagic, group `android_signing`, Secure = nội dung JSON service account `codemagic_publish@hou-calendar-sync...iam.gserviceaccount.com`, đã cấp quyền "Release to testing tracks"+"Release to production" ở Play Console → Users and permissions), `track: alpha` (Closed Test), `submit_as_draft: false`. App id Play = `vn.edu.hou.fit.fithouone`. Service account key tạo ở Google Cloud project "hou-calendar-sync" (menu API access đã bị Google gỡ → tạo SA qua IAM & Admin/Credentials + Add key JSON; org policy có thể chặn tạo key).
 
 **Ký Android:** keystore `mobile/android/fithouone-upload.jks` + `mobile/android/key.properties` (đã .gitignore). Trên Codemagic (tài khoản CÁ NHÂN — biến global đã deprecated, đặt ở **App-level Environment variables**) có group **`android_signing`**: `CM_KEYSTORE` (base64 của .jks), `CM_KEYSTORE_PASSWORD`, `CM_KEY_ALIAS`, `CM_KEY_PASSWORD`. Workflow giải mã ra file .jks + sinh key.properties rồi build.
 
