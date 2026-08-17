@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 27152e89-3b17-4747-9e4b-63e2a071cb90
-  modified: 2026-08-17T06:58:41.499Z
+  modified: 2026-08-17T12:50:24.293Z
 ---
 
 Tính năng LỚN đang xây (bắt đầu 2026-08-14): **đăng ký/điều chỉnh tín chỉ** sau khi Xếp lớp. Code ở hou-cntt (D:\dev\hou-cntt). Subtab "Đăng ký tín chỉ" trong Sinh viên/Học vụ (SPA); giáo vụ ở web-admin tab Xếp lớp.
@@ -28,6 +28,15 @@ Tính năng LỚN đang xây (bắt đầu 2026-08-14): **đăng ký/điều ch�
 - **B1 SV nêu nguyện vọng** (`sv_de_xuat_mo_lop`, endpoint POST `/me/dang-ky/de-xuat-mo-lop`): môn `trang_thai='chua_co_lop'` trong `sv_khoi_mon` hiện nút "📣 Đề xuất mở lớp" — CHỈ khi: đủ tiên quyết, KHỐI CHƯA đủ TC (tính cả **tín đang học/giữ**, vd 0+3/3=đủ→ẩn), KHÔNG vượt trần 23TC (ctx.tong_tc gồm giữ chỗ, loại GDQP/GDTC), không phải GDQP/GDTC. web-sv: nút + thẻ "Nguyện vọng của bạn" + banner. Khối đủ TC mà vẫn Thêm → confirm "học thêm có thể không xét TN".
 - **B2 so khớp + duyệt** (giáo vụ): `de_xuat_list_nguyen_vong` gom demand nguyện vọng → `xep_lop.de_xuat_mo_lop(demand=..., min_mo=1)`. Đã sửa `de_xuat_mo_lop`: thêm `min_mo` (nguyện vọng=1 → 1 SV cũng mở), **sort demand giảm dần** (môn đông giành slot trước), **giữ chỗ phòng** (busy_room.add sau khi chọn → lớp đề xuất KHÔNG trùng phòng+giờ). `duyet_mo_lop` mở rộng: THÔNG BÁO từng SV + đánh dấu nguyện vọng 'duyet_mo'.
 - **B2 TẠM DUYỆT (chốt user, deploy app.js v98):** bảng `dk_lop_de_xuat` lưu bền lớp đề xuất; trang_thai tam_huy(MẶC ĐỊNH HỦY)|tam_duyet|da_mo|huy. Giáo vụ tab "📣 Nguyện vọng mở lớp": **So khớp** (`nguyen-vong/so-khop` → tạo lại các bản tam_huy) → mỗi lớp **toggle Duyệt↔Hủy** (`/lop/{id}/quyet-dinh`, đặt tam_luc), sửa GV/phòng/thứ/tiết (`/lop/{id}/sua`), loc-buoi lọc SV không theo được → **"Xác nhận kết quả tạm thời"** (`nguyen-vong/xac-nhan`) chốt NGAY. **Auto-chốt lazy** (`_finalize_de_xuat` gọi đầu mỗi endpoint): tam_duyet quá **3h** (`_DX_UNDO_GIO`)→mở lớp+báo SV; quá **3 ngày** sau mo_den (`_DX_HAN_NGAY`)→chốt hết (tam_huy→hủy+báo SV). Chốt DUYỆT: lọc lại SV theo buổi cuối rồi `duyet_mo_lop`. Chốt HỦY: nguyện vọng→'huy' + báo SV "chưa mở lớp". **SV chỉ nhận thông báo khi có kết quả CHÍNH THỨC** (không xác nhận lại). LƯU Ý: auto-timer là LAZY (chạy khi có request tới endpoint), cần traffic để đúng giờ.
+
+## MÔ HÌNH "NHÁP CÓ HẠN" — mọi thao tác SV tạm tới khi Xác nhận (deploy 2026-08-17)
+User chốt: mọi thao tác SV trên màn Điều chỉnh là **NHÁP**; **quá 20′ không Xác nhận (hoặc logout) → hoàn tác toàn bộ về gốc**. Dữ liệu ĐÃ CHỐT (`dang_ky_hoc_ky`) KHÔNG bị đụng cho tới khi bấm Xác nhận.
+- **`dk_giu_cho` mở rộng** thành lớp nháp 3 loại: cột `loai` (`them`/`doi`/`huy`, mặc định them) + `doi_tu` (lớp cũ khi đổi) + `ghi_chu` (lý do khi hủy). `GIU_CHO_PHUT` 10→**20**.
+- **`sv_doi_lop`** → nháp `loai='doi'` (giữ ghế lớp mới + nhớ lớp cũ), KHÔNG ghi đăng ký/KHÔNG xóa cũ. **`sv_huy_yeu_cau`** → nháp `loai='huy'`, CHƯA tạo `dk_yeu_cau`. `sv_giu_cho` set `loai='them'`. Mọi thao tác gọi `_refresh_holds` (gia hạn 20′ cả phiên). Hold `loai='huy'` KHÔNG tính vào sức chứa lớp.
+- **`sv_chot_dang_ky`** áp cả 3 loại: them/doi ghi đăng ký (doi xóa lớp cũ + dọn yêu cầu hủy cũ), huy mới tạo `dk_yeu_cau(cho_duyet)` gửi giáo vụ; rồi ghi `dk_xac_nhan`.
+- **Logout**: SPA gọi `POST /me/dang-ky/nha-tat-ca` (`sv_nha_tat_ca`) xóa mọi nháp. **Hết hạn**: `_don_giu_cho_het_han` (lazy) xóa nháp quá hạn = revert. web-sv: dòng nháp hiện "sẽ ĐỔI LỚP/sẽ XIN HỦY/đang giữ" + đồng hồ; Đổi/Hủy KHÔNG tác động ngay.
+
+**BACKFILL xác nhận (một lần, 2026-08-17):** chỉ grandfather **191 SV ĐÃ-THAO-TÁC** (nguon≠import / có dk_yeu_cau / có dk_giu_cho) = đã xác nhận, tổng dk_xac_nhan=866. KHÔNG quét toàn bộ (từng thử 508 rồi UNDO — quá rộng, "xác nhận ảo" SV chưa đăng nhập). Lưu ý: **không hệ nào ghi log GET** (cả nhat_ky_app) nên "SV chỉ xem không thao tác" không truy được.
 
 ## REFACTOR màn "Duyệt ĐK SV" (deploy 2026-08-17, app.js v105)
 Theo yêu cầu user, đơn giản hoá luồng Pha 3:
