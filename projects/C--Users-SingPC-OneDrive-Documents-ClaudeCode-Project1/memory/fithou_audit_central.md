@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 27152e89-3b17-4747-9e4b-63e2a071cb90
-  modified: 2026-08-17T05:46:55.748Z
+  modified: 2026-08-17T06:13:41.526Z
 ---
 
 Hợp nhất nhật ký thao tác 3 phân hệ FithouOne về **1 kho PostgreSQL riêng** thay vì mỗi phân hệ một chỗ (hou-cntt `nhat_ky_app`, workload SQLite `system_logs`, website `fithou_admin_logs`). Quyết định vì "3 phân hệ nhưng thực chất 1 hệ thống" + chịu ~2000 SV (POST dồn lúc mở đăng ký) — xem [[fithou_server_infra]], [[hou_cntt_app_audit_log]].
@@ -18,4 +18,6 @@ Hợp nhất nhật ký thao tác 3 phân hệ FithouOne về **1 kho PostgreSQL
 
 **Không audit:** từng tin nhắn/chat (chỉ thu-hồi + broadcast); logout SV (token client-side). **Điểm danh:** log per-SV checkin + `diemdanh.gv` per buổi (cần meta thời gian — Phase 5).
 
-**Trạng thái (2026-08-17):** Phase 1 (kho) + 2 (hou-cntt) + 3 (workload) XONG & verified prod (real SV login chảy vào). CÒN: Phase 4 (màn `/admin/nhat-ky` đọc kho trung tâm + lọc phan_he — hiện vẫn đọc `nhat_ky_app` cũ), Phase 5 (điểm danh meta chi tiết + di trú log cũ + tắt dual-write cũ). hou-cntt & workload sửa TRỰC TIẾP trên server (không phải git repo). Backup `*.bak_audit_*` trên server. Dòng test `__audit_probe__`/`probe-wl` cần xoá bằng superuser khi dọn.
+**Điểm danh chi tiết:** handler `attendance.py::checkin` + `giang_vien.py::gv_set/gv_qr/gv_batch` gắn `request.state.audit_meta`/`audit_target` (lớp/mssv/loại/phương thức); middleware nhặt vào `meta` qua `audit_central.log_request(extra_meta, target_override)`. Chi tiết đầy đủ vẫn ở bảng nghiệp vụ `DiemDanh` (có timestamp).
+
+**Trạng thái (2026-08-17):** Phase 1-5 XONG & verified prod. Màn `/admin/nhat-ky` (web-admin app.js v104) đọc kho trung tâm + lọc phan_he. Đã di trú 1958 lịch sử ĐĂNG NHẬP (action_code auth.login/_fail, meta.legacy=true); KHÔNG kéo blanket-noise cũ sang (giữ nguyên trong `nhat_ky_app` như lưu trữ). **CÒN NỢ:** tắt dual-write cũ (bỏ `audit.ghi` blanket trong middleware `main.py::_nhat_ky_app`) — CHỜ user xác nhận màn mới ổn rồi mới tắt (để rollback). hou-cntt & workload sửa TRỰC TIẾP trên server (không git). Backup `*.bak_audit_*`, `*.bak_dd_*` trên server.
