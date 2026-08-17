@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 27152e89-3b17-4747-9e4b-63e2a071cb90
-  modified: 2026-08-16T15:53:01.306Z
+  modified: 2026-08-17T06:58:41.499Z
 ---
 
 Tính năng LỚN đang xây (bắt đầu 2026-08-14): **đăng ký/điều chỉnh tín chỉ** sau khi Xếp lớp. Code ở hou-cntt (D:\dev\hou-cntt). Subtab "Đăng ký tín chỉ" trong Sinh viên/Học vụ (SPA); giáo vụ ở web-admin tab Xếp lớp.
@@ -28,6 +28,12 @@ Tính năng LỚN đang xây (bắt đầu 2026-08-14): **đăng ký/điều ch�
 - **B1 SV nêu nguyện vọng** (`sv_de_xuat_mo_lop`, endpoint POST `/me/dang-ky/de-xuat-mo-lop`): môn `trang_thai='chua_co_lop'` trong `sv_khoi_mon` hiện nút "📣 Đề xuất mở lớp" — CHỈ khi: đủ tiên quyết, KHỐI CHƯA đủ TC (tính cả **tín đang học/giữ**, vd 0+3/3=đủ→ẩn), KHÔNG vượt trần 23TC (ctx.tong_tc gồm giữ chỗ, loại GDQP/GDTC), không phải GDQP/GDTC. web-sv: nút + thẻ "Nguyện vọng của bạn" + banner. Khối đủ TC mà vẫn Thêm → confirm "học thêm có thể không xét TN".
 - **B2 so khớp + duyệt** (giáo vụ): `de_xuat_list_nguyen_vong` gom demand nguyện vọng → `xep_lop.de_xuat_mo_lop(demand=..., min_mo=1)`. Đã sửa `de_xuat_mo_lop`: thêm `min_mo` (nguyện vọng=1 → 1 SV cũng mở), **sort demand giảm dần** (môn đông giành slot trước), **giữ chỗ phòng** (busy_room.add sau khi chọn → lớp đề xuất KHÔNG trùng phòng+giờ). `duyet_mo_lop` mở rộng: THÔNG BÁO từng SV + đánh dấu nguyện vọng 'duyet_mo'.
 - **B2 TẠM DUYỆT (chốt user, deploy app.js v98):** bảng `dk_lop_de_xuat` lưu bền lớp đề xuất; trang_thai tam_huy(MẶC ĐỊNH HỦY)|tam_duyet|da_mo|huy. Giáo vụ tab "📣 Nguyện vọng mở lớp": **So khớp** (`nguyen-vong/so-khop` → tạo lại các bản tam_huy) → mỗi lớp **toggle Duyệt↔Hủy** (`/lop/{id}/quyet-dinh`, đặt tam_luc), sửa GV/phòng/thứ/tiết (`/lop/{id}/sua`), loc-buoi lọc SV không theo được → **"Xác nhận kết quả tạm thời"** (`nguyen-vong/xac-nhan`) chốt NGAY. **Auto-chốt lazy** (`_finalize_de_xuat` gọi đầu mỗi endpoint): tam_duyet quá **3h** (`_DX_UNDO_GIO`)→mở lớp+báo SV; quá **3 ngày** sau mo_den (`_DX_HAN_NGAY`)→chốt hết (tam_huy→hủy+báo SV). Chốt DUYỆT: lọc lại SV theo buổi cuối rồi `duyet_mo_lop`. Chốt HỦY: nguyện vọng→'huy' + báo SV "chưa mở lớp". **SV chỉ nhận thông báo khi có kết quả CHÍNH THỨC** (không xác nhận lại). LƯU Ý: auto-timer là LAZY (chạy khi có request tới endpoint), cần traffic để đúng giờ.
+
+## REFACTOR màn "Duyệt ĐK SV" (deploy 2026-08-17, app.js v105)
+Theo yêu cầu user, đơn giản hoá luồng Pha 3:
+- **Danh sách duyệt chỉ còn 3 nhóm CẦN xử lý** (`dieu_chinh_list` lọc): (a) SV **chưa xác nhận** (lọc bỏ SV có trong `dk_xac_nhan` khỏi `them` → tự duyệt, ẩn); (b) SV **xin hủy** — `huy` chỉ giữ `trang_thai='cho_duyet'`; (c) lớp mở nguyện vọng (mục riêng). **Lớp 0 người cần duyệt → ẩn** (ma_set = set(them)|set(huy) sau lọc). Phạm vi nhóm (a) = chỉ SV có điều chỉnh (`nguon≠import`); SV chưa xác nhận nói chung vẫn ở tab "Xác nhận" riêng.
+- **Duyệt hủy KHÔNG xóa ngay:** `xu_ly_yeu_cau` duyệt chỉ đánh dấu `dk_yeu_cau='duyet'`; **xóa đăng ký DỜI tới checkpoint** `chot()` (DELETE dang_ky_hoc_ky USING dk_yeu_cau WHERE loai=huy AND trang_thai=duyet AND dot_id=đợt). Cần 2 bước (duyệt→đồng bộ) để còn chỗ SV kiến nghị/giáo vụ đảo ý.
+- **Nút "✅ Xác nhận đã đồng bộ chính thức"** = đổi tên nút Chốt đợt cũ (= `chot()`); là **CHECKPOINT** (đồng bộ thật sang hệ thống trường làm THỦ CÔNG BÊN NGOÀI, nút chỉ đánh dấu chính thức trong hệ thống này). Cảnh báo "chỉ bấm sau khi đã đồng bộ sang trường". Export đổi nhãn "⬇ Xuất dữ liệu giả lập cuối" (vẫn `export_dieu_chinh` 2 sheet delta). Mọi thao tác vẫn chỉ ghi `gia_lap` tới checkpoint (đã đúng sẵn).
 
 ## LOGIN FIX quan trọng (2026-08-16): trang /sinhvien SPA
 Trang /sinhvien CHƯA BAO GIỜ đăng nhập được trên di động (modal thì được). Nguyên nhân THẬT (qua chẩn đoán tại chỗ): `api()` gọi `/auth/login` **quên `method:'POST'`** → mặc định GET+body → Chromium mới ném "GET cannot have body" (không phải cache/CSP/mạng — 2 hướng đó bắt nhầm nhưng vẫn giữ: no-cache header + CSP `connect-src 'self' https: wss:`). **Vá: `api()` tự đặt POST khi có body** (fix cả login/forgot/chat; `/me/prefs` set rõ PUT). SPA /sinhvien giờ là **CỔNG CHUNG** như modal: SV→cổng SV, giangvien→api.fit/admin, cán bộ→canbo.fit qua `/auth/sso-code`. + Fix web-admin `renderPage` KHÔNG await page async → GV không lớp kẹt "Đang tải…"; giờ await + hiện thông báo rỗng rõ ràng + `/admin/warnings` thoát sớm khi GV không lớp.
