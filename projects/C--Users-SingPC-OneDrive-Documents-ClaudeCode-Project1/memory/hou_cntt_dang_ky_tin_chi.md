@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 27152e89-3b17-4747-9e4b-63e2a071cb90
-  modified: 2026-08-17T12:50:24.293Z
+  modified: 2026-08-18T04:07:39.602Z
 ---
 
 Tính năng LỚN đang xây (bắt đầu 2026-08-14): **đăng ký/điều chỉnh tín chỉ** sau khi Xếp lớp. Code ở hou-cntt (D:\dev\hou-cntt). Subtab "Đăng ký tín chỉ" trong Sinh viên/Học vụ (SPA); giáo vụ ở web-admin tab Xếp lớp.
@@ -41,7 +41,7 @@ User chốt: mọi thao tác SV trên màn Điều chỉnh là **NHÁP**; **quá
 ## REFACTOR màn "Duyệt ĐK SV" (deploy 2026-08-17, app.js v105)
 Theo yêu cầu user, đơn giản hoá luồng Pha 3:
 - **Danh sách duyệt chỉ còn 3 nhóm CẦN xử lý** (`dieu_chinh_list` lọc): (a) SV **chưa xác nhận** (lọc bỏ SV có trong `dk_xac_nhan` khỏi `them` → tự duyệt, ẩn); (b) SV **xin hủy** — `huy` chỉ giữ `trang_thai='cho_duyet'`; (c) lớp mở nguyện vọng (mục riêng). **Lớp 0 người cần duyệt → ẩn** (ma_set = set(them)|set(huy) sau lọc). Phạm vi nhóm (a) = chỉ SV có điều chỉnh (`nguon≠import`); SV chưa xác nhận nói chung vẫn ở tab "Xác nhận" riêng.
-- **Duyệt hủy KHÔNG xóa ngay:** `xu_ly_yeu_cau` duyệt chỉ đánh dấu `dk_yeu_cau='duyet'`; **xóa đăng ký DỜI tới checkpoint** `chot()` (DELETE dang_ky_hoc_ky USING dk_yeu_cau WHERE loai=huy AND trang_thai=duyet AND dot_id=đợt). Cần 2 bước (duyệt→đồng bộ) để còn chỗ SV kiến nghị/giáo vụ đảo ý.
+- ~~Duyệt hủy KHÔNG xóa ngay (dời checkpoint)~~ **ĐẢO LẠI 2026-08-18:** deferral chặn SV (ghế/TC không giải phóng, còn trùng lịch → không ĐK tiếp; 147 ca treo đã dọn). Nay **duyệt hủy IMPORT = XÓA NGAY** trong `xu_ly_yeu_cau`. Bản ghi hủy giữ ở `dk_yeu_cau(duyet)` = "chỗ lưu" cho export (KHÔNG cần cột mask + sweep 35 chỗ). **Semantics hủy (user):** hủy `nguon='import'` → yêu-cầu→duyệt→xóa + xuất "Hủy" (đồng bộ trường); hủy môn THÊM-giả-lập (`nguon≠import`) → `sv_chot_dang_ky` XÓA THẲNG, không tạo dk_yeu_cau (net=0, không xuất). Export delta = ĐK mới(`nguon≠import` sống)+Hủy(`dk_yeu_cau duyet`=chỉ import). Phạm vi: chỉ Xếp lịch/Đăng ký TC/Lịch học/Điều chỉnh TC.
 - **Nút "✅ Xác nhận đã đồng bộ chính thức"** = đổi tên nút Chốt đợt cũ (= `chot()`); là **CHECKPOINT** (đồng bộ thật sang hệ thống trường làm THỦ CÔNG BÊN NGOÀI, nút chỉ đánh dấu chính thức trong hệ thống này). Cảnh báo "chỉ bấm sau khi đã đồng bộ sang trường". Export đổi nhãn "⬇ Xuất dữ liệu giả lập cuối" (vẫn `export_dieu_chinh` 2 sheet delta). Mọi thao tác vẫn chỉ ghi `gia_lap` tới checkpoint (đã đúng sẵn).
 
 ## LOGIN FIX quan trọng (2026-08-16): trang /sinhvien SPA
