@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 27152e89-3b17-4747-9e4b-63e2a071cb90
-  modified: 2026-08-18T06:15:27.756Z
+  modified: 2026-08-18T08:40:46.604Z
 ---
 
 Tính năng LỚN đang xây (bắt đầu 2026-08-14): **đăng ký/điều chỉnh tín chỉ** sau khi Xếp lớp. Code ở hou-cntt (D:\dev\hou-cntt). Subtab "Đăng ký tín chỉ" trong Sinh viên/Học vụ (SPA); giáo vụ ở web-admin tab Xếp lớp.
@@ -61,7 +61,7 @@ Trang /sinhvien CHƯA BAO GIỜ đăng nhập được trên di động (modal t
 4. **Chốt**: hết giờ, giáo vụ duyệt/từ chối yêu cầu SV (lý do dropdown/tự gõ), quyết mở lớp mới (nếu tụt <30), chốt → giả lập thành chính thức; **Xuất Excel** (danh sách xếp lớp cuối để GV cập nhật lên hệ thống trường). Kết quả gửi từng SV (dùng hệ Thông báo).
 
 ## Quyết định đã chốt
-- Sức chứa: theo phòng (P51/P52=80, còn lại 48/55), gộp lớp học ghép chung 1 sức chứa, giáo vụ sửa tay được. Thêm tay của giáo vụ CHO vượt.
+- Sức chứa: theo phòng (P51/P52=80, còn lại 48/55), gộp lớp học ghép chung 1 sức chứa, giáo vụ sửa tay được. Thêm tay của giáo vụ CHO vượt SĨ SỐ. **GUARD (fix 2026-08-18, `them_sv_tay` + luồng `them_tay` trong `gia_lap`):** giáo vụ thêm tay TRƯỚC ĐÂY bỏ qua check trùng-HP & trần-TC (chỉ chặn trùng LỚP qua `ON CONFLICT (mssv,ma_lop_tc)`) → ca 24A1001D0131 bị gv_them "Toán rời rạc" vào 2 lớp (7E1005.22 -2/-3) = 25TC vượt trần (dữ liệu gốc 0 import; SV này THẬT: đăng nhập 4 lần + đã xác nhận 17TC, gv thêm SAU đáp ứng nguyện vọng nhưng nhầm 2 lớp). Nay `them_sv_tay` chặn: (a) TRÙNG HỌC PHẦN (SV đã có cùng `ma_hp` ở lớp khác cùng kỳ), (b) VƯỢT TRẦN `xep_lop.TC_TOI_DA`=23 (loại GDQP/GDTC) — nhất quán `_kiem_lop` của sv_them. Đã xóa 1 lớp trùng (-3), SV còn 21TC. LƯU Ý guard match theo `ma_hp` nên KHÔNG bắt trùng chéo mã (7E1005.22 vs 7C2018.17 cùng "Toán rời rạc" khác CTĐT).
 - Hủy của SV: chờ duyệt, GIỮ ghế. Thêm của SV: thành công ngay, giáo vụ vẫn gỡ được ở bước chốt.
 - Trần TC/kỳ: TC_TOI_DA=23 (xep_lop). "Giáo vụ" = admin_role ∈ {admin, giaovu}.
 - Xác nhận SV bằng nhập lại mật khẩu (xác thực qua auth hiện có). Thông báo qua ThongBao + banner SPA.
