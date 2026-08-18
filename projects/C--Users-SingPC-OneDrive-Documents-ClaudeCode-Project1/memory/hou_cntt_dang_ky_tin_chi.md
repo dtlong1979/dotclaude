@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 27152e89-3b17-4747-9e4b-63e2a071cb90
-  modified: 2026-08-18T04:07:39.602Z
+  modified: 2026-08-18T04:37:05.735Z
 ---
 
 Tính năng LỚN đang xây (bắt đầu 2026-08-14): **đăng ký/điều chỉnh tín chỉ** sau khi Xếp lớp. Code ở hou-cntt (D:\dev\hou-cntt). Subtab "Đăng ký tín chỉ" trong Sinh viên/Học vụ (SPA); giáo vụ ở web-admin tab Xếp lớp.
@@ -43,6 +43,9 @@ Theo yêu cầu user, đơn giản hoá luồng Pha 3:
 - **Danh sách duyệt chỉ còn 3 nhóm CẦN xử lý** (`dieu_chinh_list` lọc): (a) SV **chưa xác nhận** (lọc bỏ SV có trong `dk_xac_nhan` khỏi `them` → tự duyệt, ẩn); (b) SV **xin hủy** — `huy` chỉ giữ `trang_thai='cho_duyet'`; (c) lớp mở nguyện vọng (mục riêng). **Lớp 0 người cần duyệt → ẩn** (ma_set = set(them)|set(huy) sau lọc). Phạm vi nhóm (a) = chỉ SV có điều chỉnh (`nguon≠import`); SV chưa xác nhận nói chung vẫn ở tab "Xác nhận" riêng.
 - ~~Duyệt hủy KHÔNG xóa ngay (dời checkpoint)~~ **ĐẢO LẠI 2026-08-18:** deferral chặn SV (ghế/TC không giải phóng, còn trùng lịch → không ĐK tiếp; 147 ca treo đã dọn). Nay **duyệt hủy IMPORT = XÓA NGAY** trong `xu_ly_yeu_cau`. Bản ghi hủy giữ ở `dk_yeu_cau(duyet)` = "chỗ lưu" cho export (KHÔNG cần cột mask + sweep 35 chỗ). **Semantics hủy (user):** hủy `nguon='import'` → yêu-cầu→duyệt→xóa + xuất "Hủy" (đồng bộ trường); hủy môn THÊM-giả-lập (`nguon≠import`) → `sv_chot_dang_ky` XÓA THẲNG, không tạo dk_yeu_cau (net=0, không xuất). Export delta = ĐK mới(`nguon≠import` sống)+Hủy(`dk_yeu_cau duyet`=chỉ import). Phạm vi: chỉ Xếp lịch/Đăng ký TC/Lịch học/Điều chỉnh TC.
 - **Nút "✅ Xác nhận đã đồng bộ chính thức"** = đổi tên nút Chốt đợt cũ (= `chot()`); là **CHECKPOINT** (đồng bộ thật sang hệ thống trường làm THỦ CÔNG BÊN NGOÀI, nút chỉ đánh dấu chính thức trong hệ thống này). Cảnh báo "chỉ bấm sau khi đã đồng bộ sang trường". Export đổi nhãn "⬇ Xuất dữ liệu giả lập cuối" (vẫn `export_dieu_chinh` 2 sheet delta). Mọi thao tác vẫn chỉ ghi `gia_lap` tới checkpoint (đã đúng sẵn).
+
+## EXPORT ĐIỀU CHỈNH 4 sheet + bất biến (deploy 2026-08-18)
+`export_dieu_chinh` giờ 4 sheet: **Đăng ký mới** (`nguon≠import` sống) · **Hủy** (`dk_yeu_cau duyet`=chỉ import) · **Lớp mới mở** (`lop_tin_chi trang_thai IN da_duyet/de_xuat`) · **Lớp cũ phải hủy** (bảng `lop_huy` = lớp GIÁO VỤ xác nhận hủy; CHƯA có UI thao tác hủy-lớp-thực → hiện rỗng, đúng). **Bất biến `Gốc − Hủy + Thêm = Giả lập`:** đổi-lớp môn import nay ghi Hủy(duyet) lớp cũ (không thì thiếu Hủy → trường giữ cả 2). **Đối chiếu file gốc:** file import trường (`grdLopTinChi`, cột Mã SV↔Lớp tín chỉ, có Ngày hủy) dùng mã lớp có đuôi `.N_LT/.N_TH` + placeholder `HP_...-0`; **DB = file bỏ regex `\.\d+_(LT|TH)$`**. Đã bù **293 ca đổi-lớp cũ** (trước bản vá, xóa import không ghi Hủy) bằng cách so file 2026-08-13; **KHÔNG bù 1950 placeholder** (trường gán section thật, không phải SV hủy). File gốc ở `D:\Downloads\2026.08.13-TongHopDuyetDKTinChi.xlsx`.
 
 ## LOGIN FIX quan trọng (2026-08-16): trang /sinhvien SPA
 Trang /sinhvien CHƯA BAO GIỜ đăng nhập được trên di động (modal thì được). Nguyên nhân THẬT (qua chẩn đoán tại chỗ): `api()` gọi `/auth/login` **quên `method:'POST'`** → mặc định GET+body → Chromium mới ném "GET cannot have body" (không phải cache/CSP/mạng — 2 hướng đó bắt nhầm nhưng vẫn giữ: no-cache header + CSP `connect-src 'self' https: wss:`). **Vá: `api()` tự đặt POST khi có body** (fix cả login/forgot/chat; `/me/prefs` set rõ PUT). SPA /sinhvien giờ là **CỔNG CHUNG** như modal: SV→cổng SV, giangvien→api.fit/admin, cán bộ→canbo.fit qua `/auth/sso-code`. + Fix web-admin `renderPage` KHÔNG await page async → GV không lớp kẹt "Đang tải…"; giờ await + hiện thông báo rỗng rõ ràng + `/admin/warnings` thoát sớm khi GV không lớp.
