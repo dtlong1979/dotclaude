@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 27152e89-3b17-4747-9e4b-63e2a071cb90
-  modified: 2026-08-18T08:56:27.933Z
+  modified: 2026-08-18T10:26:44.818Z
 ---
 
 Tính năng LỚN đang xây (bắt đầu 2026-08-14): **đăng ký/điều chỉnh tín chỉ** sau khi Xếp lớp. Code ở hou-cntt (D:\dev\hou-cntt). Subtab "Đăng ký tín chỉ" trong Sinh viên/Học vụ (SPA); giáo vụ ở web-admin tab Xếp lớp.
@@ -59,6 +59,13 @@ Trang /sinhvien CHƯA BAO GIỜ đăng nhập được trên di động (modal t
 2. **Giả lập Xếp lớp** (nút): ghi thành lịch KHÔNG chính thức; GV/SV khoa xem lịch thấy bản giả lập. Option **chọn khóa** (mặc định tất cả; chỉ hiện khóa còn SV chưa tốt nghiệp — `dang_ky_tc.khoa_active()`). Đặt **cửa sổ thời gian** điều chỉnh ở đây.
 3. **SV điều chỉnh** (trong cửa sổ): thấy 2 nhóm (đã đăng ký vs bổ sung, phân biệt màu nhẹ); **Hủy** 1 môn đã có (ghi lý do → tạo yêu cầu, GIỮ ghế tới khi giáo vụ duyệt) / **Thêm** (đủ ĐK: chưa vượt TC_TOI_DA=23, trong track, không vướng tiên quyết, lớp có mở trong tổng lớp thực+giả lập, CÒN SLOT — thành công ngay, chiếm ghế atomic) / **Xác nhận đăng ký** (nhập lại mật khẩu → xác thực qua luồng đăng nhập). Đăng nhập mà có học phần bổ sung → banner nhắc vào xác nhận.
 4. **Chốt**: hết giờ, giáo vụ duyệt/từ chối yêu cầu SV (lý do dropdown/tự gõ), quyết mở lớp mới (nếu tụt <30), chốt → giả lập thành chính thức; **Xuất Excel** (danh sách xếp lớp cuối để GV cập nhật lên hệ thống trường). Kết quả gửi từng SV (dùng hệ Thông báo).
+
+## KHỐNG CHẾ MÔN ĐẶC THÙ (Khóa luận/Đồ án/Thực tập TN) — deploy 2026-08-18
+`dang_ky_tc._phan_loai_dac_thu(ten)` → 'thesis' (khóa luận/đồ án tốt nghiệp) | 'tt2' (thực tập chuyên môn II - KS) | 'tt1' (thực tập chuyên ngành/chuyên môn TN) | None (kể cả "thực tập cơ sở/ngành" cấp thấp = không chặn). `_kiem_mon_dac_thu(db, ctx, ten)` trả None nếu được phép / chuỗi lý do nếu chặn:
+- **Thesis**: chỉ cho khi `_du_dk_thesis_ctx` = MỌI môn BẮT BUỘC (trừ thesis) đã ĐẠT hoặc đang ĐK/giữ kỳ này (dùng `quy_che_tn._mon_bb_chua_dat` lọc thesis + reg_names) → thesis là môn ĐK CUỐI. (Trước đây năm-2 vẫn đề xuất được Khóa luận — vô lý.)
+- **Thực tập**: cho khi `ctx.thesis_reg` (đang ĐK/giữ thesis CÙNG KỲ) HOẶC `tc_dat` ≥ ngưỡng: tt2=130, tt1: CTĐT 2019(id=3)=120, CTĐT 2022(id 1/2)=108.
+- Gắn vào **`_kiem_lop`** (SV tự thêm) + **`sv_de_xuat_mo_lop`** (nguyện vọng) + **`sv_khoi_mon`** (ẩn nút Đề xuất qua `nv_hpid`). `_sv_ctx` bổ sung mssv/ctdt_id/loai_bang/tc_dat(`graduation.tc_tich_luy`)/reg_names/thesis_reg. Verify: K25 37TC chặn cả thesis lẫn thực tập; SV ĐK thesis 142TC cho cả 2.
+**ACCOUNTS local-first (fix 2026-08-18):** `/admin/accounts` `ORDER BY vai_tro,username LIMIT 300` khiến 12 TK tự-tạo bị 1166 CAS đẩy khỏi limit → nhóm "Tự tạo" rỗng (search vẫn ra). Sửa: `ORDER BY (mat_khau_hash IN('!core','!cas')) [local trước], vai_tro, username LIMIT 500`. (Cùng đợt: HOTFIX app.js — chuỗi confirm nút reset-CAS bị newline thật làm hỏng SPA admin, đã bỏ newline, v116.)
 
 ## Quyết định đã chốt
 - Sức chứa: theo phòng (P51/P52=80, còn lại 48/55), gộp lớp học ghép chung 1 sức chứa, giáo vụ sửa tay được. Thêm tay của giáo vụ CHO vượt SĨ SỐ. **GUARD (fix 2026-08-18, `them_sv_tay` + luồng `them_tay` trong `gia_lap`):** giáo vụ thêm tay TRƯỚC ĐÂY bỏ qua check trùng-HP & trần-TC (chỉ chặn trùng LỚP qua `ON CONFLICT (mssv,ma_lop_tc)`) → ca 24A1001D0131 bị gv_them "Toán rời rạc" vào 2 lớp (7E1005.22 -2/-3) = 25TC vượt trần (dữ liệu gốc 0 import; SV này THẬT: đăng nhập 4 lần + đã xác nhận 17TC, gv thêm SAU đáp ứng nguyện vọng nhưng nhầm 2 lớp). Nay `them_sv_tay` chặn: (a) TRÙNG HỌC PHẦN (SV đã có cùng `ma_hp` ở lớp khác cùng kỳ), (b) VƯỢT TRẦN `xep_lop.TC_TOI_DA`=23 (loại GDQP/GDTC) — nhất quán `_kiem_lop` của sv_them. Đã xóa 1 lớp trùng (-3), SV còn 21TC. LƯU Ý guard match theo `ma_hp` nên KHÔNG bắt trùng chéo mã (7E1005.22 vs 7C2018.17 cùng "Toán rời rạc" khác CTĐT).
