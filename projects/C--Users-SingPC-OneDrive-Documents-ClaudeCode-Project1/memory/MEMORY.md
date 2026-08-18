@@ -14,6 +14,7 @@
 - [Project Overview](project_overview.md) — ứng dụng chat + quản lý công việc nội bộ, cross-platform, quy mô nhỏ, dùng cloud BaaS, cần audit trail + phân quyền
 - [Shadowing App](shadowing_app.md) — app học nghe/nói Tiếng Anh (shadowing), Flutter+Firebase, nội dung sinh sẵn, chấm phát âm Azure
 - [HOU CNTT App](hou_cntt_app.md) — phần mềm hỗ trợ học tập Khoa CNTT HOU; đã có CSDL 3 CTĐT (CN/KS 2022, KS 2019) trong db/, nguồn sscfit.hou.edu.vn
+- [UI Copy Style](ui_copy_style.md) — văn phong giao diện: TRANG TRỌNG, THUẦN VIỆT, không emoji/khẩu ngữ (vd "Hôm nay bạn không có việc cần xử lý", "Nhận việc", "Báo cáo hoàn thành", "Nghiệm thu đạt")
 - [Workload Redesign](workload_redesign.md) — cải tổ UX Giao việc workload (action-first, 4 trạng thái, 3 vai); bản cũ đã backup; Pha 1 "Hôm nay" tại / đã deploy, dashboard cũ → /bang-dieu-hanh; còn Pha 2-4
 - [Workload App](workload_app.md) — web nhật ký/giao việc khoa CNTT (cải tổ phân công việc 4 giai đoạn); GĐ1 đang chạy ở workload/ (FastAPI+SQLite+Jinja)
 - [HOU CNTT Paths](hou_cntt_paths.md) — mã nguồn thật ở D:\dev\hou-cntt (C:\Dev chỉ là junction hay rời ra); cách chạy PostgreSQL/backend 8000/Flutter/emulator Pixel_10_Pro
