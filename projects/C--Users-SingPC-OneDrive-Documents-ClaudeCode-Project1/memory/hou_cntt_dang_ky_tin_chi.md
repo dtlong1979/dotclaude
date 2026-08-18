@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 27152e89-3b17-4747-9e4b-63e2a071cb90
-  modified: 2026-08-18T08:40:46.604Z
+  modified: 2026-08-18T08:56:27.933Z
 ---
 
 Tính năng LỚN đang xây (bắt đầu 2026-08-14): **đăng ký/điều chỉnh tín chỉ** sau khi Xếp lớp. Code ở hou-cntt (D:\dev\hou-cntt). Subtab "Đăng ký tín chỉ" trong Sinh viên/Học vụ (SPA); giáo vụ ở web-admin tab Xếp lớp.
@@ -32,7 +32,7 @@ Tính năng LỚN đang xây (bắt đầu 2026-08-14): **đăng ký/điều ch�
 ## MÔ HÌNH "NHÁP CÓ HẠN" — mọi thao tác SV tạm tới khi Xác nhận (deploy 2026-08-17)
 User chốt: mọi thao tác SV trên màn Điều chỉnh là **NHÁP**; **quá 20′ không Xác nhận (hoặc logout) → hoàn tác toàn bộ về gốc**. Dữ liệu ĐÃ CHỐT (`dang_ky_hoc_ky`) KHÔNG bị đụng cho tới khi bấm Xác nhận.
 - **`dk_giu_cho` mở rộng** thành lớp nháp 3 loại: cột `loai` (`them`/`doi`/`huy`, mặc định them) + `doi_tu` (lớp cũ khi đổi) + `ghi_chu` (lý do khi hủy). `GIU_CHO_PHUT` 10→**20**.
-- **`sv_doi_lop`** → nháp `loai='doi'` (giữ ghế lớp mới + nhớ lớp cũ), KHÔNG ghi đăng ký/KHÔNG xóa cũ. **`sv_huy_yeu_cau`** → nháp `loai='huy'`, CHƯA tạo `dk_yeu_cau`. `sv_giu_cho` set `loai='them'`. Mọi thao tác gọi `_refresh_holds` (gia hạn 20′ cả phiên). Hold `loai='huy'` KHÔNG tính vào sức chứa lớp.
+- **`sv_doi_lop`** → nháp `loai='doi'` (giữ ghế lớp mới + nhớ lớp cũ), KHÔNG ghi đăng ký/KHÔNG xóa cũ. **LỚP RỖNG (fix 2026-08-18):** gợi ý ĐỔI LỚP (`lop_doi_cho_sv`) trước đây hiện cả lớp 0 SV (imported nhưng chưa ai học = "không mở/hủy", vd 2 lớp QLDA 0/55). Nay thêm param `bo_lop_rong=True` (mặc định, SV): bỏ nhóm có `grp_reg==0` (đăng-ký-thật, không tính giữ-chỗ); `=False` ở `lop_review_goi_y` (giáo vụ chuyển lớp) để vẫn dùng lớp rỗng làm đích khi dồn SV. `sv_co_the_them` (THÊM lớp) VỐN ĐÃ bỏ lớp rỗng (`real_si==0`). **DỌN HẬU QUẢ (2026-08-18):** trước fix, 11 SV đã tự đổi/thêm vào 6 lớp 0-nền (gồm 4 SV vào lớp placeholder `HP_...-0`) — mọi môn đều có lớp thật đông. Đã chuyển 11 SV sang lớp thật ĐÔNG nhất không-trùng-lịch (2 pass: lop_doi_cho_sv bo_lop_rong=True → dồn theo max si_so). Kết: 0 lớp 0-nền còn SV, 0 SV trong HP_, 0 trùng HP. Backup ở scratchpad `remediate_empty_classes.txt`. (Lớp đông 18-26 SV trùng lịch nên vài SV chỉ về được lớp 5-7 SV — tốt nhất khả dĩ.) **`sv_huy_yeu_cau`** → nháp `loai='huy'`, CHƯA tạo `dk_yeu_cau`. `sv_giu_cho` set `loai='them'`. Mọi thao tác gọi `_refresh_holds` (gia hạn 20′ cả phiên). Hold `loai='huy'` KHÔNG tính vào sức chứa lớp.
 - **`sv_chot_dang_ky`** áp cả 3 loại: them/doi ghi đăng ký (doi xóa lớp cũ + dọn yêu cầu hủy cũ), huy mới tạo `dk_yeu_cau(cho_duyet)` gửi giáo vụ; rồi ghi `dk_xac_nhan`.
 - **Logout**: SPA gọi `POST /me/dang-ky/nha-tat-ca` (`sv_nha_tat_ca`) xóa mọi nháp. **Hết hạn**: `_don_giu_cho_het_han` (lazy) xóa nháp quá hạn = revert. web-sv: dòng nháp hiện "sẽ ĐỔI LỚP/sẽ XIN HỦY/đang giữ" + đồng hồ; Đổi/Hủy KHÔNG tác động ngay.
 
