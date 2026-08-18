@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 27152e89-3b17-4747-9e4b-63e2a071cb90
-  modified: 2026-08-05T08:18:14.229Z
+  modified: 2026-08-18T08:10:24.656Z
 ---
 
 Bổ sung **xét điều kiện tốt nghiệp qua import file "điểm tổng hợp"** cho hou-cntt admin. Liên quan [[hou_cntt_ren_luyen_warnings]] [[hou_cntt_app]].
@@ -21,7 +21,7 @@ Bổ sung **xét điều kiện tốt nghiệp qua import file "điểm tổng h
 **ĐÃ LÀM (Giai đoạn 1a — validated):** `backend/app/services/importer/bang_diem.py::extract(sheets)` — hàm THUẦN (không DB), đa sheet, tái dùng `grades._courses`, tìm cột theo NHÃN (vị trí lệch giữa sheet), giữ điểm cao nhất, dự đoán loại hình. Test file thật `D:\Downloads\tông TL (long).xlsx`: 51 SV, 72 HP, KS24/CN27, bỏ đúng HTCTDT+tich luy. (Test offline stub sqlalchemy vì Python local không có; chạy thật trong Docker.)
 
 **ĐÃ XONG & DEPLOY (Steps 1-4, verify trên prod):**
-- `services/xet_tot_nghiep.py`: `preview/apply/thong_ke`. apply: khớp `ma_hp`→hoc_phan (exact→theo tên), upsert ket_qua_hoc_phan **keep-max** (ON CONFLICT WHERE new he4 > old), TẠO sinh_vien mới + `_ctdt_for(khóa,loại)` (≥2021 CN→2022.CN / KS→2022.KS; ≤2020→2019.KS), gán ctdt_id cho SV NULL, cập nhật tbc, chạy `_recompute_spec` (SQL db/08 scope theo mssv).
+- `services/xet_tot_nghiep.py`: `preview/apply/thong_ke`. apply: khớp `ma_hp`→hoc_phan (exact→theo tên), upsert ket_qua_hoc_phan **keep-max** (ON CONFLICT WHERE new he4 > old), TẠO sinh_vien mới + `_ctdt_for(khóa,loại)` (≥2021 CN→2022.CN / KS→2022.KS; ≤2020→2019.KS), gán ctdt_id cho SV NULL, cập nhật tbc. ~~chạy `_recompute_spec`~~ **ĐÃ BỎ (2026-08-18)**: `_recompute_spec` (`_SPEC_SQL` dự đoán CN = track nhiều TC nhất, `ma_cn<>'NONE'` nên KHÔNG BAO GIỜ ra NONE) từng chạy mỗi lần import → **GHI ĐÈ chuyên ngành giáo vụ đã duyệt đổi** (vd Hoàng Quốc Triệu 22A1001D0330 duyệt MT→NONE bị trả về MT; Nguyễn Đức An 22A1001D0001 NS→SE). User chốt: BỎ dự đoán trong import, GIỮ NGUYÊN CN sẵn có. Đã comment dòng `_recompute_spec(db, mss)` (xet_tot_nghiep.py ~263) + KHÔI PHỤC 2 SV từ `dk_xac_nhan_cn(dot_id=0)` (= giá trị THỦ CÔNG do luồng duyệt ctdt_de_xuat ghi). **Các fix khác cùng ngày (xem [[hou-cntt-block-credit-model]]):** cheo không cộng-gộp (thử từng track); CN NULL→hiện "CNTT"; ctdt_view.curriculum khử trùng môn NONE ở cả 2 khối.
 - `thong_ke(db,khoa)`: đủ/chưa đủ theo loại hình × chuyên ngành + **gợi ý chéo** (gọi `du_dieu_kien` với ctdt loại kia cùng khóa; đủ ở loại khác → "Nên xét <loại>"/"Đủ cả 2").
 - Routes `api/routes/tot_nghiep.py` (GIAOVU/ADMIN): `POST /tot-nghiep/bang-diem/preview|apply` (multipart), `GET /tot-nghiep/thong-ke?khoa=`.
 - web-admin `pageTotNghiep`: 2 card mới — "Import điểm tổng hợp toàn khóa" (bdPreview/bdApply) + "Thống kê xét tốt nghiệp theo khóa" (tkLoad/tkRender, link chi tiết `stuDetail` sẵn có = YC4). index.html **app.js?v=10**.
