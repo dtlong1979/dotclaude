@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 27152e89-3b17-4747-9e4b-63e2a071cb90
-  modified: 2026-08-18T04:37:05.735Z
+  modified: 2026-08-18T05:19:21.142Z
 ---
 
 Tính năng LỚN đang xây (bắt đầu 2026-08-14): **đăng ký/điều chỉnh tín chỉ** sau khi Xếp lớp. Code ở hou-cntt (D:\dev\hou-cntt). Subtab "Đăng ký tín chỉ" trong Sinh viên/Học vụ (SPA); giáo vụ ở web-admin tab Xếp lớp.
@@ -36,7 +36,7 @@ User chốt: mọi thao tác SV trên màn Điều chỉnh là **NHÁP**; **quá
 - **`sv_chot_dang_ky`** áp cả 3 loại: them/doi ghi đăng ký (doi xóa lớp cũ + dọn yêu cầu hủy cũ), huy mới tạo `dk_yeu_cau(cho_duyet)` gửi giáo vụ; rồi ghi `dk_xac_nhan`.
 - **Logout**: SPA gọi `POST /me/dang-ky/nha-tat-ca` (`sv_nha_tat_ca`) xóa mọi nháp. **Hết hạn**: `_don_giu_cho_het_han` (lazy) xóa nháp quá hạn = revert. web-sv: dòng nháp hiện "sẽ ĐỔI LỚP/sẽ XIN HỦY/đang giữ" + đồng hồ; Đổi/Hủy KHÔNG tác động ngay.
 
-**BACKFILL xác nhận (một lần, 2026-08-17):** chỉ grandfather **191 SV ĐÃ-THAO-TÁC** (nguon≠import / có dk_yeu_cau / có dk_giu_cho) = đã xác nhận, tổng dk_xac_nhan=866. KHÔNG quét toàn bộ (từng thử 508 rồi UNDO — quá rộng, "xác nhận ảo" SV chưa đăng nhập). Lưu ý: **không hệ nào ghi log GET** (cả nhat_ky_app) nên "SV chỉ xem không thao tác" không truy được.
+**BACKFILL xác nhận (đính chính 2026-08-18):** ~~191 SV nguon≠import~~ SAI — `gia_lap`/`gv_them` là GIÁO VỤ xếp, KHÔNG phải SV thao tác. Đã **xóa 119 xác nhận oan**, chỉ giữ SV thật sự tự thao tác (`nguon='sv_them'` / `dk_giu_cho` / `dk_yeu_cau`). **BUG DROPOUT (fix 2026-08-18):** `dropout.nghi_bo_hoc` cũ tính `reg_cur` gồm cả kỳ-sống có `gia_lap` → SV nghi-bỏ-học bị giả-lập xếp lớp → tưởng "đang học" → không flag (vòng lặp). Sửa: **`reg_cur` chỉ tính `dang_ky_hoc_ky nguon<>'gia_lap'`** → flag 12→71 SV; đã xóa 205 lớp gia_lap phantom cho 71 SV này. `goi_y_tong_hop` vốn đã loại nghi-bỏ-học nên không tái xếp. KHÔNG quét toàn bộ (từng thử 508 rồi UNDO — quá rộng, "xác nhận ảo" SV chưa đăng nhập). Lưu ý: **không hệ nào ghi log GET** (cả nhat_ky_app) nên "SV chỉ xem không thao tác" không truy được.
 
 ## REFACTOR màn "Duyệt ĐK SV" (deploy 2026-08-17, app.js v105)
 Theo yêu cầu user, đơn giản hoá luồng Pha 3:
