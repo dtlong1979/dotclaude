@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 27152e89-3b17-4747-9e4b-63e2a071cb90
-  modified: 2026-07-31T11:39:46.569Z
+  modified: 2026-08-18T10:11:40.203Z
 ---
 
 Làm chức năng đổi/quên MK cho tài khoản **HOU CAS** (trước đây bị ẩn + chỉ hướng dẫn liên hệ). Liên quan [[password_cas_vs_local]].
@@ -29,6 +29,8 @@ Làm chức năng đổi/quên MK cho tài khoản **HOU CAS** (trước đây b
 - 26 cán bộ email nạp vào `cas_canbo.email` (từ workload, map ma_cb→tk_cas qua canbo_cas_map). `_resolve_uniid`: sinh_vien.email→mssv, cas_canbo.email→tk_cas.
 - **BỎ tự-nhập username** (không an toàn: change-password CAS tách rời mã reset → có thể chiếm tài khoản). Email lạ→liên hệ htsv.
 - **CÒN NỢ**: quên MK trên workload web cho CAS (dùng OTP, khác luồng link local) — tạm cán bộ dùng app/web-admin. IT chặn IP cassync (lỗ gốc).
+
+**ADMIN RESET MK CAS cho SV (2026-08-18):** màn "Quản lý Tài khoản" (web-admin) TÁCH 2 nhóm — 🔑 **Tài khoản tự tạo** (local) phía trên + 🔗 **HOU CAS** phía dưới (mỗi nhóm 1 bảng, CAS có phân trang `accCas`); `_accRow()` render chung. sso giờ nhận CẢ `!core` LẪN `!cas`. Thêm endpoint `POST /admin/accounts/{username}/reset-cas` (`_only_admin`, audit `taikhoan.reset_cas`): chỉ TK **CAS + vai_tro=SV** (username=MSSV=uniid), gọi `cas_pwd.cas_change_password`, gated bởi `cas_pwd_enabled` (đang TRUE). Nút "🔑 Đặt lại MK CAS" hiện trong khung Sửa của TK CAS-SV (admin). app.js?v=115. Phân bố prod: 1142 CAS-SV + 24 CAS-GV (!core), 12 local. (KHÔNG test reset thật — đổi MK CAS thật của SV.)
 
 **Chặn/nợ TRƯỚC khi bật cờ (đã xử lý):**
 - **Tài khoản TEST của IT** để verify: check-password trả gì; change-password format thành công; **cách CAS ràng buộc email↔uniid** ở reset (nếu không ràng buộc → lỗ chiếm tài khoản).
