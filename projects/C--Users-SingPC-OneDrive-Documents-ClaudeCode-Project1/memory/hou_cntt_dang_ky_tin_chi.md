@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 27152e89-3b17-4747-9e4b-63e2a071cb90
-  modified: 2026-08-19T03:30:17.384Z
+  modified: 2026-08-19T04:09:32.329Z
 ---
 
 Tính năng LỚN đang xây (bắt đầu 2026-08-14): **đăng ký/điều chỉnh tín chỉ** sau khi Xếp lớp. Code ở hou-cntt (D:\dev\hou-cntt). Subtab "Đăng ký tín chỉ" trong Sinh viên/Học vụ (SPA); giáo vụ ở web-admin tab Xếp lớp.
@@ -58,6 +58,9 @@ Theo yêu cầu user, đơn giản hoá luồng Pha 3:
 
 ## EXPORT ĐIỀU CHỈNH 4 sheet + bất biến (deploy 2026-08-18)
 `export_dieu_chinh` giờ 4 sheet: **Đăng ký mới** (`nguon≠import` sống) · **Hủy** (`dk_yeu_cau duyet`=chỉ import) · **Lớp mới mở** (`lop_tin_chi trang_thai IN da_duyet/de_xuat`) · **Lớp cũ phải hủy** (bảng `lop_huy` = lớp GIÁO VỤ xác nhận hủy; CHƯA có UI thao tác hủy-lớp-thực → hiện rỗng, đúng). **Bất biến `Gốc − Hủy + Thêm = Giả lập`:** đổi-lớp môn import nay ghi Hủy(duyet) lớp cũ (không thì thiếu Hủy → trường giữ cả 2). **Đối chiếu file gốc:** file import trường (`grdLopTinChi`, cột Mã SV↔Lớp tín chỉ, có Ngày hủy) dùng mã lớp có đuôi `.N_LT/.N_TH` + placeholder `HP_...-0`; **DB = file bỏ regex `\.\d+_(LT|TH)$`**. Đã bù **293 ca đổi-lớp cũ** (trước bản vá, xóa import không ghi Hủy) bằng cách so file 2026-08-13; **KHÔNG bù 1950 placeholder** (trường gán section thật, không phải SV hủy). File gốc ở `D:\Downloads\2026.08.13-TongHopDuyetDKTinChi.xlsx`.
+
+## RECONCILE import↔hệ thống + dọn "hủy nợ" (2026-08-19)
+User kiểm chứng bất biến bằng 3 file (`D:\Downloads\2026.08.13-TongHopDuyetDKTinChi.xlsx`=IMPORT gốc sheet `grdLopTinChi`; `dieu-chinh-dang-ky.xlsx`=export sheet **"Dang ky moi"**(Thêm)/**"Huy"**; báo cáo TKB). **Chuẩn hóa:** import "Lớp tín chỉ" bỏ regex `\.\d+_(LT|TH)$` (tách LT/TH = 2 dòng/lớp→dedup) + lọc kỳ `I.2627` + **bỏ 1950 placeholder K26** (`HP_...-0`, trường tự gán lớp thật, KHÔNG trong đợt/DB). Import thực I.2627 = **5155**; DB I.2627 = **5142** (import 4680+sv_them 380+gia_lap 68+gv_them 14, 0 placeholder). **THỨ TỰ BẮT BUỘC: HỦY TRƯỚC → THÊM SAU** (có **88 cặp (mssv,ma) ở CẢ Thêm+Hủy** → order-sensitive; Hủy-trước khớp DB, Thêm-trước KHÔNG). Merge `(base − Huy) | Them` = **5142 = DB, 0 lệch 2 chiều** (bất biến `Gốc−Hủy+Thêm=Hệ thống` đúng tuyệt đối; gồm cả 58 SV cân bằng lại). **BUG "hủy nợ" (đã dọn):** 44 lệnh Hủy cho môn KHÔNG có trong import = SV **tự thêm (sv_them) rồi xin hủy** → `dk_yeu_cau(huy,duyet)` tồn dư (đăng ký đã xóa). Code HIỆN TẠI đã đúng (`sv_chot_dang_ky`: hủy `nguon≠import`→XÓA THẲNG, không tạo dk_yeu_cau; chỉ import mới tạo yêu cầu) nên 44 là TỒN DƯ cũ. Đã **xóa 44 bản** (backup `dk_yeu_cau_pre_clean44.sql.gz`+`dkyc_44_backup_*.json`), xuất lại bằng `export_dieu_chinh` → sheet Hủy 519→**475**, "hủy nợ"=**0**, merge vẫn **5142/5142**. (88 Thêm∩Hủy còn lại là HỢP LỆ: hủy môn import rồi ĐK lại/đổi lớp.)
 
 ## LOGIN FIX quan trọng (2026-08-16): trang /sinhvien SPA
 Trang /sinhvien CHƯA BAO GIỜ đăng nhập được trên di động (modal thì được). Nguyên nhân THẬT (qua chẩn đoán tại chỗ): `api()` gọi `/auth/login` **quên `method:'POST'`** → mặc định GET+body → Chromium mới ném "GET cannot have body" (không phải cache/CSP/mạng — 2 hướng đó bắt nhầm nhưng vẫn giữ: no-cache header + CSP `connect-src 'self' https: wss:`). **Vá: `api()` tự đặt POST khi có body** (fix cả login/forgot/chat; `/me/prefs` set rõ PUT). SPA /sinhvien giờ là **CỔNG CHUNG** như modal: SV→cổng SV, giangvien→api.fit/admin, cán bộ→canbo.fit qua `/auth/sso-code`. + Fix web-admin `renderPage` KHÔNG await page async → GV không lớp kẹt "Đang tải…"; giờ await + hiện thông báo rỗng rõ ràng + `/admin/warnings` thoát sớm khi GV không lớp.
