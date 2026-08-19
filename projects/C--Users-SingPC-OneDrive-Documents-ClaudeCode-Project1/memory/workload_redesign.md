@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 27152e89-3b17-4747-9e4b-63e2a071cb90
-  modified: 2026-08-18T17:48:22.009Z
+  modified: 2026-08-19T02:22:27.679Z
 ---
 
 Cải tổ UX phần **Công việc (giao/nhận/nghiệm thu)** của workload sau đánh giá 5-vai ("mạnh tính năng, YẾU khả dụng ~3/5") + nghiên cứu 4-agent (Trello/Asana/Planner/Basecamp; triết lý "underdo the competition", "đối thủ thật là Zalo"). Bản thử artifact: `scratchpad/viec-khoa-prototype.html`. Định hướng đầy đủ trong lịch sử phiên (đọc transcript nếu cần).
@@ -30,4 +30,13 @@ Cải tổ UX phần **Công việc (giao/nhận/nghiệm thu)** của workload 
 
 **PHA 6 ĐÃ DEPLOY (2026-08-19) — tuân thủ nghiên cứu (prototype `scratchpad/viec-khoa-prototype.html`, 3 vai GV/Trưởng bộ phận/Ban chủ nhiệm) + thẻ hoá thân panel:** Prototype định 3 vai; đối chiếu → sửa: **/bo-phan** header thêm "Trưởng bộ phận: <tên>" + nút "Giao việc cho bộ phận"; thẻ #4 "Đã xong"→**"Xong tuần này"** (7 ngày, `ns.xong_tuan` = tasks group hoan_thanh & date(updated_at)≥week_ago); `bo_phan_data` trả `lead_name`. **/toan-khoa** thẻ mỗi bộ phận thêm "Trưởng: <tên>" (subquery memberships truong); fac + dept thêm `xong_tuan`; thêm khối "Việc của tôi" (BCN cũng giao & tham gia — route gọi `hom_nay_items` lấy my_n_lam/my_n_duyet, link về "/"). CSS `tk-dlead`/`tk-mine`. **Thân panel chi tiết** thẻ hoá bằng CSS scope `#job-panel` (KHÔNG đổi HTML, an toàn): `.sub-head` header có vạch xanh trái, `.subjob-list li`/`.assignee-list`/`.tl-item`/`.res` bo góc + viền + shadow card. LƯU Ý scope `#job-panel` vì `.sub-head` dùng ở nhiều màn khác (profile/me/groups/dashboard/di_cong_tac) — không được restyle global. Verify render 2 vai + HTTP 200 toàn bộ + 0 inline style (CSP).
 
-**REDESIGN HOÀN TẤT (6 pha) — web workload.** CHUẨN đối chiếu = prototype 3 vai. Còn: (a) thân panel mới chỉ card-hoá bằng CSS, chưa đổi cấu trúc HTML sâu (đủ đồng bộ nhìn); (b) **APP MOBILE CHƯA ĐỤNG GÌ** — mọi thay đổi chỉ ở web. Liên quan [[workload_app]] [[fithouone_deploy]] [[ui_copy_style]].
+**REDESIGN HOÀN TẤT (6 pha) — web workload.** CHUẨN đối chiếu = prototype 3 vai. Liên quan [[workload_app]] [[fithouone_deploy]] [[ui_copy_style]].
+
+**AUDIT 5-AGENT + KHẮC PHỤC P0→P2 ĐÃ DEPLOY (2026-08-19):** 5 agent fable-5 rà toàn luồng (GV/Trưởng bộ phận/BCN/toàn vẹn dữ liệu/reskin) theo kịch bản 8-12 tháng → điểm ~3.2/5, tổng hợp tồn đọng. Backup `_backup_workload/*_20260819_084916.*`. ĐÃ SỬA HẾT:
+- **P0 bảo mật/chốt trạng thái:** `/tasks/join` giờ yêu cầu `can_view_task` + chỉ việc chua_giao/dang_mo + không frozen + LUÔN vai tham_gia (chặn leo quyền + hồi sinh việc đã nghiệm thu); `/tasks/assign` chặn việc huy/tam_dung/hoan_thanh; `/tasks/accept` chặn huy/tam_dung; `/tasks/progress` chỉ assignee dang_lam + là GHI CHÚ thuần (không đổi trạng thái); `/tasks/subtask` chặn parent huy/hoan_thanh/tam_dung/frozen; `/tien-do?nguoi=` chặn rò quyền (chỉ admin/chính chủ/trưởng nhóm của người đó); cancel-cascade bỏ qua job con hoan_thanh; restore giữ cascade_from cho con về tam_dung.
+- **P0 thống kê:** mọi đếm "xong tuần/tháng" chuyển từ `updated_at`→`completed_at` (sửa việc cũ không còn làm nhảy số); `bo_phan_data` đếm bằng COUNT riêng (bỏ LIMIT 80), danh sách chỉ việc đang mở; `toan_khoa` gộp việc group_id NULL vào 4 thẻ (khớp danh sách quá hạn) + lọc nhóm archived; reopen xóa completed_at/early.
+- **P0 CSP/bug:** `phong-thi-nghiem` onsubmit→data-confirm (xóa ảnh có hỏi); `base.html:35` + forum poll-fill(data-width)/file-input + forgot bỏ inline style → **0 inline style trong TOÀN BỘ template**; bug lọc `dashboard.html` `/?r=`→`/bang-dieu-hanh`.
+- **P1 hành vi:** kanban "Việc của tôi" bỏ việc tạm dừng + chỉ giữ "đã nộp" khi việc còn cho_nghiem_thu (tự dọn); đóng băng theo completed_at (bình luận không kéo dài); **vai PHÓ** được quản lý+tạo việc (`can_manage_task`/`can_create_task` nhận pho); route `/tasks/withdraw` (rút lại bản nộp) + nhánh UI mine=hoan_thanh; ẩn "Trả lại" khi việc chỉ có job con (has_direct); quick-reopen bắt lý do thật; bỏ double-confirm (app.js).
+- **P1 hiệu năng:** WAL + index `idx_tasks_group`/`idx_mem_group`; `/tasks` compute_tree CHỈ cho trang hiện tại; `/toan-khoa/chi-tiet` chỉ query assignees/progress theo task_id của trang.
+- **P2:** thống nhất màu "đang làm"=xanh dương (tag.s-dang_lam); xóa task_detail.html chết; **F1 giao chéo bộ phận** khi tách job con (form chọn bộ phận + subtask nhận group_id → việc liên bộ phận).
+- **CÒN (cần user quyết, CHƯA làm):** gộp màn trùng (Cá nhân↔Hôm nay; Tổng quan↔Toàn khoa↔Bảng theo dõi); đại tu "lưu ý cán bộ"/thi đua (cờ negative do quản lý xác nhận, lọc năm học); nhân bản việc lặp theo kỳ; % bộ phận theo kỳ (cần bộ lọc năm học); dark-mode toàn app; gỡ emoji forum/me/tong_quan; **APP MOBILE CHƯA ĐỤNG GÌ**.
