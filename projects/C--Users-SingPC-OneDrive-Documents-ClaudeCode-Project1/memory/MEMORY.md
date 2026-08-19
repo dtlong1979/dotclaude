@@ -1,5 +1,7 @@
 # Memory Index
 
+- [FithouOne Coordination Hub](fithouone_coordination_hub.md) — hub đa phiên ở D:\Dev\FithouOne (.project/ INFRA+STATE+STAFFING+DECISIONS+TAXONOMY + junction src→hou-cntt, deploy→fithouone-deploy) để chạy song song workload/hou-cntt/mobile không chờ nhau
+
 - [Fithou Audit Central](fithou_audit_central.md) — kho nhật ký TẬP TRUNG 1 DB `audit` cho cả FithouOne (role audit_writer chỉ INSERT/SELECT); danh mục 42 thao tác, hiện nhãn không hiện câu lệnh, ghi bất đồng bộ hàng đợi+thread; dual-write đang chuyển; Phase 1-3 xong (hou-cntt+workload), còn Phase 4 (màn đọc) + 5 (điểm danh meta, di trú, tắt cũ)
 
 - [HOU CNTT Đăng ký Giữ chỗ & Load-test](hou_cntt_dang_ky_giu_cho_loadtest.md) — mô hình ghế đăng ký tín chỉ CHỐT: giữ tạm TTL 10p (bảng dk_giu_cho, atomic), hết hạn tự hủy, Xác nhận chốt hiện trạng; + kế hoạch index→load-test 300 step100 tìm điểm chết→đề xuất snapshot/circuit-breaker; nền tảng: khớp đã-đạt/tiên-quyết theo TÊN (mon_khop.passed_failed_bac_cau) + block_credits tôn trọng chuyên ngành gán
