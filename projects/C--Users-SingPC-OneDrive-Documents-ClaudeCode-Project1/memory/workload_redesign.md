@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 27152e89-3b17-4747-9e4b-63e2a071cb90
-  modified: 2026-08-19T05:14:31.751Z
+  modified: 2026-08-19T05:47:47.356Z
 ---
 
 Cải tổ UX phần **Công việc (giao/nhận/nghiệm thu)** của workload sau đánh giá 5-vai ("mạnh tính năng, YẾU khả dụng ~3/5") + nghiên cứu 4-agent (Trello/Asana/Planner/Basecamp; triết lý "underdo the competition", "đối thủ thật là Zalo"). Bản thử artifact: `scratchpad/viec-khoa-prototype.html`. Định hướng đầy đủ trong lịch sử phiên (đọc transcript nếu cần).
@@ -47,3 +47,5 @@ Cải tổ UX phần **Công việc (giao/nhận/nghiệm thu)** của workload 
 - **T3 đại tu Lưu ý cán bộ/thi đua (xong, user chốt CÁCH KHÁC - khách quan hơn):** BỎ hẳn cờ chủ quan "không tích cực" (gỡ 2 checkbox `name="negative"` ở form Rời việc + Rút người task_panel:50/189). `/luu-y-can-bo` viết lại = **ĐẾM KHÁCH QUAN**: số lần `tu_choi` (tự Từ chối) + số lần `roi` (tự Rời việc) mỗi cán bộ, GROUP BY user_id, lọc theo NĂM HỌC (`?nam=` mặc định năm hiện tại, `all`=tất cả). **KHÔNG tính `go_nguoi`** (điều chuyển do trưởng nhóm bấm Rút người ≠ tự rời). staff_notes.html = bảng 2 cột + ghi chú "chỉ THAM KHẢO, không đánh giá tại thời điểm thực hiện". `is_negative` giờ luôn 0 (bỏ dùng). Verify render bảng + số liệu + lọc năm + smoke 200.
 
 **NHÁNH 1+2+3 HOÀN TẤT.** Còn **NHÁNH 4 — APP MOBILE (CHƯA ĐỤNG GÌ)** để sau.
+
+- **Cơ chế Từ chối vs Rời việc (user chốt 2026-08-19):** **Từ chối** (việc CHƯA nhận, `cho_nhan`→`tu_choi`) = GIỮ TỰ ĐỘNG ngay + báo người giao (không ép ai nhận việc). **Rời việc** (việc ĐANG làm dở, chỉ hiện ở nhánh `dang_lam`) = đổi sang **ĐỀ NGHỊ + trưởng nhóm duyệt**: bấm "Đề nghị rời việc" (bắt buộc lý do) → set `task_assignees.leave_req_at` (KHÔNG đổi status, việc vẫn thuộc người đó) → báo người giao + trưởng/phó nhóm. Trưởng nhóm ở màn chi tiết thấy "⏳ đề nghị rời" + [Đồng ý cho rời]/[Không đồng ý+trao đổi] (`/tasks/leave-decide`). Đồng ý→`da_roi`+log `roi` (ghi theo NGƯỜI RỜI để thống kê đúng); Không đồng ý→xóa cờ+giữ lại+thông báo. Người đề nghị tự rút được (`/tasks/leave-cancel`). Nếu người bấm chính là người quản lý việc thì rời luôn không cần xin. Cột mới `task_assignees.leave_req_at` (db.py CREATE+migration). Log kind mới `xin_roi`. → thống kê "số lần tự Rời việc" giờ chỉ đếm ca ĐÃ ĐƯỢC DUYỆT (đúng "tự rời có đồng thuận"), tách bạch với "Rút người" (`go_nguoi`).
