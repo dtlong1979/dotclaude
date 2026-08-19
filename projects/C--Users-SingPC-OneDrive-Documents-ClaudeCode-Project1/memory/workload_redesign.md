@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 27152e89-3b17-4747-9e4b-63e2a071cb90
-  modified: 2026-08-19T04:59:40.579Z
+  modified: 2026-08-19T05:14:31.751Z
 ---
 
 Cải tổ UX phần **Công việc (giao/nhận/nghiệm thu)** của workload sau đánh giá 5-vai ("mạnh tính năng, YẾU khả dụng ~3/5") + nghiên cứu 4-agent (Trello/Asana/Planner/Basecamp; triết lý "underdo the competition", "đối thủ thật là Zalo"). Bản thử artifact: `scratchpad/viec-khoa-prototype.html`. Định hướng đầy đủ trong lịch sử phiên (đọc transcript nếu cần).
@@ -43,5 +43,7 @@ Cải tổ UX phần **Công việc (giao/nhận/nghiệm thu)** của workload 
 - **T1 giao diện:** gỡ **86 emoji trang trí** ở 19 màn phụ (forum/me/profile/tong_quan/dashboard/tien_do/groups/users/log/di_cong_tac...) — GIỮ mũi tên ←→↳ + ✓✕ + 🔔 nav (script `strip_emoji.py`, set REMOVE). **Dark-mode TOÀN APP** ở tầng token: `@media (prefers-color-scheme: dark)` redefine `--bg/--card/--ink/--muted/--line/--primary*/status tokens/shadow` + phủ ~40 nhóm màu sáng cứng (topbar/btn/input/hover/bảng/tag pastel) — append cuối style.css (thắng cascade); light-mode KHÔNG đổi (dark chỉ kích hoạt dưới media). **Chưa login được để soi nội bộ → user tự bật OS dark kiểm.** Màu "đang làm"=xanh dương đã thống nhất từ P2.
 - **T2 điều hướng:** **Cá nhân** (`me.html`) gỡ 2 mục việc TRÙNG Hôm nay (invites "Việc được giao mới" + doing "Đang thực hiện", 14 div) + **bẫy "Đã hoàn thành" còn sót trong dropdown tiến độ** → thay bằng pointer card về `/`; **Hôm nay** thẻ 'moi' thêm nút **Từ chối** (details + lý do). 3 màn giám sát KHÔNG gộp (khác phạm vi thật: Tổng quan=KPI chung mọi vai; Toàn khoa=theo bộ phận admin; Bảng theo dõi=BÁO CÁO NGÀY → đổi nhãn nav thành "Theo dõi báo cáo" cho rõ).
 - **T3 nhân bản việc (xong):** `/tasks/new?from=<id>` → prefill title/desc/req/group/priority/est_hours (KHÔNG copy người nhận/hạn/tiến độ); route dùng `request.query_params.get("from")` + `can_view_task`; task_new.html điền value + hint; task_panel thêm nút "Nhân bản việc" (can_manage). Verify render + smoke 200.
-- **T3 CÒN (chưa làm):** **% bộ phận theo kỳ/năm học** (hiện `pct=xong all-time/total` → ~100% vô nghĩa; cần đổi sang completed_at trong năm học hiện tại); **đại tu Lưu ý cán bộ/thi đua** (cờ tiêu cực hiện do ĐƯƠNG SỰ tự tick khi rời việc → đổi sang QUẢN LÝ xác nhận; + lọc theo năm học; + nút đính chính) — CẦN user chốt cách đổi luồng.
-- **APP MOBILE CHƯA ĐỤNG GÌ** (nhánh 4, để sau).
+- **T3 % bộ phận theo năm học (xong):** `toan_khoa_data` thêm `nam_hoc_start` (T8 năm nay nếu tháng≥8, else năm trước) + cột `xong_nam` (hoan_thanh & completed_at≥nam_hoc_start); đổi `pct = xong_nam/(open+xong_nam)` — không cộng dồn all-time.
+- **T3 đại tu Lưu ý cán bộ/thi đua (xong, user chốt CÁCH KHÁC - khách quan hơn):** BỎ hẳn cờ chủ quan "không tích cực" (gỡ 2 checkbox `name="negative"` ở form Rời việc + Rút người task_panel:50/189). `/luu-y-can-bo` viết lại = **ĐẾM KHÁCH QUAN**: số lần `tu_choi` (tự Từ chối) + số lần `roi` (tự Rời việc) mỗi cán bộ, GROUP BY user_id, lọc theo NĂM HỌC (`?nam=` mặc định năm hiện tại, `all`=tất cả). **KHÔNG tính `go_nguoi`** (điều chuyển do trưởng nhóm bấm Rút người ≠ tự rời). staff_notes.html = bảng 2 cột + ghi chú "chỉ THAM KHẢO, không đánh giá tại thời điểm thực hiện". `is_negative` giờ luôn 0 (bỏ dùng). Verify render bảng + số liệu + lọc năm + smoke 200.
+
+**NHÁNH 1+2+3 HOÀN TẤT.** Còn **NHÁNH 4 — APP MOBILE (CHƯA ĐỤNG GÌ)** để sau.
