@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 27152e89-3b17-4747-9e4b-63e2a071cb90
-  modified: 2026-08-19T02:22:27.679Z
+  modified: 2026-08-19T04:59:40.579Z
 ---
 
 Cải tổ UX phần **Công việc (giao/nhận/nghiệm thu)** của workload sau đánh giá 5-vai ("mạnh tính năng, YẾU khả dụng ~3/5") + nghiên cứu 4-agent (Trello/Asana/Planner/Basecamp; triết lý "underdo the competition", "đối thủ thật là Zalo"). Bản thử artifact: `scratchpad/viec-khoa-prototype.html`. Định hướng đầy đủ trong lịch sử phiên (đọc transcript nếu cần).
@@ -39,4 +39,9 @@ Cải tổ UX phần **Công việc (giao/nhận/nghiệm thu)** của workload 
 - **P1 hành vi:** kanban "Việc của tôi" bỏ việc tạm dừng + chỉ giữ "đã nộp" khi việc còn cho_nghiem_thu (tự dọn); đóng băng theo completed_at (bình luận không kéo dài); **vai PHÓ** được quản lý+tạo việc (`can_manage_task`/`can_create_task` nhận pho); route `/tasks/withdraw` (rút lại bản nộp) + nhánh UI mine=hoan_thanh; ẩn "Trả lại" khi việc chỉ có job con (has_direct); quick-reopen bắt lý do thật; bỏ double-confirm (app.js).
 - **P1 hiệu năng:** WAL + index `idx_tasks_group`/`idx_mem_group`; `/tasks` compute_tree CHỈ cho trang hiện tại; `/toan-khoa/chi-tiet` chỉ query assignees/progress theo task_id của trang.
 - **P2:** thống nhất màu "đang làm"=xanh dương (tag.s-dang_lam); xóa task_detail.html chết; **F1 giao chéo bộ phận** khi tách job con (form chọn bộ phận + subtask nhận group_id → việc liên bộ phận).
-- **CÒN (cần user quyết, CHƯA làm):** gộp màn trùng (Cá nhân↔Hôm nay; Tổng quan↔Toàn khoa↔Bảng theo dõi); đại tu "lưu ý cán bộ"/thi đua (cờ negative do quản lý xác nhận, lọc năm học); nhân bản việc lặp theo kỳ; % bộ phận theo kỳ (cần bộ lọc năm học); dark-mode toàn app; gỡ emoji forum/me/tong_quan; **APP MOBILE CHƯA ĐỤNG GÌ**.
+**T1+T2+T3(một phần) ĐÃ DEPLOY (2026-08-19, user chọn nhánh 1+2+3, để mobile sau):** Backup `_backup_workload/*_20260819_114047.*`.
+- **T1 giao diện:** gỡ **86 emoji trang trí** ở 19 màn phụ (forum/me/profile/tong_quan/dashboard/tien_do/groups/users/log/di_cong_tac...) — GIỮ mũi tên ←→↳ + ✓✕ + 🔔 nav (script `strip_emoji.py`, set REMOVE). **Dark-mode TOÀN APP** ở tầng token: `@media (prefers-color-scheme: dark)` redefine `--bg/--card/--ink/--muted/--line/--primary*/status tokens/shadow` + phủ ~40 nhóm màu sáng cứng (topbar/btn/input/hover/bảng/tag pastel) — append cuối style.css (thắng cascade); light-mode KHÔNG đổi (dark chỉ kích hoạt dưới media). **Chưa login được để soi nội bộ → user tự bật OS dark kiểm.** Màu "đang làm"=xanh dương đã thống nhất từ P2.
+- **T2 điều hướng:** **Cá nhân** (`me.html`) gỡ 2 mục việc TRÙNG Hôm nay (invites "Việc được giao mới" + doing "Đang thực hiện", 14 div) + **bẫy "Đã hoàn thành" còn sót trong dropdown tiến độ** → thay bằng pointer card về `/`; **Hôm nay** thẻ 'moi' thêm nút **Từ chối** (details + lý do). 3 màn giám sát KHÔNG gộp (khác phạm vi thật: Tổng quan=KPI chung mọi vai; Toàn khoa=theo bộ phận admin; Bảng theo dõi=BÁO CÁO NGÀY → đổi nhãn nav thành "Theo dõi báo cáo" cho rõ).
+- **T3 nhân bản việc (xong):** `/tasks/new?from=<id>` → prefill title/desc/req/group/priority/est_hours (KHÔNG copy người nhận/hạn/tiến độ); route dùng `request.query_params.get("from")` + `can_view_task`; task_new.html điền value + hint; task_panel thêm nút "Nhân bản việc" (can_manage). Verify render + smoke 200.
+- **T3 CÒN (chưa làm):** **% bộ phận theo kỳ/năm học** (hiện `pct=xong all-time/total` → ~100% vô nghĩa; cần đổi sang completed_at trong năm học hiện tại); **đại tu Lưu ý cán bộ/thi đua** (cờ tiêu cực hiện do ĐƯƠNG SỰ tự tick khi rời việc → đổi sang QUẢN LÝ xác nhận; + lọc theo năm học; + nút đính chính) — CẦN user chốt cách đổi luồng.
+- **APP MOBILE CHƯA ĐỤNG GÌ** (nhánh 4, để sau).
