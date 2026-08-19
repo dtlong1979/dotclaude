@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 27152e89-3b17-4747-9e4b-63e2a071cb90
-  modified: 2026-08-19T08:09:01.824Z
+  modified: 2026-08-19T08:40:24.440Z
 ---
 
 Cải tổ UX phần **Công việc (giao/nhận/nghiệm thu)** của workload sau đánh giá 5-vai ("mạnh tính năng, YẾU khả dụng ~3/5") + nghiên cứu 4-agent (Trello/Asana/Planner/Basecamp; triết lý "underdo the competition", "đối thủ thật là Zalo"). Bản thử artifact: `scratchpad/viec-khoa-prototype.html`. Định hướng đầy đủ trong lịch sử phiên (đọc transcript nếu cần).
@@ -56,6 +56,11 @@ Cải tổ UX phần **Công việc (giao/nhận/nghiệm thu)** của workload 
   - BẪY đã vá: CREATE INDEX trên cột mới phải nằm ở phần MIGRATION (sau `_addcol`), KHÔNG để trong SCHEMA executescript (DB cũ chưa có cột → "no such column").
 
 - **Cơ chế Từ chối vs Rời việc (user chốt 2026-08-19):** **Từ chối** (việc CHƯA nhận, `cho_nhan`→`tu_choi`) = GIỮ TỰ ĐỘNG ngay + báo người giao (không ép ai nhận việc). **Rời việc** (việc ĐANG làm dở, chỉ hiện ở nhánh `dang_lam`) = đổi sang **ĐỀ NGHỊ + trưởng nhóm duyệt**: bấm "Đề nghị rời việc" (bắt buộc lý do) → set `task_assignees.leave_req_at` (KHÔNG đổi status, việc vẫn thuộc người đó) → báo người giao + trưởng/phó nhóm. Trưởng nhóm ở màn chi tiết thấy "⏳ đề nghị rời" + [Đồng ý cho rời]/[Không đồng ý+trao đổi] (`/tasks/leave-decide`). Đồng ý→`da_roi`+log `roi` (ghi theo NGƯỜI RỜI để thống kê đúng); Không đồng ý→xóa cờ+giữ lại+thông báo. Người đề nghị tự rút được (`/tasks/leave-cancel`). Nếu người bấm chính là người quản lý việc thì rời luôn không cần xin. Cột mới `task_assignees.leave_req_at` (db.py CREATE+migration). Log kind mới `xin_roi`. → thống kê "số lần tự Rời việc" giờ chỉ đếm ca ĐÃ ĐƯỢC DUYỆT (đúng "tự rời có đồng thuận"), tách bạch với "Rút người" (`go_nguoi`).
+
+## Mục "Cần xử lý" — lưới an toàn ngõ cụt (2026-08-19, từ phát hiện mô phỏng)
+- **Vá đúng 3 nhóm kẹt mô phỏng chỉ ra.** `can_xu_ly_data(conn,user)` (dùng `_manage_scope`: admin thấy tất cả, khác = việc mình giao + nhóm mình làm trưởng) trả: (1) **giao_lai** = việc `chua_giao` gốc (bị từ chối hết/có người rời/chưa giao ai; kèm đếm ntc/nroi/na); (2) **moi_treo** = assignee `cho_nhan` mời quá **N ngày** (mặc định 3); (3) **qua_han** = việc `dang_mo|cho_nghiem_thu` quá `due_date` và `COALESCE(last_remind_at,due_date) <= today-X` (mặc định **X=7**; nhắc xong treo lại X ngày rồi hiện lại).
+- **Cột mới** `tasks.last_remind_at` (migration). **Route:** `GET /can-xu-ly` (template `can_xu_ly.html`, 3 mục + form cấu hình admin), `POST /tasks/remind` (đặt last_remind_at=now + notify người liên quan + log kind `nhac`), `POST /can-xu-ly/config` (admin đặt `escalate_invite_days` N, `escalate_overdue_days` X qua db.set_setting, clamp 1..90 / 1..120). Thẻ cảnh báo `.cxl-alert` trên Hôm nay (`cxl_n>0`) + nav "Cần xử lý" cho admin/trưởng-phó. CSS `cxl-*` (dark-aware).
+- **Trên prod thật (khi deploy):** giao_lai=0, **moi_treo=19, qua_han=8** — có việc để xử lý ngay. BẪY đã dọn: script verify lỡ gọi task_remind trên /data/data.db thật → đã reset last_remind_at + xóa 2 notif "Nhắc" test. Verify render 3 mục + nút Nhắc + config + smoke 200.
 
 ## Mô phỏng "sống thử" 3 năm (2026-08-19)
 - **Cách làm:** script `sim3yr.py` chạy trên bản sao `/tmp/sim.db`, ĐỒNG HỒ ẢO (vá `db.now_iso`+`app.date`/`datetime`+`today_str`) tua 3 năm × 3 học kỳ (HK1 T8/HK2 T12/HK3 T5), GỌI ĐÚNG handler thật (accept/decline/progress/complete/approve/reopen/leave/leave_decide/leave_create/log_add). BẪY: nhiều connection + WAL của bản copy → "database is locked"; fix = dùng CHUNG 1 connection (monkeypatch `db.get_db` trả conn no-close). BẪY 2: gọi `task_progress` phải truyền `evidence=None` (FastAPI mới resolve File(None)→None khi chạy HTTP).
