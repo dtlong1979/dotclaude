@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 27152e89-3b17-4747-9e4b-63e2a071cb90
-  modified: 2026-08-20T02:33:07.419Z
+  modified: 2026-08-20T16:29:24.843Z
 ---
 
 Cải tổ UX phần **Công việc (giao/nhận/nghiệm thu)** của workload sau đánh giá 5-vai ("mạnh tính năng, YẾU khả dụng ~3/5") + nghiên cứu 4-agent (Trello/Asana/Planner/Basecamp; triết lý "underdo the competition", "đối thủ thật là Zalo"). Bản thử artifact: `scratchpad/viec-khoa-prototype.html`. Định hướng đầy đủ trong lịch sử phiên (đọc transcript nếu cần).
@@ -49,6 +49,11 @@ Cải tổ UX phần **Công việc (giao/nhận/nghiệm thu)** của workload 
 - **T3 đại tu Lưu ý cán bộ/thi đua (xong, user chốt CÁCH KHÁC - khách quan hơn):** BỎ hẳn cờ chủ quan "không tích cực" (gỡ 2 checkbox `name="negative"` ở form Rời việc + Rút người task_panel:50/189). `/luu-y-can-bo` viết lại = **ĐẾM KHÁCH QUAN**: số lần `tu_choi` (tự Từ chối) + số lần `roi` (tự Rời việc) mỗi cán bộ, GROUP BY user_id, lọc theo NĂM HỌC (`?nam=` mặc định năm hiện tại, `all`=tất cả). **KHÔNG tính `go_nguoi`** (điều chuyển do trưởng nhóm bấm Rút người ≠ tự rời). staff_notes.html = bảng 2 cột + ghi chú "chỉ THAM KHẢO, không đánh giá tại thời điểm thực hiện". `is_negative` giờ luôn 0 (bỏ dùng). Verify render bảng + số liệu + lọc năm + smoke 200.
 
 **NHÁNH 1+2+3 HOÀN TẤT.** Còn **NHÁNH 4 — APP MOBILE (CHƯA ĐỤNG GÌ)** để sau.
+
+## DỌN CƠ CẤU + SIM 3 NĂM (2026-08-20)
+- **User chốt cấu trúc**: không cần 26 "bộ phận" (Toàn khoa) — 17 "nhóm" ad-hoc = mảng việc, đã có 7 mảng thay. **Lưu trữ 17 nhóm** (archived=1) → còn **9 đơn vị thật** (4 tổ bộ môn KHMT/Cơ sở ngành/Mạng&ATTT/CNĐPT + Văn phòng + Tài chính-Kế toán + Công đoàn + Đoàn TN + FITHOU LAB). Cả 26 người đều đã thuộc ≥1 tổ thật. Gán trưởng: **KHMT = Nguyễn Thị Tâm** (danh nghĩa tổ phó nhưng role='truong'), **Kế toán = Đinh Thị Việt Nga**. Cơ sở ngành do phó Lê Thị Thanh Thùy điều hành (chưa có trưởng).
+- **SIM 3 NĂM trực tiếp vào DB thật** (user: dữ liệu việc bỏ được, làm lại được): backup `/data/data.db.bak_presim_20260820_231546`. Cách làm = **1 động cơ sinh deterministic** (`scratchpad/wl/src/sim3yr_gen.py`, random.seed 2026, INSERT thẳng timestamp lùi ngày — KHÔNG dùng 26 bot song song vì SQLite khóa + timeline phải ăn khớp A→B). Reset 10 bảng việc, GIỮ users/groups/memberships/dictionary/linh_vuc/lich_ngay. Kết quả: **840 việc** (745 hoàn thành/21 dang_mo/26 cho_nghiem_thu/48 huy), 1462 phân công, 5577 updates, **8382 nhật ký** (tu_dong 3899/viec 395/ca_nhan 4088), 2709 thông báo; 43 quá hạn; toàn vẹn 0 mồ côi; range 2023-08→2026-08; per-user 33–109 lượt. Top-up 4 người trống → **26/26 có việc active**. Để nguyên cho user đăng nhập từng vai kiểm chứng.
+- **Đang chạy**: 3 reviewer-agent đóng vai cán bộ khó tính (giao việc / nhật ký-Hôm nay / số liệu quản trị) soi mã ở `scratchpad/wl/review/` tìm vấn đề → sẽ tổng hợp thành danh sách cần chỉnh.
 
 ## MẢNG HOẠT ĐỘNG (tổ chức lại chống mesh) — BƯỚC 1 deploy 2026-08-19
 Gốc rễ user chỉ ra: hệ trộn 3 khái niệm vào "nhóm" → 17 nhóm ad-hoc (thực ra là MẢNG VIỆC), 16/17 rỗng, 14/26 người tạo được việc+nhóm → mesh. Mô hình chốt (3 trục tách bạch): **Đơn vị tổ chức (WHO, cây) · Mảng hoạt động (WHAT, danh mục nhãn ≤~10, KHÔNG thành viên) · Việc**. Chi tiết đề xuất ở artifact + `D:\Dev\FithouOne\.project\TAXONOMY.md`. **7 mảng chốt:** Đào tạo·Tuyển sinh·NCKH·Đảm bảo chất lượng·Truyền thông·Cơ sở vật chất·Hành chính (tên ngắn, sửa sau ở trang quản trị).
