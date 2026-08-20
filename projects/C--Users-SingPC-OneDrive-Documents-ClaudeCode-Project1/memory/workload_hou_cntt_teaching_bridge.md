@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 27152e89-3b17-4747-9e4b-63e2a071cb90
-  modified: 2026-08-20T18:29:20.143Z
+  modified: 2026-08-20T18:43:30.442Z
 ---
 
 Liên thông **nhiệm vụ giảng dạy** hou-cntt → workload cho nhóm giảng viên (tổ bộ môn), vì lịch giảng + số lớp cố vấn học tập cũng là nhiệm vụ cần đối chiếu với công việc được giao. Xem [[workload_redesign]], [[app_workload_bridge]], [[hou_cntt_lich_giang_import]], [[fithouone_coordination_hub]].
@@ -28,8 +28,10 @@ Liên thông **nhiệm vụ giảng dạy** hou-cntt → workload cho nhóm gi�
 - `log.html`: mục "Giảng dạy hôm nay" (gom theo buổi, tag "Đã dạy · cả buổi" / "Đã báo nghỉ", nút Báo nghỉ). `style.css`: .gv-jrow/.gv-nghi/.gv-tag-day...
 - **Verify prod:** CH0162 ngày T5 20/08 buổi Sáng tự thành "Giảng dạy: Lập trình Web nâng cao · cả buổi (4h)"; báo nghỉ → mất; hủy → khôi phục. ca_hoc Sáng/Chiều/Tối→sang/chieu/toi. Backup `*.bak_gv2_*`.
 
-**LƯU Ý:** materialize chạy khi GV MỞ /log ngày đó (idempotent). GV không mở /log thì ngày đó chưa có dòng giảng dạy — phủ đầy đủ để tính định mức là việc của **Tầng 3**.
+**TINH CHỈNH (deploy 2026-08-21, user chốt thêm):**
+- **Giảng dạy TỰ GHI mọi ngày đã đến, KHÔNG cần mở /log** (chưa tới ngày thì chưa ghi). Thêm `gv_sync_meta.last_swept` + `sweep_teaching(conn,from,to)` (mọi user có ma_cb × mọi ngày, materialize idempotent, `materialize_teaching` chặn `day>today_str()`) + `maybe_daily_sweep(conn)` (1 lần/ngày, incremental từ last_swept+1; lần đầu backfill từ min(tu_ngay) giới hạn 120 ngày). Gọi ở route `/` (home, try/except) + trong `sync_gv_nhiem_vu` (reset last_swept=NULL rồi sweep). Bỏ chặn `_diary_editable` ở /log materialize. **Verify: sweep tự tạo 84 dòng giang_day 10/08→21/08 cho 14 GV, 0 dòng tương lai, không mở /log.** LƯU Ý múi giờ: today_str()=VN(+7) nhưng SQLite date('now')=UTC → khi test đừng so bằng date('now').
+- **CVHT TÁCH khỏi giảng dạy** (là loại nội dung khác, KHÔNG auto-log nhật ký): Trang Hôm nay tách 2 khối — "Cố vấn học tập" (mỗi lớp là link `/to-admin?sv=<lop>` → SSO web-admin, giảng viên tự vào trang 'students' Quản lý Sinh viên; web-admin dòng 4243 `adminRole==='giangvien'→page='students'`, KHÔNG cần sửa web-admin) + "Lịch giảng dạy" (tham chiếu). `/to-admin` nhận thêm `sv` truyền qua fragment (`#code=..&sv=<lop>`) để sau này web-admin mở đúng lớp — hiện web-admin bỏ qua vẫn về trang SV. CSS .gv-cvht-link. Backup `*.bak_gv3_*`.
 
-**CÒN LÀM (Tầng 3 — chưa duyệt chi tiết):** quy số tiết + số lớp CVHT thành ĐỊNH MỨC nhiệm vụ để đối chiếu công việc/đánh giá; + sweep tự materialize giảng dạy cho mọi ngày (không phụ thuộc GV mở /log); + ngòi nổ tự đồng bộ khi giáo vụ sửa TKB bên hou-cntt.
+**CÒN LÀM (Tầng 3 — chưa duyệt chi tiết):** quy số tiết + số lớp CVHT thành ĐỊNH MỨC nhiệm vụ để đối chiếu công việc/đánh giá; ngòi nổ tự đồng bộ khi giáo vụ sửa TKB bên hou-cntt (hiện phải bấm "Đồng bộ từ hệ đào tạo"); (tùy chọn) web-admin đọc `sv` để mở đúng lớp CVHT.
 
 **Backup:** hou-cntt `internal.py.bak_gv_*`, workload `app.py.bak_gv_* / db.py.bak_gv_*`.
