@@ -1,6 +1,6 @@
 # Memory Index
 
-- [Workload↔hou-cntt Teaching Bridge](workload_hou_cntt_teaching_bridge.md) — liên thông lịch giảng + lớp CVHT hou-cntt→workload; cache bảng riêng đồng bộ theo kỳ (ma_cb==ma_gv==username_cv); endpoint /api/internal/gv-nhiem-vu; Tầng 1 panel Trang chủ đã deploy (106 buổi+69 lớp), Tầng 2 gợi ý nhật ký đang làm; LƯU Ý server hou-cntt đi trước local
+- [Workload↔hou-cntt Teaching Bridge](workload_hou_cntt_teaching_bridge.md) — liên thông lịch giảng + lớp CVHT hou-cntt→workload; cache bảng riêng đồng bộ theo kỳ (ma_cb==ma_gv==username_cv); endpoint /api/internal/gv-nhiem-vu; Tầng 1 panel Trang chủ + Tầng 2 (tự ghi nhật ký giảng dạy · cả buổi, chỉ có Báo nghỉ) đã deploy (106 buổi+69 lớp CVHT); Tầng 3 định mức chưa làm; LƯU Ý server hou-cntt đi trước local
 
 - [FithouOne Lịch Module](fithouone_lich_module.md) — lịch âm/dương + nghỉ lễ: bảng lich_ngay nhập từ file tĩnh Lịch Vạn Sự 2015-2035 (7306 ngày, 201 nghỉ lễ), cache RAM tra O(1); workload đã có API /api/lich + cảnh báo hạn rơi nghỉ lễ; hou-cntt/mobile nhập cùng file khi cần
 
