@@ -1,11 +1,11 @@
 ---
 name: workload_hou_cntt_teaching_bridge
-description: "Liên thông lịch giảng + lớp CVHT từ hou-cntt sang workload (cache theo kỳ); Tầng 1 (panel) đã deploy, Tầng 2 (gợi ý nhật ký) đang làm"
+description: "Liên thông lịch giảng + lớp CVHT từ hou-cntt sang workload (cache theo kỳ); Tầng 1 (panel) + Tầng 2 (tự ghi nhật ký, báo nghỉ) đã deploy; Tầng 3 (định mức) chưa làm"
 metadata: 
   node_type: memory
   type: project
   originSessionId: 27152e89-3b17-4747-9e4b-63e2a071cb90
-  modified: 2026-08-20T18:16:25.745Z
+  modified: 2026-08-20T18:29:20.143Z
 ---
 
 Liên thông **nhiệm vụ giảng dạy** hou-cntt → workload cho nhóm giảng viên (tổ bộ môn), vì lịch giảng + số lớp cố vấn học tập cũng là nhiệm vụ cần đối chiếu với công việc được giao. Xem [[workload_redesign]], [[app_workload_bridge]], [[hou_cntt_lich_giang_import]], [[fithouone_coordination_hub]].
@@ -21,6 +21,15 @@ Liên thông **nhiệm vụ giảng dạy** hou-cntt → workload cho nhóm gi�
 - **workload** `db.py`: 3 bảng `gv_lich_giang`, `gv_cvht`, `gv_sync_meta`. `app.py`: `_fetch_gv_nhiem_vu()`, `sync_gv_nhiem_vu(conn)` (xóa+nạp toàn bộ, upsert meta), `gv_nhiem_vu_of(conn,ma_cb)` (đọc lịch ĐANG HIỆU LỰC: hôm nay trong [tu_ngay,den_ngay], gom theo thứ + list CVHT + last_synced), route `POST /gv/dong-bo` (admin), panel gắn ở home `/`. `hom_nay.html`: section "Nhiệm vụ giảng dạy" (nút "Đồng bộ từ hệ đào tạo" cho admin). `style.css`: .gv-day/.gv-slot/.gv-cvht/.gv-synced (xanh brand, dark-aware).
 - **Verify prod:** sync thật kéo **106 buổi giảng + 69 lớp CVHT** cho 26 cán bộ. VD CH0162 (Lê Hữu Dũng): 8 buổi hiệu lực + CVHT 2210A06..., có slot "T2 Tối tiết 9-12 Lập trình Web nâng cao P32" — khớp buổi **Tối** vừa thêm.
 
-**CÒN LÀM (Tầng 2 — user đã duyệt "Tầng 1+2 luôn"):** ở `/log`, buổi có tiết dạy → tự gợi ý mục *"Giảng dạy: <ten_hp> lớp <ma_lop_tc>"*, chạm 1 nút xác nhận đã dạy → ghi nhật ký giờ theo số tiết (khớp buổi Tối). **Tầng 3 (sau, chưa duyệt chi tiết):** quy số tiết + số lớp CVHT thành định mức nhiệm vụ để đối chiếu công việc/đánh giá.
+**Đã build + DEPLOY (Tầng 2):** user chốt lại mô hình — **KHÔNG có nút "Đã dạy"**: có lịch + không báo nghỉ = đương nhiên đã dạy; **thời lượng LUÔN cả buổi** (nhiều lớp cùng buổi vẫn chỉ 1 "cả buổi", không cộng quá 4h/buổi). Chỉ thao tác **Báo nghỉ / Hủy báo nghỉ** từng lớp.
+- `db.py`: thêm cột `gv_lich_giang.tuan_kieu` (migration `_addcol`) + bảng `gv_nghi(ma_cb,ngay,ma_lop_tc,buoi,ly_do)`.
+- hou-cntt endpoint bổ sung trả `tuan_kieu` (deploy lần 2).
+- `app.py`: `teaching_on(conn,ma_cb,day)` (khớp thứ=isoweekday+1, trong [tu_ngay,den_ngay], tuần chẵn/lẻ, trừ báo nghỉ) + `materialize_teaching()` (mỗi buổi có ≥1 lớp đã dạy → 1 dòng activity_logs source='giang_day' muc_tg='ca_buoi'; buổi nghỉ hết → xóa) + route `POST /log/gv-nghi` (action nghi|day). `/log` render: materialize khi ngày còn sửa được + bỏ qua source giang_day ở vòng touch-picker.
+- `log.html`: mục "Giảng dạy hôm nay" (gom theo buổi, tag "Đã dạy · cả buổi" / "Đã báo nghỉ", nút Báo nghỉ). `style.css`: .gv-jrow/.gv-nghi/.gv-tag-day...
+- **Verify prod:** CH0162 ngày T5 20/08 buổi Sáng tự thành "Giảng dạy: Lập trình Web nâng cao · cả buổi (4h)"; báo nghỉ → mất; hủy → khôi phục. ca_hoc Sáng/Chiều/Tối→sang/chieu/toi. Backup `*.bak_gv2_*`.
+
+**LƯU Ý:** materialize chạy khi GV MỞ /log ngày đó (idempotent). GV không mở /log thì ngày đó chưa có dòng giảng dạy — phủ đầy đủ để tính định mức là việc của **Tầng 3**.
+
+**CÒN LÀM (Tầng 3 — chưa duyệt chi tiết):** quy số tiết + số lớp CVHT thành ĐỊNH MỨC nhiệm vụ để đối chiếu công việc/đánh giá; + sweep tự materialize giảng dạy cho mọi ngày (không phụ thuộc GV mở /log); + ngòi nổ tự đồng bộ khi giáo vụ sửa TKB bên hou-cntt.
 
 **Backup:** hou-cntt `internal.py.bak_gv_*`, workload `app.py.bak_gv_* / db.py.bak_gv_*`.
