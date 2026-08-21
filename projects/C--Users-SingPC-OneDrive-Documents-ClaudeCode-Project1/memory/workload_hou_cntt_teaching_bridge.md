@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 27152e89-3b17-4747-9e4b-63e2a071cb90
-  modified: 2026-08-21T09:48:59.873Z
+  modified: 2026-08-21T10:26:13.796Z
 ---
 
 Liên thông **nhiệm vụ giảng dạy** hou-cntt → workload cho nhóm giảng viên (tổ bộ môn), vì lịch giảng + số lớp cố vấn học tập cũng là nhiệm vụ cần đối chiếu với công việc được giao. Xem [[workload_redesign]], [[app_workload_bridge]], [[hou_cntt_lich_giang_import]], [[fithouone_coordination_hub]].
@@ -42,7 +42,10 @@ Liên thông **nhiệm vụ giảng dạy** hou-cntt → workload cho nhóm gi�
 - **B nhắn nhóm lớp** `/api/internal/nhan-nhom-lop` {ma_cb,loai(lop_ql|lop_tc),ref,noi_dung} → `chat.gui_tin_nhom('LOP_QL'|'LOP_TC',ref,...)` + `giang_vien._push_chat_nhom` (bg). Quyền: lop_ql∈CVHT / lop_tc∈lich_hoc.ma_gv.
 - **C GV báo nghỉ** `/api/internal/gv-bao-nghi` {ma_cb,ma_lop_tc,ngay,ly_do} → `diem_danh_gv._so_huu` + `bao_bu_svc.bao_nghi`. (Báo BÙ chưa làm — bao_bu.py có goi_y.)
 - workload routes `/lop/thong-bao`,`/lop/nhan`,`/gv/bao-nghi` (dùng `_hc_post`), UI trong lop_cua_toi.html (nút ở DS SV lớp CVHT + mỗi lớp giảng dạy), flash `_LOPSV_FLASH`. **LƯU Ý: chưa test gửi THẬT (tránh làm phiền SV) — user bấm lần đầu.** Verify đường TỪ CHỐI/quyền OK.
-- **CÒN LÀM:** báo BÙ; danh sách SV lớp tín chỉ; tiến độ CTĐT theo khối (block-credit) nhúng workload (đang link QLSV).
+- **CTĐT THEO KHỐI + GHI CHÚ (deploy 2026-08-21):** endpoint `/api/internal/sv-ctdt` tái dùng `hoc_tap.chi_tiet()` → trả `khoi` (block_credits: ma_khoi/ten/yeu_cau/dat/du/cn_label) + tổng TC/tích lũy/nợ/ten_ctdt. `/api/internal/sv-ghichu-luu` upsert `ghi_chu_cvht(username_cv=ma_cb,mssv,noi_dung)` (UPDATE rồi INSERT nếu 0 dòng — bảng không có unique để ON CONFLICT); `sv-chi-tiet` trả kèm ghi_chu. workload hồ sơ SV: bảng CTĐT theo khối (thiếu N TC tô đỏ) + ô Ghi chú cố vấn (route `/sv/ghi-chu`). Verify: SV 8 khối 116/126, ghi chú lưu/đọc OK.
+- **⚠ BẪY DEPLOY hou-cntt:** `docker compose up --build` CÓ THỂ dùng cache cũ không cập nhật code (container thiếu endpoint dù host có) → khi sửa hou-cntt mà endpoint 404, chạy `docker compose build --no-cache hou-cntt-api` rồi up. Kiểm bằng `docker exec ... grep -c <marker> /app/backend/app/api/routes/internal.py`.
+- **HỌC PHẦN THEO KHỐI (deploy 2026-08-21):** sv-ctdt đính kèm mỗi khối `da_dat/dang_no/chua_hoc/tu_chon` qua `hoc_tap.block_courses(mssv,khoi_id)`; workload đổi bảng khối thành `<details>` bấm-mở hiện học phần đã đạt/đang nợ/chưa học (để tư vấn SV) — đúng tinh thần "workload là frontend của QLSV". Verify: khối Chuyên ngành/Khóa luận hiện đúng môn còn thiếu.
+- **CÒN LÀM:** báo BÙ; danh sách SV lớp tín chỉ.
 
 **ĐANG BÀN (#2 — audit → nghiệp vụ, chờ user duyệt mapping):** kho `audit` DB `audit_log` (ts/action_code/action_label/actor_id/phan_he) ghi thao tác hou-cntt. Kế hoạch: lọc phan_he='hou-cntt' + cán bộ (bỏ SV + login), gom action_code → vài NGHIỆP VỤ (Duyệt SV đăng ký / Xếp lớp / Tạo đợt đăng ký / Xử lý SV vượt cảnh báo / Cập nhật dữ liệu…), chỉ GHI NHẬN việc, giờ tính theo TỪ ĐIỂN workload sau. actor_id=username CAS → cas_canbo → ma_cb. CHƯA build — chờ user chốt danh sách nghiệp vụ + mapping.
 
