@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 27152e89-3b17-4747-9e4b-63e2a071cb90
-  modified: 2026-08-21T06:17:00.472Z
+  modified: 2026-08-21T06:46:26.429Z
 ---
 
 Tính năng **Lịch công tác toàn khoa** trong workload (deploy 2026-08-21). Xem [[workload_redesign]], [[workload_hou_cntt_teaching_bridge]] (lịch giảng), [[fithouone_lich_module]] (nghỉ lễ/âm lịch).
@@ -24,4 +24,13 @@ Tính năng **Lịch công tác toàn khoa** trong workload (deploy 2026-08-21).
 
 **Verify:** hoạt động chung → nhật ký mọi người; họp nhóm → chỉ thành viên; quy giờ đúng.
 
-**CÒN CÓ THỂ THÊM (chưa làm):** lịch giảng của TỪNG cán bộ khi xem 'chung' (hiện chỉ đếm số buổi/ngày); duyệt/mời thành phần cụ thể (pham_vi 'chon'); nhắc trước giờ họp; hạn công việc lên lịch; báo vắng họp.
+**NÂNG CẤP v2 (deploy 2026-08-21):**
+- **Quyền đề xuất lịch = CHỈ Văn phòng (trưởng/phó tổ unit_type='van_phong') + Trưởng khoa** (`can_post_chung`); tổ trưởng KHÔNG còn đăng ở trang lịch (đăng họp qua công việc thay thế).
+- **Tạo lịch họp TỪ CÔNG VIỆC:** nút "Tạo lịch họp" trong task_panel (mọi người quản lý việc) → `/su-kien/tu-cong-viec` tự lấy tên việc + toàn bộ người tham gia (pham_vi='chon', su_kien.task_id), chỉ nhập ngày/giờ/phòng/link/nội dung; thông báo người dự.
+- **Phạm vi 'chon' (người cụ thể):** bảng `su_kien_nguoi`; form đề xuất chọn Toàn khoa / Đơn vị (select cố định) / Nhóm người (picker checkbox có ô tìm — giống đưa người vào việc). `su_kien_attendee` + `su_kien_nguoi_du` xử lý 'chon'.
+- **Ngày nghỉ tùy chỉnh:** bảng `ngay_nghi(tu_ngay,den_ngay,ly_do)` do Văn phòng/Khoa đặt (vd nghỉ 31/8→2/9); `off_days_in_range` gộp nghỉ lễ tĩnh (lich_ngay) + tùy chỉnh; routes `/ngay-nghi/create|delete`.
+- **Chi tiết bấm-xem:** agenda dùng `<details>` mỗi mục — Giảng dạy hiện "Giảng dạy: N buổi", bấm ra ai/môn/lớp/phòng/buổi (join gv_lich_giang→users theo ma_cb, có tên GV khi xem 'chung'); Họp/hoạt động bấm ra nội dung+thành phần+địa điểm+link online+người đăng+nút xóa. Lưới tháng: mỗi ô là link sang agenda `#d-<iso>`.
+- **Form sắp lại (bỏ Ghi chú→Nội dung):** Tiêu đề → Loại lịch → (đơn vị/người) → Nội dung → Link online → Địa điểm → Ngày → Giờ BĐ/KT + nút nhanh Sáng/Chiều/Tối (điền giờ) + Cả ngày. JS `initLichForm` (app.js): toggle theo loại, tìm người, nút buổi, cả-ngày. su_kien thêm cột `link`,`task_id`; ghi_chu=Nội dung.
+- Backup `*.bak_lich2_*`.
+
+**CÒN CÓ THỂ THÊM:** nhắc trước giờ họp; hạn công việc lên lịch; báo vắng họp; mời thành phần nâng cao.
