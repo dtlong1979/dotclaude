@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 27152e89-3b17-4747-9e4b-63e2a071cb90
-  modified: 2026-08-21T07:59:34.911Z
+  modified: 2026-08-21T08:03:15.100Z
 ---
 
 Tính năng **Lịch công tác toàn khoa** trong workload (deploy 2026-08-21). Xem [[workload_redesign]], [[workload_hou_cntt_teaching_bridge]] (lịch giảng), [[fithouone_lich_module]] (nghỉ lễ/âm lịch).
@@ -45,5 +45,7 @@ Tính năng **Lịch công tác toàn khoa** trong workload (deploy 2026-08-21).
 **v5 (deploy 2026-08-21):** (1) **Lịch TUẦN thiết kế lại thành DANH SÁCH 2 cột** (`.lct-wklist`): mỗi ngày 1 thẻ (header xanh đậm chữ trắng), body các hàng `[buổi | nội dung]` (grid 96px|1fr, canh cột chuẩn; <560px stack dọc) — thay lưới 8 cột bị vỡ. (2) Chi tiết giảng **bỏ mã lớp**, hiện `Người, Môn, Phòng` (vd "Trần Duy Hùng, Công nghệ ĐPT, P34"); sửa `tea_detail` + item tuần. (3) Sửa tương phản: header tuần #0e7c66/trắng, nhãn buổi nền màu+chữ đậm, `.lct-hcell` đậm hơn.
 
 **v6 (deploy 2026-08-21):** phân biệt BUỔI rõ hơn — chi tiết ngày: mỗi buổi khối riêng viền-trái + nhãn pill nền màu (Sáng cam/Chiều lam/Tối tím/Cả ngày lá) + giãn cách 16px; lịch tuần: mỗi hàng buổi nền nhạt riêng (r-*) + đường kẻ 2px + nhãn đậm màu. **BỎ view "Danh sách"** (lịch Tuần dạng danh sách đã thay) — chỉ còn Tháng + Tuần; server view∈{thang,tuan}.
+
+**v7 (deploy 2026-08-21):** giảng dạy = THAM KHẢO → gom TẤT CẢ buổi vào **1 dòng dài tự xuống dòng** (`.lct-tea1`: nhãn "Giảng dạy" + "**Họ tên**, môn, phòng; …"), màu **dịu (xanh nhạt viền đứt)** tách khỏi công tác; công tác (họp/hoạt động) vẫn **mỗi cái 1 dòng** (viền màu đặc). Tách bằng Jinja `rejectattr/selectattr('kind','equalto','giang')` trong daydetail + lịch tuần. tea_detail macro không dùng nữa.
 
 **CÒN CÓ THỂ THÊM:** nhắc trước giờ họp; hạn công việc lên lịch; báo vắng họp.
