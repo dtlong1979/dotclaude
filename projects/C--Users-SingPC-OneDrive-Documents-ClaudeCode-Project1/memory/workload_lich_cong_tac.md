@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 27152e89-3b17-4747-9e4b-63e2a071cb90
-  modified: 2026-08-21T06:46:26.429Z
+  modified: 2026-08-21T07:08:44.765Z
 ---
 
 Tính năng **Lịch công tác toàn khoa** trong workload (deploy 2026-08-21). Xem [[workload_redesign]], [[workload_hou_cntt_teaching_bridge]] (lịch giảng), [[fithouone_lich_module]] (nghỉ lễ/âm lịch).
@@ -33,4 +33,11 @@ Tính năng **Lịch công tác toàn khoa** trong workload (deploy 2026-08-21).
 - **Form sắp lại (bỏ Ghi chú→Nội dung):** Tiêu đề → Loại lịch → (đơn vị/người) → Nội dung → Link online → Địa điểm → Ngày → Giờ BĐ/KT + nút nhanh Sáng/Chiều/Tối (điền giờ) + Cả ngày. JS `initLichForm` (app.js): toggle theo loại, tìm người, nút buổi, cả-ngày. su_kien thêm cột `link`,`task_id`; ghi_chu=Nội dung.
 - Backup `*.bak_lich2_*`.
 
-**CÒN CÓ THỂ THÊM:** nhắc trước giờ họp; hạn công việc lên lịch; báo vắng họp; mời thành phần nâng cao.
+**NÂNG CẤP v3 (deploy 2026-08-21):**
+- **Bấm 1 ngày → LIGHTBOX chi tiết** (native `<dialog id="dlg-day">`), không đổi view. Nguồn: khối `.lct-daysrc[data-day]` ẩn (render qua macro `daydetail(c)`); JS đổ innerHTML vào dialog. Áp cho ô lưới tháng + cột/ô tuần (chỉ ngày có nội dung, class `.clickable`+`data-day`).
+- **3 view: Tháng / Tuần / Danh sách.** Tuần (`view=tuan&d=<neo>`): 8 cột (nhãn + 7 ngày) × 4 hàng (Cả ngày, Sáng, Chiều, Tối); `build_cell` gom sự kiện theo buổi (`su_kien_buoi_muc`) + giảng dạy theo ca_hoc vào `cell.buoi`. Nav tuần dùng prev_d/nxt_d (±7 ngày).
+- **Bật/tắt lịch âm:** nút `data-am-toggle` → JS thêm class `.no-am` lên `.lct-cal` (ẩn `.lct-am`), nhớ bằng localStorage `lct_am`.
+- **Đề xuất lịch + Ngày nghỉ = 2 nút mở DIALOG** (không còn 2 hộp cạnh nhau chiếm chỗ; ngày nghỉ là cấu hình ít dùng). Form đề xuất + form ngày nghỉ nằm trong `<dialog>`. JS `initLich` (app.js): mở/đóng dialog (backdrop+×), lightbox ngày, toggle âm; `initLichForm` chạy trong đó.
+- ctx thêm: cells (cho daysrc), week_cells, prev_d/nxt_d/wk_anchor, cur_label động. Backup `app.py.bak_lich3_*`.
+
+**CÒN CÓ THỂ THÊM:** nhắc trước giờ họp; hạn công việc lên lịch; báo vắng họp.
