@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 27152e89-3b17-4747-9e4b-63e2a071cb90
-  modified: 2026-08-21T07:08:44.765Z
+  modified: 2026-08-21T07:41:53.018Z
 ---
 
 Tính năng **Lịch công tác toàn khoa** trong workload (deploy 2026-08-21). Xem [[workload_redesign]], [[workload_hou_cntt_teaching_bridge]] (lịch giảng), [[fithouone_lich_module]] (nghỉ lễ/âm lịch).
@@ -39,5 +39,7 @@ Tính năng **Lịch công tác toàn khoa** trong workload (deploy 2026-08-21).
 - **Bật/tắt lịch âm:** nút `data-am-toggle` → JS thêm class `.no-am` lên `.lct-cal` (ẩn `.lct-am`), nhớ bằng localStorage `lct_am`.
 - **Đề xuất lịch + Ngày nghỉ = 2 nút mở DIALOG** (không còn 2 hộp cạnh nhau chiếm chỗ; ngày nghỉ là cấu hình ít dùng). Form đề xuất + form ngày nghỉ nằm trong `<dialog>`. JS `initLich` (app.js): mở/đóng dialog (backdrop+×), lightbox ngày, toggle âm; `initLichForm` chạy trong đó.
 - ctx thêm: cells (cho daysrc), week_cells, prev_d/nxt_d/wk_anchor, cur_label động. Backup `app.py.bak_lich3_*`.
+
+**v4 (deploy 2026-08-21):** (A) chi tiết ngày (lightbox+agenda) **nhóm theo Buổi Sáng/Chiều/Tối** (+ Cả ngày) — macro `daydetail` dùng `c.buoi` + macro con `ev_detail`/`tea_detail`. (B) **Ngày nghỉ TỰ BÁO NGHỈ giảng dạy:** `build_cell` bỏ giảng dạy khi `offs.get(iso)`; `materialize_teaching` nếu `off_days_in_range(day,day)` → xóa giang_day + return (không ghi nhật ký); `ngay_nghi_create/delete` gọi `sweep_teaching` khoảng đó để gỡ/khôi phục ngay. Test: 1→0 khi đặt nghỉ, →1 khi bỏ.
 
 **CÒN CÓ THỂ THÊM:** nhắc trước giờ họp; hạn công việc lên lịch; báo vắng họp.
