@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 27152e89-3b17-4747-9e4b-63e2a071cb90
-  modified: 2026-08-20T18:57:00.212Z
+  modified: 2026-08-21T08:42:20.615Z
 ---
 
 Liên thông **nhiệm vụ giảng dạy** hou-cntt → workload cho nhóm giảng viên (tổ bộ môn), vì lịch giảng + số lớp cố vấn học tập cũng là nhiệm vụ cần đối chiếu với công việc được giao. Xem [[workload_redesign]], [[app_workload_bridge]], [[hou_cntt_lich_giang_import]], [[fithouone_coordination_hub]].
@@ -33,6 +33,10 @@ Liên thông **nhiệm vụ giảng dạy** hou-cntt → workload cho nhóm gi�
 - **CVHT TÁCH khỏi giảng dạy** (là loại nội dung khác, KHÔNG auto-log nhật ký): Trang Hôm nay tách 2 khối — "Cố vấn học tập" (mỗi lớp là link `/to-admin?sv=<lop>` → SSO web-admin, giảng viên tự vào trang 'students' Quản lý Sinh viên; web-admin dòng 4243 `adminRole==='giangvien'→page='students'`, KHÔNG cần sửa web-admin) + "Lịch giảng dạy" (tham chiếu). `/to-admin` nhận thêm `sv` truyền qua fragment (`#code=..&sv=<lop>`) để sau này web-admin mở đúng lớp — hiện web-admin bỏ qua vẫn về trang SV. CSS .gv-cvht-link. Backup `*.bak_gv3_*`.
 
 **TINH CHỈNH đợt 2 (deploy 2026-08-21):** (1) bớt các dòng hướng dẫn ở panel Hôm nay + mục Giảng dạy /log. (2) CVHT hiện **một dòng** "Lớp bạn cố vấn: …" + **tự lọc lớp quá 8 năm** kể từ khóa nhập (`_cvht_con_han`: 2 số đầu mã lớp = năm 20xx; 2026−năm>8 → bỏ; vd 1510→bỏ, 1810→giữ). (3) **Tự đồng bộ khi đăng nhập, BỎ nút bấm**: `maybe_daily_sync(conn)` (guard last_synced[:10]==today, gọi ở route `/`, kèm sweep). (4) **Thanh tiêu đề (hn-zonetitle/hz-*) nền bão hòa + chữ trắng** (hz-do #0e7c66, hz-review #b9700a, hz-late #c62828, hz-note #2563eb, hz-link #64748b) để phân biệt rõ với nội dung; hn-count→chip đen mờ chữ trắng; .opt/.btn-tiny trong header chỉnh theo. Backup `app.py.bak_gv4_*`.
+
+**LIÊN THÔNG ĐĂNG BÀI WEBSITE (deploy 2026-08-21):** ghi nhận đăng bài lên website vào nhật ký, **1 bài/ngày = 30 phút**. Nguồn: `fit_hou_cms.fithou_admin_logs` (action='content.publish', có actor_email+timestamp+target=tiêu đề+#id). Khóa nối: **actor_email == workload users.email** (@hou.edu.vn). hou-cntt endpoint mới `/api/internal/website-posts` (đọc fit_hou_cms qua `WEBSITE_DATABASE_URL`=creds fit_hou trong deploy .env + compose hou-cntt-api; user hou_cntt KHÔNG có SELECT fithou_admin_logs nên phải dùng fit_hou; SQLAlchemy text đừng dùng `:bind::date` mà `CAST(:bind AS date)`), GOM theo bài/ngày (GROUP BY target, giờ VN). workload `sweep_website_posts` (source='website', muc='30p', buổi theo giờ đăng) trong `maybe_daily_sweep` + nút **"↻ Làm mới"** ở /log (route `/log/lam-moi`, throttle 30s toàn hệ, chạy lại cả website+giảng+họp). log.html mục "Đăng bài website hôm nay". **LƯU Ý server hou-cntt đi trước local** — sửa phải kéo bản server về. Backup `internal.py.bak_web_*`, workload `app.py.bak_web_*`.
+
+**ĐANG BÀN (#2 — audit → nghiệp vụ, chờ user duyệt mapping):** kho `audit` DB `audit_log` (ts/action_code/action_label/actor_id/phan_he) ghi thao tác hou-cntt. Kế hoạch: lọc phan_he='hou-cntt' + cán bộ (bỏ SV + login), gom action_code → vài NGHIỆP VỤ (Duyệt SV đăng ký / Xếp lớp / Tạo đợt đăng ký / Xử lý SV vượt cảnh báo / Cập nhật dữ liệu…), chỉ GHI NHẬN việc, giờ tính theo TỪ ĐIỂN workload sau. actor_id=username CAS → cas_canbo → ma_cb. CHƯA build — chờ user chốt danh sách nghiệp vụ + mapping.
 
 **CÒN LÀM (Tầng 3 — chưa duyệt chi tiết):** quy số tiết + số lớp CVHT thành ĐỊNH MỨC nhiệm vụ để đối chiếu công việc/đánh giá; ngòi nổ tự đồng bộ khi giáo vụ sửa TKB bên hou-cntt (hiện phải bấm "Đồng bộ từ hệ đào tạo"); (tùy chọn) web-admin đọc `sv` để mở đúng lớp CVHT.
 
