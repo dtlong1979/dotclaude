@@ -5,12 +5,14 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 27152e89-3b17-4747-9e4b-63e2a071cb90
-  modified: 2026-08-23T14:50:19.164Z
+  modified: 2026-08-23T18:24:34.755Z
 ---
 
 Tính năng **Lịch công tác toàn khoa** trong workload (deploy 2026-08-21). Xem [[workload_redesign]], [[workload_hou_cntt_teaching_bridge]] (lịch giảng), [[fithouone_lich_module]] (nghỉ lễ/âm lịch).
 
 **Các lớp trên lịch:** Giảng dạy (từ `gv_lich_giang`, `_lesson_occurs` khớp thứ+khoảng ngày+tuần chẵn/lẻ) · Họp nhóm · Hoạt động chung · Nghỉ lễ (`lich_of`/`lich_ngay`).
+
+**LỚP GHÉP gộp 1 (sửa 2026-08-22):** trong `build_cell` (route lich_cong_tac), danh sách giảng dạy `tea` DEDUP theo **slot vật lý** `(teacher, ma_phong, thu, tu_tiet, den_tiet)` — KHÔNG theo tên học phần (vì lớp ghép có mã lớp/tên khác nhau đôi chút do khác CTĐT/khoá, vd hoa/thường). `tea_n` = len(tea) đã gộp. VD CH0435 (Dương Chí Bằng) Thứ 3: 4 dòng thô → 2 buổi (Sáng P23 tiết 1-4 gộp 3 lớp ghép → 1; Chiều P22 giữ riêng). Chỉ áp dụng cho LỊCH; panel "Lớp dạy trong kỳ" ở Hôm nay vẫn theo ma_lop_tc (mỗi lớp quản lý riêng).
 
 **⚠ BẪY CSS (sửa 2026-08-22):** biến `--sidebar-bg-2` = **#0a3d33 (xanh đậm sidebar)**, KHÔNG phải màu sáng như fallback gợi ý. Trước đây nhiều nền tiêu đề dùng `background:var(--sidebar-bg-2,#eef2f0)` → ra xanh đậm + chữ tối = KHÔNG ĐỌC ĐƯỢC ở light mode. Đã thay bằng màu sáng literal (#eef2f0/#f3f6f5) + override dark cho: `.lct-hcell` (tiêu đề T2–CN lịch tháng), `.lct-wk-head`, `.lct-wk-lbl`, `.lct-cell.out`, và `.lsv-table thead th` (tiêu đề bảng bên "Lớp của tôi"). Đừng dùng `--sidebar-bg-2` cho nền nội dung — chỉ cho sidebar.
 
