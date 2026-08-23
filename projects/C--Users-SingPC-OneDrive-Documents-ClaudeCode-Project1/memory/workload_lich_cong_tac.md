@@ -5,12 +5,14 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 27152e89-3b17-4747-9e4b-63e2a071cb90
-  modified: 2026-08-21T08:03:15.100Z
+  modified: 2026-08-23T14:50:19.164Z
 ---
 
 Tính năng **Lịch công tác toàn khoa** trong workload (deploy 2026-08-21). Xem [[workload_redesign]], [[workload_hou_cntt_teaching_bridge]] (lịch giảng), [[fithouone_lich_module]] (nghỉ lễ/âm lịch).
 
 **Các lớp trên lịch:** Giảng dạy (từ `gv_lich_giang`, `_lesson_occurs` khớp thứ+khoảng ngày+tuần chẵn/lẻ) · Họp nhóm · Hoạt động chung · Nghỉ lễ (`lich_of`/`lich_ngay`).
+
+**⚠ BẪY CSS (sửa 2026-08-22):** biến `--sidebar-bg-2` = **#0a3d33 (xanh đậm sidebar)**, KHÔNG phải màu sáng như fallback gợi ý. Trước đây nhiều nền tiêu đề dùng `background:var(--sidebar-bg-2,#eef2f0)` → ra xanh đậm + chữ tối = KHÔNG ĐỌC ĐƯỢC ở light mode. Đã thay bằng màu sáng literal (#eef2f0/#f3f6f5) + override dark cho: `.lct-hcell` (tiêu đề T2–CN lịch tháng), `.lct-wk-head`, `.lct-wk-lbl`, `.lct-cell.out`, và `.lsv-table thead th` (tiêu đề bảng bên "Lớp của tôi"). Đừng dùng `--sidebar-bg-2` cho nền nội dung — chỉ cho sidebar.
 
 **Bảng `su_kien`** (db.py): title, loai (`hop_nhom`|`hoat_dong_chung`), ngay, gio_bd/gio_kt (HH:MM) hoặc ca_ngay, dia_diem, group_id, pham_vi (`nhom`=thành viên đơn vị | `khoa`=toàn khoa), ghi_chu, created_by.
 
