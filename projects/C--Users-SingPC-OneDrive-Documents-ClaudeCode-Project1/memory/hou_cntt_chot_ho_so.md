@@ -19,7 +19,13 @@ hou-cntt trước 26/08/2026 chỉ có MỘT cột `sinh_vien.chuyen_nganh_du_do
 
 **Đường ghi bắt buộc đi qua `chot_cn()` / `chot_he()`**: `ctdt_de_xuat.sv_xac_nhan_cn`, `ctdt_de_xuat.xu_ly`, `admin.set_student_ctdt`, `importer/sv_moi._after_apply`.
 
-**Đường suy đoán bị rào** (`AND chuyen_nganh_id IS NULL` / `AND ctdt_id_chot IS NULL`): `xet_tot_nghiep._SPEC_SQL`, `xet_tot_nghiep.re_du_doan_loai_hinh`, `db/08_chuyennganh_dudoan.sql`.
+**Đường suy đoán bị rào**: `xet_tot_nghiep._SPEC_SQL` và `db/08_chuyennganh_dudoan.sql` thêm `AND chuyen_nganh_id IS NULL`.
+
+**`xet_tot_nghiep.re_du_doan_loai_hinh` ĐÃ XOÁ HẲN** (26/08/2026, theo yêu cầu user — nó ghi đè `ctdt_id` toàn bộ SV, lần chạy thử cuối định đổi 72 em; không có route/nút nào gọi nó, chỉ là mã chết gọi được từ script).
+
+**Loại hình CN/KS chỉ đặt MỘT LẦN**, khi hồ sơ chưa có `ctdt_id`. Thứ tự trong `xet_tot_nghiep.apply._ctdt_cua()`: cột loại hình trong file → **MẶC ĐỊNH Cử nhân CNTT** (`chot_ho_so.he_mac_dinh(db, khoa)`, tra theo khóa chứ không gán cứng id) → chỉ đoán bằng `_du_doan_loai_hinh` khi là SV BỊ SÓT của khóa cũ (khóa < 2025 VÀ đã có `tc_dat`). SV mới vào → chốt luôn nguồn `quy_dinh_khoa`. `importer/sv_moi` cũng dùng `he_mac_dinh` (lớp đuôi KS → CTĐT 2) và chốt hệ cho mọi SV mới nhập.
+
+Đã chạy thử 4 tình huống end-to-end (monkeypatch `extract` + vô hiệu `db.commit` rồi rollback — LƯU Ý `apply()` tự commit nhiều lần bên trong nên rollback suông KHÔNG cứu được): K26 không ghi loại→CN+chốt; K22 150TC→KS; K22 30TC→CN; SV đã có loại hình→giữ nguyên.
 
 **Xem ở đâu**: API `GET /api/admin/ho-so/chot`; giao diện ở cuối trang Báo cáo tổng hợp + nhãn "(đã chốt — nguồn)" / "(dự đoán)" cạnh hệ & chuyên ngành trong hồ sơ SV.
 
