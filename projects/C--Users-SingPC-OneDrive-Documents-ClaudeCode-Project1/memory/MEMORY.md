@@ -4,18 +4,10 @@
 > (sửa TẠI CHỖ khi thay đổi — xem CLAUDE.md mục "Kiến trúc sống"). Memory chỉ giữ: con trỏ · gu/feedback · reference.
 
 ## 🗺️ FithouOne — website + workload + hou-cntt + mobile
-**ĐỌC TRƯỚC (hub `D:\Dev\FithouOne\.project\`):**
-- **`ARCHITECTURE.md`** — cấu trúc/hiện trạng mọi phân hệ (module · endpoint · data model · bẫy). **Sửa ở đây khi đổi.**
-- **`INFRA.md`** — hạ tầng, server, deploy, DB access.
-- **`STATE.md`** — đang làm gì / chờ gì. **`DECISIONS.md`** — vì sao. **`TAXONOMY.md`** — mảng hoạt động.
-
-Memo vận hành/reference còn giữ (chi tiết sâu, ARCHITECTURE trỏ tới):
-- [Server Infra](fithou_server_infra.md) — cứu VM ESXi khi mất điện; SSH `sscfit` (jump)
-- [Deploy Docker](fithouone_deploy.md) — đóng gói 3 phân hệ, compose, volume
-- [Coordination Hub](fithouone_coordination_hub.md) — hub `.project/` chạy song song đa phiên
-- [Paths](hou_cntt_paths.md) — mã nguồn thật `D:\dev\hou-cntt`; cách chạy PG/backend/Flutter
-- [Mobile Release](hou_cntt_mobile_release.md) — Codemagic (token/appId/instance), version, quy trình phát hành
-> Lịch sử ~40 memo cũ (đã gom vào ARCHITECTURE.md): `_archive_2026-08/` — chỉ để khảo cổ.
+> **Tri thức FithouOne KHÔNG ở đây** — nằm HẾT trong project: **`D:\dev\FithouOne\.project\`**. Bắt đầu làm FithouOne → đọc ở đó:
+> - **`ARCHITECTURE.md`** — cấu trúc/hiện trạng mọi phân hệ (module · endpoint · bảng · bẫy) + bảng "ghi nhận gì vào đâu". **Sửa tại chỗ khi đổi.**
+> - `INFRA.md` (hạ tầng · cứu server · phát hành mobile) · `STATE.md` (đang làm) · `DECISIONS.md` (vì sao) · `TAXONOMY.md` (mảng).
+> - `_archive_memory/` — 45 memo cũ (khảo cổ). Repo mã: `D:\dev\hou-cntt` (có `CLAUDE.md` trỏ về hub).
 
 ## QCV — dịch vụ web trọn gói
 **ĐỌC TRƯỚC:** `D:\dev\qcv-builder\KIEN-TRUC.md` (kiến trúc + trạng thái + việc còn lại).
