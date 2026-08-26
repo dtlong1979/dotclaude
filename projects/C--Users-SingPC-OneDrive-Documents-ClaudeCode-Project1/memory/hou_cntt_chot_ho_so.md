@@ -35,3 +35,11 @@ hou-cntt trước 26/08/2026 chỉ có MỘT cột `sinh_vien.chuyen_nganh_du_do
 **Xem ở đâu**: API `GET /api/admin/ho-so/chot`; giao diện ở cuối trang Báo cáo tổng hợp + nhãn "(đã chốt — nguồn)" / "(dự đoán)" cạnh hệ & chuyên ngành trong hồ sơ SV.
 
 Liên quan: [[hou_cntt_block_credit_model]], [[hou_cntt_ctdt_viewer_advisory]], [[hou_cntt_app]]
+
+**Banner "rà soát chuyên ngành" trên trang chủ cổng SV** (`web-sv/index.html` → `xacNhanCnBannerHTML`, gọi ở renderer trang chủ dòng ~1078, KHÔNG phải màn CTĐT — bấm banner mới nhảy sang tab ctdt). Điều kiện do `ctdt_de_xuat.sv_can_xac_nhan_cn` quyết. Đã sửa 26/08/2026 vì trước đó hiện SAI cho 717 em:
+- chỉ tìm bản xác nhận **trong đợt hiện tại** → mỗi lần mở đợt mới là hỏi lại 364 em đã xác nhận đợt trước dù CN không đổi. Nay lấy lần SV **tự** xác nhận gần nhất ở BẤT KỲ đợt nào (`dot_id <> 0`, `ORDER BY thoi_diem DESC`).
+- không loại SV **đã tốt nghiệp** → 232 em đã ra trường vẫn bị nhắc. Nay thêm điều kiện `duyet_tot_nghiep.trang_thai <> 'DA_DUYET'`.
+- `dot_id = 0` là bản do GIÁO VỤ ghi khi duyệt, KHÔNG tính là SV tự xác nhận.
+Kết quả: 717 → **165 em** (112 em thực sự đang học, 44 em nghi bỏ học, 64 em chưa có tài khoản). K25/K26 không bị hỏi (`_yeu_cau_xac_nhan_cn`: chỉ khóa ≤ 2024).
+
+**`TEST000001` GIỮ NGUYÊN `is_active=true`**: `_mssv_dang_hoc` trong `api/routes/sv_me.py` chặn MỌI thao tác ghi (đăng ký, xác nhận, đề xuất) khi `is_active=false` và trả 403 "bạn đang ở diện bảo lưu/thôi học" — người duyệt Google Play gặp lỗi đó dễ đánh trượt app. Đổi lấy việc bớt 1/1725 dòng khỏi thống kê là không đáng.
