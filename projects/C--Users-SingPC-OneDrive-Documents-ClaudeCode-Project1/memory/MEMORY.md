@@ -1,80 +1,42 @@
-# Memory Index
+# MEMORY — Bản đồ tri thức (đọc TRƯỚC khi làm)
 
-- [Workload Lịch Công tác](workload_lich_cong_tac.md) — lịch công tác toàn khoa (bảng su_kien): họp nhóm (tổ trưởng đăng)+hoạt động chung (Văn phòng/Khoa đăng thẳng)+lịch giảng+nghỉ lễ; 2 chế độ chung/cá nhân, 2 kiểu lưới-tháng/agenda; họp mình tham dự tự vào nhật ký (source='hop', materialize_meetings); route /lich-cong-tac
-- [Workload↔hou-cntt Teaching Bridge](workload_hou_cntt_teaching_bridge.md) — liên thông lịch giảng + lớp CVHT hou-cntt→workload; cache bảng riêng đồng bộ theo kỳ (ma_cb==ma_gv==username_cv); endpoint /api/internal/gv-nhiem-vu; Tầng 1 panel Trang chủ + Tầng 2 (tự ghi nhật ký giảng dạy · cả buổi, chỉ có Báo nghỉ) đã deploy (106 buổi+69 lớp CVHT); Tầng 3 định mức chưa làm; LƯU Ý server hou-cntt đi trước local
+> Đây là **BẢN ĐỒ**, không phải kho nội dung. Kiến trúc chi tiết nằm ở **tài liệu SỐNG** của từng hệ
+> (sửa TẠI CHỖ khi thay đổi — xem CLAUDE.md mục "Kiến trúc sống"). Memory chỉ giữ: con trỏ · gu/feedback · reference.
 
-- [FithouOne Lịch Module](fithouone_lich_module.md) — lịch âm/dương + nghỉ lễ: bảng lich_ngay nhập từ file tĩnh Lịch Vạn Sự 2015-2035 (7306 ngày, 201 nghỉ lễ), cache RAM tra O(1); workload đã có API /api/lich + cảnh báo hạn rơi nghỉ lễ; hou-cntt/mobile nhập cùng file khi cần
+## 🗺️ FithouOne — website + workload + hou-cntt + mobile
+**ĐỌC TRƯỚC (hub `D:\Dev\FithouOne\.project\`):**
+- **`ARCHITECTURE.md`** — cấu trúc/hiện trạng mọi phân hệ (module · endpoint · data model · bẫy). **Sửa ở đây khi đổi.**
+- **`INFRA.md`** — hạ tầng, server, deploy, DB access.
+- **`STATE.md`** — đang làm gì / chờ gì. **`DECISIONS.md`** — vì sao. **`TAXONOMY.md`** — mảng hoạt động.
 
-- [FithouOne Coordination Hub](fithouone_coordination_hub.md) — hub đa phiên ở D:\Dev\FithouOne (.project/ INFRA+STATE+STAFFING+DECISIONS+TAXONOMY + junction src→hou-cntt, deploy→fithouone-deploy) để chạy song song workload/hou-cntt/mobile không chờ nhau
+Memo vận hành/reference còn giữ (chi tiết sâu, ARCHITECTURE trỏ tới):
+- [Server Infra](fithou_server_infra.md) — cứu VM ESXi khi mất điện; SSH `sscfit` (jump)
+- [Deploy Docker](fithouone_deploy.md) — đóng gói 3 phân hệ, compose, volume
+- [Coordination Hub](fithouone_coordination_hub.md) — hub `.project/` chạy song song đa phiên
+- [Paths](hou_cntt_paths.md) — mã nguồn thật `D:\dev\hou-cntt`; cách chạy PG/backend/Flutter
+- [Mobile Release](hou_cntt_mobile_release.md) — Codemagic (token/appId/instance), version, quy trình phát hành
+> Lịch sử ~40 memo cũ (đã gom vào ARCHITECTURE.md): `_archive_2026-08/` — chỉ để khảo cổ.
 
-- [Fithou Audit Central](fithou_audit_central.md) — kho nhật ký TẬP TRUNG 1 DB `audit` cho cả FithouOne (role audit_writer chỉ INSERT/SELECT); danh mục 42 thao tác, hiện nhãn không hiện câu lệnh, ghi bất đồng bộ hàng đợi+thread; dual-write đang chuyển; Phase 1-3 xong (hou-cntt+workload), còn Phase 4 (màn đọc) + 5 (điểm danh meta, di trú, tắt cũ)
+## QCV — dịch vụ web trọn gói
+**ĐỌC TRƯỚC:** `D:\dev\qcv-builder\KIEN-TRUC.md` (kiến trúc + trạng thái + việc còn lại).
+- [Web Project](qcv_web_project.md) — nhật ký 74KB (khảo cổ); màu 4 lớp đè, hướng chốt B2 qcv-core
+- Bẫy đã biết: [Xám 128](qcv_xam_128.md) · [Zip đóng gói](qcv_zip_dong_goi.md) · [Backup holes](qcv_optimizer_backup_holes.md) · [Origin Optimizer](qcv_origin_optimizer.md) · [Chat Assistant](qcv_chat_assistant.md)
 
-- [HOU CNTT Đăng ký Giữ chỗ & Load-test](hou_cntt_dang_ky_giu_cho_loadtest.md) — mô hình ghế đăng ký tín chỉ CHỐT: giữ tạm TTL 10p (bảng dk_giu_cho, atomic), hết hạn tự hủy, Xác nhận chốt hiện trạng; + kế hoạch index→load-test 300 step100 tìm điểm chết→đề xuất snapshot/circuit-breaker; nền tảng: khớp đã-đạt/tiên-quyết theo TÊN (mon_khop.passed_failed_bac_cau) + block_credits tôn trọng chuyên ngành gán
+## Nghiên cứu NLP Q1 (`Project1/.project/` + `Project1/CLAUDE.md`)
+Đo "surface-feature reliance" tiếng Việt/ít tài nguyên → bài Q1; vũ khí chung matched-deletion/counterfactual.
+- [Emotion Anchors](emotion_anchors_paper.md) · [AI Detector VN](ai_detector_vn_study.md) · [Fake News SLR](fake_news_slr_paper.md)
+- [CARE-Fusion](care_fusion_project.md) (+[trong Monitor](care_fusion_in_monitor.md)) · [Honorifics](honorifics_diss_directions.md) · [Sentiment Monitor](hou_sentiment_monitor.md)
+- Skill viết bài: [NLP paper](write_nlp_paper_skill.md) · [Onomastics](write_onomastics_paper_skill.md) · [IT paper mặc định](it_paper_default_skill.md)
 
-- [HOU CNTT Mobile Release](hou_cntt_mobile_release.md) — repo git mobile RIÊNG ở D:\dev\hou-cntt\mobile (github dtlong1979/fithouone-mobile, nhánh master); push master = Codemagic tự build iOS(TestFlight)+Android; Claude được phép tự chạy git/PS/CLI trên máy user; group android_signing (CM_KEYSTORE base64)
+## Dự án nhỏ khác
+- [Dissertation→Practice](dissertation_to_practice.md) — phát triển luận án 2014 thành đề tài ứng dụng
+- [License Checker](license_checker_app.md) (+[Defender trap](license_checker_defender_trap.md)) — kiểm bản quyền Win/Office
+- [Shadowing App](shadowing_app.md) (+[build env](shadowing_build_env.md)) — app học nghe/nói tiếng Anh
+- [Wedding Builder](wedding_builder.md) — SaaS website đám cưới
+- [Project Overview](project_overview.md) — chat + quản lý công việc nội bộ (nền tảng chung)
 
-- [Research Writing Standards](research_writing_standards.md) — chuẩn viết/rà bài NCKH của user: rõ-đơn giản-đúng vấn đề, không tự phòng thủ thừa nhưng không over-claim, phương pháp tái lập được, để số liệu tự nói, cơ sở lý thuyết phân tích gắn câu hỏi (không liệt kê), VIẾT THẲNG vào việc mình làm (chúng tôi đã làm X thu được Y) — cắt câu meta/tự-biện-hộ/tự-dự-đoán
-
-- [Agent Company Model](agent_company_model.md) — mô hình "công ty agent" global ~/.claude: 13 nhân sự theo năng lực + template .project/ (PROJECT/STATE/DECISIONS/STAFFING) + quy trình khôi phục; điều hành ở COMPANY.md
-
-- [Dissertation to Practice](dissertation_to_practice.md) — phát triển luận án 2014 (tự tái cấu hình tế bào hệ đa xử lý) thành đề tài ứng dụng; 6 đề tài chính + 2 dự phòng + đề cương Đ4 CertiHeal-Edge (IoT+AI), file ở OneDrive\Luan an
-- [Project Overview](project_overview.md) — ứng dụng chat + quản lý công việc nội bộ, cross-platform, quy mô nhỏ, dùng cloud BaaS, cần audit trail + phân quyền
-- [Shadowing App](shadowing_app.md) — app học nghe/nói Tiếng Anh (shadowing), Flutter+Firebase, nội dung sinh sẵn, chấm phát âm Azure
-- [HOU CNTT App](hou_cntt_app.md) — phần mềm hỗ trợ học tập Khoa CNTT HOU; đã có CSDL 3 CTĐT (CN/KS 2022, KS 2019) trong db/, nguồn sscfit.hou.edu.vn
-- [UI Copy Style](ui_copy_style.md) — văn phong giao diện: TRANG TRỌNG, THUẦN VIỆT, không emoji/khẩu ngữ (vd "Hôm nay bạn không có việc cần xử lý", "Nhận việc", "Báo cáo hoàn thành", "Nghiệm thu đạt")
-- [Workload Redesign](workload_redesign.md) — cải tổ UX Giao việc workload (action-first, 4 trạng thái, 3 vai); bản cũ đã backup; Pha 1 "Hôm nay" tại / đã deploy, dashboard cũ → /bang-dieu-hanh; còn Pha 2-4
-- [Workload App](workload_app.md) — web nhật ký/giao việc khoa CNTT (cải tổ phân công việc 4 giai đoạn); GĐ1 đang chạy ở workload/ (FastAPI+SQLite+Jinja)
-- [HOU CNTT Paths](hou_cntt_paths.md) — mã nguồn thật ở D:\dev\hou-cntt (C:\Dev chỉ là junction hay rời ra); cách chạy PostgreSQL/backend 8000/Flutter/emulator Pixel_10_Pro
-- [CARE-Fusion Project](care_fusion_project.md) — thử nghiệm thuật toán CARE-Fusion phân loại cảm xúc tiếng Việt (bài báo KH); code ở D:\dev, GitHub dtlong1979, chạy Colab Pro A100
-- [QCV Web Project](qcv_web_project.md) — dịch vụ web trọn gói QCV. **⚠ ĐỌC `D:\dev\qcv-builder\KIEN-TRUC.md` TRƯỚC** (kiến trúc + trạng thái + việc còn lại, gọn); file memory này chỉ là nhật ký 74KB để khảo cổ. Nhớ nhanh: màu có 4 lớp đè (sửa theme.json vô dụng), `plugin/recipes/*.json` là rác, hướng chốt = B2 thư viện mẫu qcv-core
-- [HOU Sentiment Monitor](hou_sentiment_monitor.md) — phần mềm demo NCKH giám sát cảm xúc bình luận fanpage; FastAPI+SQLite+React ở D:\Dev\hou-sentiment-monitor; mock data, classifier heuristic+Gemini (không PhoBERT thật)
-- [Fithou Website Local](fithou_website_local.md) — Next.js+Directus chạy local; đã restore CSDL+uploads production (2368 bài), cần public read directus_files; script import-fithou-newest.mjs sync bài mới từ site thật
-- [QCV Origin Optimizer](qcv_origin_optimizer.md) — plugin tối ưu WP cho site QCV Origin; Perf webtrongoi vẫn ~50 do webp/cache/font chưa ăn; webtrongoi chạy bản site-specific
-- [FithouOne Deploy](fithouone_deploy.md) — đóng gói Docker tổng 3 phân hệ (website+workload+hou-cntt) trên 1 server; D:\dev\fithouone-deploy, 1 postgres 2 DB, domain base fit.hou.edu.vn; Pha 1 xong (2 image Python build OK)
-- [CARE-Fusion trong Monitor](care_fusion_in_monitor.md) — hướng đang cân nhắc: dùng CARE-Fusion (text+emoji) phân loại bình luận thay Gemini; bài viết giữ mô hình 2 luồng; train offline GPU, inference CPU/microservice API
-- [Honorifics Diss Directions](honorifics_diss_directions.md) — pipeline v2 tìm hướng Q1 từ luận án kính ngữ Hàn-Việt (Phạm Thị Ngọc 2018); KHÁC luận án 2014
-- [Emotion Anchors Paper](emotion_anchors_paper.md) — bài báo NCKH tự chạy về lexical anchor reliance của emotion classifier (matched-deletion); code+paper ở emotion-anchors/, nhánh anchor-reliance-study, CPU-only, 3 corpus EN
-- [Fake News SLR Paper](fake_news_slr_paper.md) — bài review phát hiện tin giả nộp JCTA; đã tái lập bằng corpus thật 43 nghiên cứu (verifiability-screened), docx+repo ở D:\Downloads; đính chính GPT-4 LIAR 68.2% (không phải 95.3%)
-- [AI Detector VN Study](ai_detector_vn_study.md) — pilot đo false-positive của AI detector trên abstract học thuật tiếng Việt pre-ChatGPT; code ai-detector-vn/, 110 abstract từ VJOL OAI-PMH, chờ key free Sapling+GPTZero
-- [Write NLP Paper Skill](write_nlp_paper_skill.md) — skill `write-nlp-paper` ở ~/.claude/skills: hướng dẫn viết bài Q1 AI/NLP theo từng phần (8 reference + GUIDELINE), grounding bài thật, tuned tiếng Việt/low-resource; reference 08 = tuân thủ nộp bài (audit 50 tạp chí)
-- [IT Paper Default Skill](it_paper_default_skill.md) — quy ước: dùng write-nlp-paper làm MẶC ĐỊNH cho mọi bài báo chuyên ngành IT/CS (không chỉ NLP/AI); chỉ thay ví dụ cho khớp tiểu ngành
-- [Write Onomastics Paper Skill](write_onomastics_paper_skill.md) — viết bài Q2+ ngôn ngữ học/onomastics; TÁCH 4 skill (master `write-onomastics-paper` + intro-related + method-discussion + core) để mỗi description ≤1024; grounding >100 bài OA, tuned tiếng Việt. Bundle upload 5 zip ở Project1/skill-bundles/
-- [License Checker App](license_checker_app.md) — phần mềm kiểm tra bản quyền Windows/Office + dò công cụ kích hoạt lậu, viết lại từ bản Codex; C# WinForms ở Documents/Codex/2026-07-16/to
-- [License Checker Defender Trap](license_checker_defender_trap.md) — Defender xóa chính công cụ dò lậu vì nó chứa tên tool lậu; né bằng mã hóa bảng nhận diện thành resource
-- [QCV Zip Đóng gói](qcv_zip_dong_goi.md) — đóng gói ZIP plugin WP bằng PHP ZipArchive (dấu /), KHÔNG dùng PowerShell Compress-Archive (dấu \ hỏng giải nén trên Linux); heredoc Bash nuốt dấu \
-- [QCV Xám 128](qcv_xam_128.md) — vùng ảnh hỏng LUÔN là RGB(128,128,128) chính xác (DC=0 → level shift +128); chữ ký nhận diện, thay mọi heuristic đo độ phẳng
-- [QCV Optimizer Backup Holes](qcv_optimizer_backup_holes.md) — backup từng tự ghi đè bằng ảnh hỏng (chốt ở meta, không ở file); 6 lỗ mất dữ liệu đã vá ở 0.1.94; luật "không backup thì không đụng ảnh gốc"
-- [Wedding Builder](wedding_builder.md) — SaaS tự làm website đám cưới online (VN); spec ở Project1/wedding-builder-spec.md; đã chốt bỏ ví/trả thẳng theo gói/QR trỏ thẳng TK cặp đôi
-- [Fithou MinIO Storage](fithou_minio_storage.md) — Directus website lưu file/ảnh vào MinIO bucket fithou-cms; đã migrate 3458 file cũ; bản local 837MB còn giữ làm rollback
-- [FithouOne Test Accounts](fithouone_test_accounts.md) — DS tài khoản/dữ liệu TEST trên pilot hou-cntt cần xóa trước go-live; kèm vai trò web `giangvien` mới (GV giới hạn theo lớp CVHT/dạy)
-- [QCV Chat Assistant](qcv_chat_assistant.md) — plugin Trợ lý ảo cho web QCV Origin (themes/FAQ Excel/LLM/bắt SĐT+email), Shadow DOM không đụng theme; ZIP ở D:\dev\qcv-chat-assistant
-- [Fithou Admin Log & Backup](fithou_admin_log_backup.md) — website có nhật ký hệ thống (audit `fithou_admin_logs`) + sao lưu/khôi phục CSDL+MinIO ở /quan-tri/nhat-ky & /quan-tri/sao-luu, chỉ system_admin; web image thêm pg16-client+mc, volume fithou_backups
-- [Fithou AI Knowledge Cards](fithou_ai_knowledge_cards.md) — trợ lý AI trả lời học vụ bằng thẻ tri thức có phạm vi khóa (fithou_ai_knowledge, 33 thẻ từ OCR 6 quy chế); nạp bằng SQL do Directus cache stale
-- [Fithou AI Key Config](fithou_ai_key_config.md) — khóa OpenAI nhập ở /quan-tri/cau-hinh-ai (lưu DB fithou_ai_config, fallback env), có nút Test; prod trước đây trống key nên AI không chạy
-- [Fithou Directus Branding & TZ](fithou_directus_branding_tz.md) — login Directus đã brand Fithou qua directus_settings+custom_css (logo/tiêu đề 3 dòng/nền SVG); container web chạy UTC không tzdata → phải format giờ VN bằng Intl en-GB + Asia/Ho_Chi_Minh
-- [App–Workload Bridge](app_workload_bridge.md) — app hou-cntt (GV) truy cập chức năng workload cho 26 cán bộ qua gateway (X-Ma-Cb + service token); 3 lớp đã build+verify cục bộ, chưa deploy/build APK
-- [HOU CNTT CAS Password](hou_cntt_cas_password.md) — cổng đổi/quên MK HOU CAS ở hou-cntt (CAS mở toang → siết ở app: chính sách mạnh+rate-limit); khung deploy CỜ TẮT (cas_pwd_enabled), chờ TK test + email cán bộ
-- [Password CAS vs Local](password_cas_vs_local.md) — đổi/quên MK chỉ áp tài khoản local back-safe; tài khoản HOU CAS ẩn + hướng dẫn htsv.cntt@hou.edu.vn; workload thêm cột auth_source tự nhận diện; web-admin/website đã ổn
-- [HOU CNTT Điểm rèn luyện & Cảnh báo](hou_cntt_ren_luyen_warnings.md) — bảng diem_ren_luyen + cảnh báo chi tiết (môn nợ, ĐRL<50); import qua format RENLUYEN; đã deploy+nhập 6284 ô, app chờ build
-- [Workload Trao đổi Reactions](workload_trao_doi_reactions.md) — feed workload thêm 5 reactions, vote/poll, sửa/xóa 24h, thông báo bất biến; web+backend+gateway deploy, app chờ build
-- [Fithou Messaging Consistency](fithou_messaging_consistency.md) — rà soát đồng nhất tin nhắn/trao đổi 3 hệ; đã căn chỉnh reactions chat 5 loại + admin broadcast + security headers/CSP hou-cntt; còn nợ refactor 110 onclick web-admin để siết CSP
-- [Fithou WebSocket Real-time](fithou_websocket_realtime.md) — lớp real-time WS hub ở hou-cntt (/api/ws); Pha 1 chat+workload app ĐÃ deploy (Dockerfile -w 1!), chờ user bật nginx WS 2 tầng (file sẵn ~/fithouone.conf.new)
-- [Fithou Editor Rebuild](fithou_editor_rebuild.md) — thay block editor tự viết bằng TipTap + AI trong editor (ảnh AI 3 chọn 1, cải thiện, viết lại SEO, ảnh đại diện), file inline PDF/DOCX/XLSX; BACKEND xong+tsc sạch, còn component TipTap UI
-- [Workload Báo cáo ngày theo buổi](workload_daily_report_sessions.md) — báo cáo ngày tách sáng/chiều/tối/cả ngày; chỉ 'Cả ngày' bị chặn sau giờ báo cáo; migration UNIQUE(user,ngày,buổi) đã chạy prod; nhập chỉ từ app
-- [Fithou Đính kèm Tệp](fithou_file_attachments.md) — cho gửi TỆP (pdf/office/zip) không chỉ ảnh ở chat + Trao đổi/Góp ý/Thông báo; app thêm file_picker (compileSdk≥36!), workload thêm cột file_name+allow-list opt-in; FithouOne/web-admin đã sẵn
-- [Fithou Hết phiên](fithou_session_expiry.md) — bắt 401 token hết hạn: app (Dio onError→logout+banner LoginScreen) và web-admin (api() 401→handleSessionExpired, app.js?v=9) tự về đăng nhập kèm thông báo
-- [Fithou Rà soát bản quyền trước phát hành](fithou_prepublish_audit.md) — publish=deploy nội bộ (không mở mã) nên KHÔNG vướng bản quyền; đã thay 10 ảnh Unsplash trên website bằng ảnh chỉnh từ ảnh thật của khoa qua gpt-image-1 edit, deploy prod
-- [HOU CNTT Grade Import Scale Bug](hou_cntt_grade_import_scale_bug.md) — import điểm thiếu cột "thang 4" → dat=False hàng loạt (SV nợ oan, không mất data); đã vá scale-aware tinh_dat/he4_hieu_luc + backup ket_qua_hoc_phan_bak_20260810
-- [HOU CNTT App Audit Log](hou_cntt_app_audit_log.md) — nhật ký thao tác app (ai đăng nhập & làm gì): bảng nhat_ky_app + middleware + tab "Nhật ký" chỉ admin; BẪY: bảng phải OWNER=hou_cntt
-- [Fithou Server Infra](fithou_server_infra.md) — sơ đồ VM ESXi/Zentyal/SSC + cách cứu khi mất điện (gateway .129, đụng IP .141, SSH firewall); workload log: SNAT off để lấy IP thật + TZ VN
-- [HOU CNTT Xét tốt nghiệp qua import điểm](hou_cntt_xet_tot_nghiep_import.md) — MỞ RỘNG feature graduation: import bảng điểm tổng hợp (keep-max)+tạo SV+dự đoán loại hình/chuyên ngành, thống kê loại×chuyên ngành + gợi ý chéo, UI tab Tốt nghiệp (app.js?v=10). ĐÃ deploy+verify prod (72/72 HP khớp); user tự bấm Ghi
-- [HOU CNTT CTĐT Viewer & Advisory Warnings](hou_cntt_ctdt_viewer_advisory.md) — màn Xem CTĐT (tham khảo chuyên ngành, lọc theo khóa, môn đã tích lũy + điểm) + cảnh báo tư vấn 🎓 (thời gian TN, đăng ký TC)
-- [HOU CNTT Block Credit Model](hou_cntt_block_credit_model.md) — cách tính TC theo khối: khối "chọn 1 khối" chỉ tính môn ĐÚNG track chuyên ngành SV; môn track khác/tự do dồn sang Tự chọn; đã sửa bug NONE-thành-track-riêng
-- [HOU CNTT Đăng ký lịch sử & Bỏ học](hou_cntt_dang_ky_lich_su.md) — bảng dang_ky_lich_su lưu ĐK theo kỳ (3 kỳ/năm: HK1 T8/HK2 T12/HK3 T5) làm cơ sở phát hiện SV bỏ học; đã nạp 2025-2026 (16384 dòng, lọc SV còn trong hệ thống); bảng RIÊNG để không hỏng tính TC hiện tại
-- [HOU CNTT Đăng ký tín chỉ](hou_cntt_dang_ky_tin_chi.md) — feature lớn đang xây: giáo vụ Giả lập xếp lớp → SV điều chỉnh (thêm/hủy/xác nhận) → chốt+Excel; học phí dự kiến đồng bộ từ thẻ FITHOU AI (658k 10 môn tên/782k còn lại); Pha 1 schema xong
-- [HOU CNTT Cổng Sinh viên & Portfolio](hou_cntt_sv_portal.md) — cổng SV web fit.hou.edu.vn/sinhvien (same-origin, không lộ api.*), nền 6 mầm portfolio public + kê khai rèn luyện (TT16); đã dựng schema+router+nginx+SPA shell local, chưa deploy
-- [Fithou Article Lock](fithou_article_lock.md) — website fit.hou.edu.vn khóa bài nội bộ (require_login + gate SSR + reader-auth cookie fithou_reader verify qua hou-cntt /me + /dang-nhap returnUrl); audit 5 năm khóa 205 bài PII (mã SV/ngày sinh/ảnh nhóm nhạy cảm) + gỡ chỉ mục AI; script scratchpad/pii-audit.mjs
-- [HOU CNTT Lịch giảng & Import TKB](hou_cntt_lich_giang_import.md) — nhập TKB chỉ sheet Full+sửa mã GV theo tên+dọn lớp thừa; thêm lich_hoc.ma_gv cho lớp dạy ghép LT/TH (GV theo buổi); cas_canbo=bảng mã tk_cas→ma_cb, vá cas.py callback gán ma_cb khi đăng nhập; ĐÃ deploy+verify prod (110 lớp/132 buổi)
-- [HOU CNTT Bảo lưu & Thôi học](hou_cntt_bao_luu_thoi_hoc.md) — 2 bảng sv_bao_luu/sv_thoi_hoc (loại THOI_HOC/CHUYEN_KHOA/BUOC_THOI_HOC) + cờ chung sinh_vien.is_active=false loại SV khỏi mọi xử lý; đánh dấu là gỡ hết dang_ky_hoc_ky (chụp vào dang_ky_cu jsonb)
-- [HOU CNTT Chốt Hồ sơ Hệ & Chuyên ngành](hou_cntt_chot_ho_so.md) — tách QUYẾT ĐỊNH khỏi DỰ ĐOÁN: sinh_vien.chuyen_nganh_id + ctdt_id_chot (+luc/nguon), mọi đường ghi qua chot_ho_so.chot_cn/chot_he, suy đoán bị rào AND ...IS NULL; trước đó chuyen_nganh_id là cột chết nên phép đoán đè mất 23 hồ sơ đã duyệt
-- [HOU CNTT Buổi riêng trên lịch](hou_cntt_su_kien_lich.md) — su_kien_lich + su_kien_lich_tv (LOP_QL|MSSV): buổi gặp mặt/sinh hoạt có GV+phòng+SV nhưng KHÔNG sinh đăng ký tín chỉ; chèn vào lưới Lịch học kỳ + /me/schedule nhánh su_kien; bẫy ensure_tables không commit làm vỡ lịch SV
+## Gu & cách làm việc (feedback/user — luôn áp dụng)
+- [UI Copy Style](ui_copy_style.md) — văn phong giao diện: TRANG TRỌNG, THUẦN VIỆT, không emoji/khẩu ngữ
+- [Research Writing](research_writing_standards.md) — chuẩn viết/rà bài NCKH (rõ, đúng vấn đề, không over-claim)
+- [Agent Company](agent_company_model.md) — mô hình "công ty agent" (~/.claude), template `.project/`
+- [HOU CNTT Buổi riêng trên lịch](hou_cntt_su_kien_lich.md) — su_kien_lich + su_kien_lich_tv (LOP_QL|MSSV): buổi gặp mặt/sinh hoạt có GV+phòng+SV nhưng KHÔNG sinh đăng ký tín chỉ; chèn vào lưới Lịch học kỳ + cổng SV + thông báo/push; bẫy ensure_tables không commit làm vỡ lịch SV
