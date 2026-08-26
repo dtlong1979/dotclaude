@@ -24,3 +24,17 @@ Các agent tuân giao thức `C:/Users/SingPC/.claude/agents/LEARNING.md`: đọ
 1. **Pull hằng ngày:** hook `SessionStart` chạy `hooks/daily-pull.sh` — pull MỘT LẦN mỗi ngày (phiên đầu sau khi bật máy). Guard bằng `.last-pull-date`.
 2. **Auto-push khi ngơi:** hook `Stop` chạy `hooks/push-sync.sh 1800` — commit+push nếu có thay đổi, giãn cách tối thiểu 30 phút (Claude Code không có hook "idle" thật, nên đây là xấp xỉ: push ở cuối lượt, tối đa mỗi 30p). Hook `SessionEnd` push không giãn cách để không sót thay đổi cuối.
 3. **Push khi tôi yêu cầu:** khi tôi nói "push"/"đồng bộ", chạy ngay `bash ~/.claude/hooks/push-sync.sh 0` (hoặc commit+push tay).
+
+## Kiến trúc sống & bộ nhớ (nguyên tắc chống "nhớ nhớ quên quên")
+Với dự án lớn nhiều phân hệ, KHÔNG ghi kiến trúc theo kiểu memo-hàng-ngày (rời rạc, chồng chéo, khó tra). Thay vào đó:
+1. **Kiến trúc SỐNG:** mỗi hệ sinh thái có 1 tài liệu HIỆN TRẠNG (living) mô tả cấu trúc: mục đích · stack · module/file · endpoint · mô hình dữ liệu · quy ước · bẫy. Thay đổi gì → **SỬA TẠI CHỖ đúng mục** cho khớp thực tế, KHÔNG thêm memo mới.
+2. **Nhật ký "làm gì ngày nào" = git history**, không thuộc kiến trúc.
+3. **Memory (`~/.claude/.../memory/`) chỉ giữ 3 loại:** con trỏ "đọc gì trước" · gu/feedback của tôi · reference (URL/ticket). KHÔNG dùng memory làm changelog phân hệ.
+4. **Bắt đầu phiên = đọc BẢN ĐỒ** (`MEMORY.md`) → tài liệu kiến trúc của hệ đang làm.
+
+**Nơi đặt tài liệu kiến trúc (đã chốt):**
+- **FithouOne** (website + workload + hou-cntt + mobile): hub `D:\Dev\FithouOne\.project\` — **`ARCHITECTURE.md`** (cấu trúc/hiện trạng, ĐỌC + CẬP NHẬT ở đây), `INFRA.md` (hạ tầng/deploy), `STATE.md` (đang làm gì), `DECISIONS.md` (vì sao), `TAXONOMY.md` (mảng hoạt động).
+- **QCV**: `D:\dev\qcv-builder\KIEN-TRUC.md`.
+- **Nghiên cứu NLP (Q1)**: `Project1/.project/`.
+
+**Kỷ luật khi có thay đổi:** sửa phân hệ nào → mở đúng mục trong `ARCHITECTURE.md` của hệ đó, cập nhật hiện trạng (thêm/sửa/XÓA dòng cho khớp) + đổi dòng "Cập nhật lần cuối". Chỉ tạo memo mới khi là loại thuộc memory (feedback/reference/con trỏ), không phải mô tả cấu trúc.
