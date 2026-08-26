@@ -31,4 +31,3 @@
 - [UI Copy Style](ui_copy_style.md) — văn phong giao diện: TRANG TRỌNG, THUẦN VIỆT, không emoji/khẩu ngữ
 - [Research Writing](research_writing_standards.md) — chuẩn viết/rà bài NCKH (rõ, đúng vấn đề, không over-claim)
 - [Agent Company](agent_company_model.md) — mô hình "công ty agent" (~/.claude), template `.project/`
-- [HOU CNTT Buổi riêng trên lịch](hou_cntt_su_kien_lich.md) — su_kien_lich + su_kien_lich_tv (LOP_QL|MSSV): buổi gặp mặt/sinh hoạt có GV+phòng+SV nhưng KHÔNG sinh đăng ký tín chỉ; chèn vào lưới Lịch học kỳ + cổng SV + thông báo/push; bẫy ensure_tables không commit làm vỡ lịch SV
