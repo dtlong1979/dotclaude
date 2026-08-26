@@ -13,7 +13,8 @@ hou-cntt trước 26/08/2026 chỉ có MỘT cột `sinh_vien.chuyen_nganh_du_do
 **Cấu trúc mới** (`backend/app/services/chot_ho_so.py`):
 - `sinh_vien.chuyen_nganh_id` = CHỐT chuyên ngành + `cn_chot_luc` / `cn_chot_nguon`
 - `sinh_vien.ctdt_id_chot` = CHỐT hệ + `he_chot_luc` / `he_chot_nguon`
-- Nguồn chốt: `sv_xac_nhan` | `giao_vu_duyet` | `giao_vu_dat` | `quy_dinh_khoa`
+- Nguồn chốt: `sv_xac_nhan` | `giao_vu_duyet` | `giao_vu_dat` | `quy_dinh_khoa` | `theo_du_doan`
+- **Chốt hàng loạt 26/08/2026** (`theo_du_doan`): Khoa duyệt theo đúng chuyên ngành máy suy ra — 279 SV K24 trở về trước. Sau đó `cn_doan = 0` (không còn em nào ở dạng máy đoán), `cn_chot = 1039`. RANH GIỚI đã áp: SV **đã tốt nghiệp** mà `NONE` thì chốt NONE (học xong không theo chuyên ngành nào = kết quả thật); SV **đang học** mà `NONE` thì KHÔNG chốt (chưa học môn chuyên ngành nào, chốt là đóng cửa lựa chọn của em). Còn 686 chưa chốt = 617 K25/K26 + 69 em K21–K24 đang học chưa suy được gì.
 - **Bất biến**: đã chốt thì `chuyen_nganh_du_doan` / `ctdt_id` (chỗ mọi màn hình đọc) luôn BẰNG giá trị chốt → code cũ tự đúng. `chot_ho_so.mau_thuan(db)` phải luôn rỗng.
 - `KHOA_CN_MAC_DINH = 2025`: K25+ vào học đều Cử nhân CNTT → chốt hệ ngay khi import, chuyên ngành để trống.
 
