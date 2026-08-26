@@ -31,4 +31,3 @@
 - [UI Copy Style](ui_copy_style.md) — văn phong giao diện: TRANG TRỌNG, THUẦN VIỆT, không emoji/khẩu ngữ
 - [Research Writing](research_writing_standards.md) — chuẩn viết/rà bài NCKH (rõ, đúng vấn đề, không over-claim)
 - [Agent Company](agent_company_model.md) — mô hình "công ty agent" (~/.claude), template `.project/`
-- [Tài khoản test FithouOne](fithou_tai_khoan_test.md) — svdemo là tài khoản CỦA USER để kiểm chứng SV, cặp *.review.play là của Google Play: KHÔNG gỡ, hỏi trước
