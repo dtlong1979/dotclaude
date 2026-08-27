@@ -6,6 +6,9 @@
 ## 🗺️ FithouOne — website + workload + hou-cntt + mobile
 > **Tri thức FithouOne KHÔNG ở đây** — nằm HẾT trong project: **`D:\dev\FithouOne\.project\`**. Bắt đầu làm FithouOne → đọc ở đó:
 > - **`ARCHITECTURE.md`** — cấu trúc/hiện trạng mọi phân hệ (module · endpoint · bảng · bẫy) + bảng "ghi nhận gì vào đâu". **Sửa tại chỗ khi đổi.**
+>   - Trong đó có mục **⚙️ ĐỤNG VÀO GÌ THÌ PHẢI KIỂM GÌ** (A–J): giảng viên · đồng bộ Trường · điều kiện đăng ký ·
+>     lịch · mã lớp · đọc Excel Trường · phân quyền · thông báo · ghi dữ liệu thật · màn song song web/app.
+>     **ĐỌC TRƯỚC KHI SỬA** — mỗi dòng là một lần đã làm hỏng thật.
 > - `INFRA.md` (hạ tầng · cứu server · phát hành mobile) · `STATE.md` (đang làm) · `DECISIONS.md` (vì sao) · `TAXONOMY.md` (mảng).
 > - `_archive_memory/` — 45 memo cũ (khảo cổ). Repo mã: `D:\dev\hou-cntt` (có `CLAUDE.md` trỏ về hub).
 
