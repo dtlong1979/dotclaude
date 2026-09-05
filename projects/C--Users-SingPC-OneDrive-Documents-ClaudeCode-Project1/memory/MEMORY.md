@@ -20,7 +20,10 @@
 ### QCV 2 — bỏ WordPress, làm sản phẩm riêng (từ 2026-09-05)
 **ĐỌC TRƯỚC:** `D:\dev\QCV\PHUONG-AN-KY-THUAT.md` — phương án kỹ thuật, 6 vòng phản biện, hội tụ, sẵn sàng mốc G0.
 Hồ sơ rà soát: `D:\dev\QCV\_ra-soat\` (vòng 1–3, 5 hợp nhất, 5 đo hosting, 6). Hệ WP cũ (`qcv-builder\KIEN-TRUC.md`) chỉ để rút bài học, KHÔNG kế thừa mã.
-**CẢNH BÁO ràng buộc đã ĐỔI ở vòng 5** — đừng dùng lại bản cũ: nay là **Laravel 13 + PHP 8.3, KHÔNG Filament** (khu quản trị dùng hệ lược đồ sinh giao diện), **Blade** không phải Twig, **MySQL duy nhất** (bỏ hẳn SQLite), canvas **section-first** không GrapesJS. Kiến trúc: Cloud builder trên VPS chạy cùng core + site khách nhẹ + connector khoá toàn site khi sửa từ xa, chỉ chạm giao diện/cấu trúc.
+**CẢNH BÁO ràng buộc đã ĐỔI (vòng 5 và 7)** — đừng dùng lại bản cũ:
+- Nền: **Laravel 13 + PHP 8.3, KHÔNG Filament** (khu quản trị dùng hệ lược đồ sinh giao diện), **Blade** không Twig, **MariaDB duy nhất** (bỏ hẳn SQLite), canvas **section-first** không GrapesJS.
+- Hạ tầng (vòng 7): **QCV thuê VPS, có root, mọi site khách trên máy QCV. KHÔNG dùng panel** — Ubuntu + Caddy + PHP-FPM một pool mỗi site + Ansible + bộ lệnh `qcv-site` do Trạm gọi. Khách thấy "Trang dịch vụ" trong admin thay panel. Thư qua dịch vụ ngoài, không mail server. WAF Tadu ngoài phạm vi.
+- **Đã gỡ ở vòng 7, không thêm lại** (xem mục 29): Site Connector, WebAuthn và bốn loại khoá, ba chiến lược cache Apache/LiteSpeed/PHP, trình cài đặt trên trình duyệt, ba mức kết nối, cron HTTP. Lý do: chúng là phòng thủ cho "hosting lạ của khách" — tình huống không xảy ra.
 
 ## Nghiên cứu NLP Q1 (`Project1/.project/` + `Project1/CLAUDE.md`)
 Đo "surface-feature reliance" tiếng Việt/ít tài nguyên → bài Q1; vũ khí chung matched-deletion/counterfactual.
