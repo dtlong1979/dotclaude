@@ -17,6 +17,10 @@
 - [Web Project](qcv_web_project.md) — nhật ký 74KB (khảo cổ); màu 4 lớp đè, hướng chốt B2 qcv-core
 - Bẫy đã biết: [Xám 128](qcv_xam_128.md) · [Zip đóng gói](qcv_zip_dong_goi.md) · [Backup holes](qcv_optimizer_backup_holes.md) · [Origin Optimizer](qcv_origin_optimizer.md) · [Chat Assistant](qcv_chat_assistant.md)
 
+### QCV 2 — bỏ WordPress, làm sản phẩm riêng (từ 2026-09-05)
+**ĐỌC TRƯỚC:** `D:\dev\QCV\PHUONG-AN-KY-THUAT.md` — phương án kỹ thuật đã qua 3 vòng phản biện, reviewer tuyên bố hội tụ.
+Hồ sơ rà soát: `D:\dev\QCV\_ra-soat\vong{1,2,3}-phan-bien.md`. Hệ WP cũ (`qcv-builder\KIEN-TRUC.md`) chỉ để rút bài học, KHÔNG kế thừa mã.
+
 ## Nghiên cứu NLP Q1 (`Project1/.project/` + `Project1/CLAUDE.md`)
 Đo "surface-feature reliance" tiếng Việt/ít tài nguyên → bài Q1; vũ khí chung matched-deletion/counterfactual.
 - [Emotion Anchors](emotion_anchors_paper.md) · [AI Detector VN](ai_detector_vn_study.md) · [Fake News SLR](fake_news_slr_paper.md)
