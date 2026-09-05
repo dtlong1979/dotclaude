@@ -18,8 +18,9 @@
 - Bẫy đã biết: [Xám 128](qcv_xam_128.md) · [Zip đóng gói](qcv_zip_dong_goi.md) · [Backup holes](qcv_optimizer_backup_holes.md) · [Origin Optimizer](qcv_origin_optimizer.md) · [Chat Assistant](qcv_chat_assistant.md)
 
 ### QCV 2 — bỏ WordPress, làm sản phẩm riêng (từ 2026-09-05)
-**ĐỌC TRƯỚC:** `D:\dev\QCV\PHUONG-AN-KY-THUAT.md` — phương án kỹ thuật đã qua 3 vòng phản biện, reviewer tuyên bố hội tụ.
-Hồ sơ rà soát: `D:\dev\QCV\_ra-soat\vong{1,2,3}-phan-bien.md`. Hệ WP cũ (`qcv-builder\KIEN-TRUC.md`) chỉ để rút bài học, KHÔNG kế thừa mã.
+**ĐỌC TRƯỚC:** `D:\dev\QCV\PHUONG-AN-KY-THUAT.md` — phương án kỹ thuật, 6 vòng phản biện, hội tụ, sẵn sàng mốc G0.
+Hồ sơ rà soát: `D:\dev\QCV\_ra-soat\` (vòng 1–3, 5 hợp nhất, 5 đo hosting, 6). Hệ WP cũ (`qcv-builder\KIEN-TRUC.md`) chỉ để rút bài học, KHÔNG kế thừa mã.
+**CẢNH BÁO ràng buộc đã ĐỔI ở vòng 5** — đừng dùng lại bản cũ: nay là **Laravel 13 + PHP 8.3, KHÔNG Filament** (khu quản trị dùng hệ lược đồ sinh giao diện), **Blade** không phải Twig, **MySQL duy nhất** (bỏ hẳn SQLite), canvas **section-first** không GrapesJS. Kiến trúc: Cloud builder trên VPS chạy cùng core + site khách nhẹ + connector khoá toàn site khi sửa từ xa, chỉ chạm giao diện/cấu trúc.
 
 ## Nghiên cứu NLP Q1 (`Project1/.project/` + `Project1/CLAUDE.md`)
 Đo "surface-feature reliance" tiếng Việt/ít tài nguyên → bài Q1; vũ khí chung matched-deletion/counterfactual.
