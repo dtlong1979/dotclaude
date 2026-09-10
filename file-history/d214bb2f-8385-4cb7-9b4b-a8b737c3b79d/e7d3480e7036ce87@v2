@@ -1,0 +1,62 @@
+# BAN-DO-DOC.md — đọc gì cho việc gì
+
+> **Đọc tệp này TRƯỚC, rồi chỉ đọc những mục nó chỉ.** Đừng đọc trọn `HD-02`, `HD-03`, `BLOCK-MAU.md`,
+> `NEN.md` hay `STUDIO.md`: bốn tệp ấy cộng lại nặng hơn **550 KB**, và một lượt đọc trọn tốn khoảng
+> **90–140 nghìn token trước khi viết dòng mã đầu tiên** — nhiều hơn cả phần việc cần làm ở phần lớn lượt.
+>
+> Dùng `Read` với `offset`/`limit` theo số dòng ghi ở đây. Số dòng có thể lệch vài dòng sau mỗi lần sửa tài
+> liệu; lệch thì tra lại bằng tiêu đề mục, đừng đọc trọn tệp cho chắc.
+>
+> **Lịch sử phiên bản của mọi tài liệu đã tách sang `_lich-su/`** (2026-09-10) — chỉ đọc khi cần biết « điều
+> khoản này đổi từ bao giờ và vì sao », không đọc theo thói quen.
+
+## Luôn đọc, mọi lượt (≈ 12 KB)
+
+| Đọc | Cỡ | Vì sao |
+|---|---|---|
+| `PROJECT.md` §5 (cây thư mục) và §11 (hiện trạng) | ~6 KB | biết mã nằm ở đâu và ai sở hữu |
+| `STATE.md` — **đúng mục của module mình** | ~2–5 KB | việc đang làm dở, việc còn nợ, chỗ đụng module khác |
+| `QUY-TAC.md` §6 nếu có sửa tài liệu | ~3 KB | trần tài liệu, quy tắc ghi |
+
+**Không** đọc trọn `STATE.md` (48 KB) khi chỉ cần một mục. **Không** đọc `DECISIONS.md` (179 KB) từ đầu —
+tra theo mã ADR (`QG4-44`) bằng `Grep`.
+
+## Dựng một khối mới, hoặc sửa khối đã có
+
+| Đọc | Dòng | Cỡ |
+|---|---|---|
+| `module/BLOCK-MAU.md` §2.1b — danh mục 19 khối | 20–48 | 6 KB |
+| `module/BLOCK-MAU.md` §2.1g — tầng dùng chung (khuôn Blade, tài sản, khung kiểm) | tra tiêu đề | 5 KB |
+| `module/BLOCK-MAU.md` §4 — **đụng gì thì kiểm gì** | 173–222 | 22 KB |
+| `module/BLOCK-MAU.md` §7 — mục còn mở | 237–309 | 30 KB |
+| `hop-dong/HD-02` §6.3 — định nghĩa block, kiểu trường, `when`, `sample` | 17–222 | 32 KB |
+| `hop-dong/HD-02` §3 — chỉ thị Blade, helper, sáu quy tắc lint | 447–549 | 24 KB |
+| **Mã**: `packages/blocks/split/` trọn bộ + `_runtime/khuon/*.blade.php` + `_runtime/kiem/khung-kiem.mjs` | — | ~25 KB |
+
+**Chỉ đọc thêm khi khối thật sự chạm tới:** `HD-02` §6.3c (trang trí neo, 29 KB — chỉ khi khai `features: decor`);
+`HD-03` §6.6 (danh tính `site:`, 14 KB — khi khối hiện tên/điện thoại/logo); `HD-03` §6.2 (vùng toàn site, 10 KB —
+khi khối vào `header`/`footer`/`floating`); `HD-03` §6.5 (khuôn chi tiết, 6 KB — khi khối đọc `ctx`/bản ghi).
+
+Tổng thường dùng: **≈ 120 KB** thay vì 352 KB.
+
+## Sửa Nền (M2)
+
+`module/NEN.md` §2 (cấu trúc) và §4 (bẫy) · `hop-dong/HD-03` §6.1 (trang là danh sách block, 13 KB) ·
+`HD-05` (API khu quản trị, 21 KB — trọn tệp, nó nhỏ) · ADR liên quan tra bằng `Grep` trong `DECISIONS.md`.
+
+## Sửa Studio (M4)
+
+`module/STUDIO.md` §2.1 (mô-đun) và §4 (bẫy) · `hop-dong/HD-05` · `HD-02` §3 (hợp đồng JS, `data-qcv-*`).
+**Không** đọc trọn `STUDIO.md` (180 KB).
+
+## Sửa lược đồ thực thể / khu quản trị (M3)
+
+`hop-dong/HD-04` §4b (hình chiếu `card`) và §4b-bis (hình chiếu `detail`) · `module/QUAN-TRI.md` §5.
+
+## Quy tắc chung, rút từ chỗ đã tốn tiền thật
+
+1. **Đọc theo MỤC, không theo TỆP.** `Read` có `offset`/`limit`; dùng nó.
+2. **Tra ADR bằng mã, không đọc tuần tự.** `Grep 'QG4-44' .project/DECISIONS.md` rẻ hơn đọc 179 KB hàng trăm lần.
+3. **Đọc mã mẫu thay vì đọc thêm hợp đồng.** `packages/blocks/split/` là hiện thân của phần lớn điều khoản, và
+   nó luôn đúng với hiện tại — hợp đồng thì có thể trôi. Khi hai bên nói khác nhau, **báo**, đừng tự chọn.
+4. **`_lich-su/` không nằm trong đường đọc.** Vào đó chỉ khi câu hỏi thật sự là « từ bao giờ và vì sao đổi ».

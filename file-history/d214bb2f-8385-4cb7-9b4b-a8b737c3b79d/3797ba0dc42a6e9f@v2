@@ -1,0 +1,79 @@
+# -*- coding: utf-8 -*-
+import io
+
+MOI = '''# TRẦN TÀI LIỆU ĐO THEO **KILOBYTE**, KHÔNG PHẢI SỐ DÒNG (đổi 2026-09-10).
+#
+# Vì sao đổi — đây là một lỗi của chính cơ chế này, ghi lại để không ai đảo ngược. Trần cũ đếm SỐ DÒNG. Nội dung
+# tăng thì tác giả (kể cả tôi) giữ trần bằng cách **nén vào những dòng ngày càng dài**, nên tài liệu không ngắn đi
+# mà chỉ dày lên: `STATE.md` chỉ 119 dòng mà nặng **66 KB**; dòng tiêu đề của `HD-02` nặng **21,8 KB** trên MỘT
+# dòng. Trần đo sai thứ, và chính nó đẻ ra chỗ phình. Cái đắt thật là **byte đọc vào cửa sổ ngữ cảnh**: mỗi lượt
+# agent đọc `PROJECT + STATE + một module + hai hợp đồng` ≈ 400 KB ≈ 100 nghìn token TRƯỚC khi viết dòng mã đầu.
+#
+# Con số dưới đây là **cỡ hiện tại làm trần**, tức một bánh cóc chỉ quay được theo chiều NHỎ ĐI. Thêm một mục mới
+# mà không cắt chỗ khác là cổng đỏ — đúng ý đồ. Nâng trần thì được, nhưng phải **ghi lý do ngay tại đây** như hai
+# lần nâng trần dòng trước kia (`THUAT-NGU` 90→110, `BLOCK-MAU` 250→320), để lần sau còn cãi được.
+#
+# Lịch sử phiên bản của mỗi tài liệu đã tách sang `.project/_lich-su/` (2026-09-10, gỡ 69 KB khỏi đường đọc) và
+# **không tính vào trần** — nó là thứ tra khi cần, không phải thứ đọc mỗi lượt.
+CAPS_KB = {
+    "PROJECT.md": 29, "STATE.md": 65, "STAFFING.md": 8, "INFRA.md": 20, "KE-HOACH.md": 44,
+    "CHI-TIEU.md": 18, "BAO-MAT.md": 31, "DA-GO.md": 12, "THUAT-NGU.md": 25,
+    "VIEC-PHAI-XONG.md": 34, "QUY-TAC.md": 26, "DECISIONS.md": 179,
+    "hop-dong/HD-01-bo-cuc-site.md": 14, "hop-dong/HD-02-block-sdk.md": 110,
+    "hop-dong/HD-03-noi-dung-json.md": 71, "hop-dong/HD-04-luoc-do-thuc-the.md": 35,
+    "hop-dong/HD-05-api-quan-tri.md": 21, "hop-dong/HD-06-qcv-site-cli.md": 18,
+    "hop-dong/HD-07-site-tram-v1.md": 11, "hop-dong/HD-08-release-manifest.md": 10,
+    "hop-dong/HD-11-thiet-ke-token.md": 25, "hop-dong/README.md": 19,
+    "module/HA-TANG.md": 86, "module/HA-TANG-CACH-LY.md": 23, "module/HA-TANG-BAN-XUAT.md": 10,
+    "module/NEN.md": 163, "module/QUAN-TRI.md": 45, "module/STUDIO.md": 180,
+    "module/STUDIO-LUONG.md": 31, "module/BLOCK-MAU.md": 100, "module/XUONG.md": 47,
+    "module/TRAM.md": 23, "module/BAN-HANG.md": 15,
+}
+# Trần cho MỘT mục `## M<n>` của STATE.md — cũ là 15 DÒNG, nay 6 KB. Cùng lý do: một mục 5 dòng mỗi dòng 3 KB
+# lọt trần cũ dễ dàng, mà nó mới là thứ đắt.
+TRAN_MUC_STATE_KB = 6
+'''
+
+p = '.project/kiem-tai-lieu.py'
+s = io.open(p, encoding='utf-8').read()
+i = s.index('CAPS = {')
+j = s.index('}\n', i) + 2
+s = s[:i] + MOI + s[j:]
+
+# kiem_1: đổi sang byte
+cu = '''def kiem_1_tran_dong(files):
+    for rel, lines in files.items():
+        cap = CAPS.get(rel)
+        if cap and len(lines) > cap:
+            errors.append(f"[1] {rel}: {len(lines)} dòng > trần {cap}")
+        if rel == "STATE.md":
+            cur, n = None, 0
+            for ln in lines + ["## "]:
+                if ln.startswith("## "):
+                    if cur and cur.startswith("## M") and n > 15:
+                        errors.append(f"[1] STATE.md mục '{cur}' có {n} dòng > 15")
+                    cur, n = ln.strip(), 0
+                elif ln.strip():
+                    n += 1'''
+moi = '''def kiem_1_tran_dong(files):
+    """Trần theo KILOBYTE (đổi 2026-09-10) — xem ghi chú ở `CAPS_KB`. Byte là thứ tốn token, dòng thì không."""
+    for rel, lines in files.items():
+        cap = CAPS_KB.get(rel)
+        kb = len("\\n".join(lines).encode("utf-8")) / 1024
+        if cap and kb > cap:
+            errors.append(f"[1] {rel}: {kb:.1f} KB > trần {cap} KB — cắt bớt chỗ khác, hoặc nâng trần KÈM LÝ DO tại `CAPS_KB`")
+        if rel == "STATE.md":
+            cur, buf = None, []
+            for ln in lines + ["## "]:
+                if ln.startswith("## "):
+                    if cur and cur.startswith("## M"):
+                        n = len("\\n".join(buf).encode("utf-8")) / 1024
+                        if n > TRAN_MUC_STATE_KB:
+                            errors.append(f"[1] STATE.md mục '{cur}' nặng {n:.1f} KB > {TRAN_MUC_STATE_KB} KB — nhật ký từng lượt thuộc git, không thuộc STATE")
+                    cur, buf = ln.strip(), []
+                elif ln.strip():
+                    buf.append(ln)'''
+assert cu in s
+s = s.replace(cu, moi, 1)
+io.open(p, 'w', encoding='utf-8', newline='\n').write(s)
+print('da doi tran sang byte')

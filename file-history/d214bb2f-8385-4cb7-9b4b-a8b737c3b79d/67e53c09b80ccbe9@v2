@@ -1,0 +1,59 @@
+# -*- coding: utf-8 -*-
+"""Tách lịch sử phiên bản khỏi dòng tiêu đề của tài liệu `.project/`.
+
+Vì sao: dòng tiêu đề của mỗi hợp đồng/tài liệu module đã tích tụ toàn bộ lịch sử thay đổi trên MỘT dòng
+(HD-02 dòng 4 nặng 21,8 KB), và mọi lượt đọc hồ sơ dự án đều trả tiền cho nó dù gần như không dùng tới.
+Nguyên nhân gốc: trần tài liệu đặt theo SỐ DÒNG, nên nội dung tăng thì bị nén vào dòng ngày càng dài để
+lọt trần — trần đo sai thứ và chính nó đẻ ra chỗ phình này.
+"""
+import io
+import os
+import re
+import glob
+
+GHI_CHU = """# Lịch sử phiên bản — {ten}
+
+> **Tách khỏi tệp chính ngày 2026-09-10.** Dòng tiêu đề của `{goc}` đã tích tụ toàn bộ lịch sử thay đổi trên
+> **một dòng {kb:.1f} KB**, và **mọi lượt đọc hồ sơ dự án đều trả tiền cho nó** dù gần như không lần nào dùng tới.
+> Nguyên nhân gốc: trần tài liệu của dự án đặt theo **số DÒNG**, nên nội dung tăng thì bị nén vào những dòng ngày
+> càng dài để lọt trần — trần đo sai thứ, và chính nó đẻ ra chỗ phình này. Trần nay đo theo **byte**.
+>
+> Nội dung dưới đây giữ **nguyên văn**, không biên tập. Tra ở đây khi cần biết « điều khoản này đổi từ bao giờ và vì sao ».
+
+"""
+
+tong = 0
+for p in sorted(glob.glob('.project/**/*.md', recursive=True)):
+    if '_lich-su' in p or '_ra-soat' in p:
+        continue
+    L = io.open(p, encoding='utf-8').read().split('\n')
+    for i in range(min(8, len(L))):
+        x = L[i]
+        if not x.startswith('> ') or len(x.encode()) < 1500:
+            continue
+        m = re.search(r'\s(?:—\s*)?Trước đó\b', x)
+        if not m:
+            continue
+        giu, su = x[:m.start()].rstrip(), x[m.start():].strip()
+        kb = len(x.encode()) / 1024
+
+        rel = os.path.relpath(p, '.project').replace(os.sep, '/')
+        ls = os.path.join('.project', '_lich-su', *rel.split('/'))
+        os.makedirs(os.path.dirname(ls), exist_ok=True)
+        io.open(ls, 'w', encoding='utf-8', newline='\n').write(
+            GHI_CHU.format(ten=os.path.basename(p), goc=rel, kb=kb) + '> ' + su + '\n')
+
+        # Cân bằng ngoặc của phần giữ lại — lịch sử thường nằm bên trong một ngoặc còn mở.
+        giu = giu.rstrip(' .,;—-')
+        thieu = giu.count('(') - giu.count(')')
+        if thieu > 0:
+            giu += ')' * thieu
+        duong = '../' * rel.count('/') + '_lich-su/' + rel
+        moi = kb - len(giu.encode()) / 1024
+        L[i] = giu + '. **Lịch sử các bản trước** (đã tách khỏi đường đọc, %.0f KB): [`_lich-su/%s`](%s).' % (moi, rel, duong)
+        io.open(p, 'w', encoding='utf-8', newline='\n').write('\n'.join(L))
+        tong += len(x.encode()) - len(L[i].encode())
+        print('%-38s %6.1f KB -> %5.1f KB' % (rel, kb, len(L[i].encode()) / 1024))
+        break
+
+print('\nGo khoi duong doc: %.0f KB' % (tong / 1024))
