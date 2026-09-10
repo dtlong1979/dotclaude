@@ -1,0 +1,50 @@
+## 456-103 — ICALiNGAM + học sâu dự đoán và phân tích nhân quả (PB)
+TQ 6 · ND 12 · PP 9 · KQ 20 · HT 3 · CB 5 → **55**
+- Hướng đi đúng và có giá trị: chuyển phân tích học tập từ tương quan sang nhân quả; pipeline ba tầng ICALiNGAM (khám phá DAG) → DoWhy (kiểm chứng, ước lượng tác động) → học sâu (dự đoán).
+- ⭐ Phần bàn về giả định viết tốt: nêu rõ giả định tuyến tính và phi chu trình của ICALiNGAM "chỉ là giả thuyết mô hình hóa, không phải mô tả đầy đủ cơ chế học tập thực tế", kết luận "chỉ mang tính xấp xỉ dưới điều kiện giả định".
+- ⚠⚠ **Mâu thuẫn về mốc thời gian**: báo cáo khai phạm vi nghiên cứu "từ tháng 1/2026 đến tháng 12/2026" và Chuyên đề 3 "triển khai từ tháng 9 đến tháng 12 năm 2026", nhưng vẫn trình bày kết quả của chuyên đề này. Trong khi đó **văn bản xác nhận ứng dụng lại đề ngày 27/6/2024** — trước cả thời điểm bắt đầu nghiên cứu đã khai. Các mốc này không thể đồng thời đúng.
+- ⚠⚠ **Mâu thuẫn quy mô dữ liệu**: mục tiêu ghi "bộ dữ liệu EEdi với hơn 17 triệu bản ghi", nhưng thực nghiệm chỉ dùng **509.957 bản ghi / 6.468 người học**.
+- ⚠⚠ **ATE = 1,996 · ATT = 1,996 · CATE = 1,993** — ba đại lượng gần như trùng khít. Nếu tác động cá nhân hóa (CATE) không khác tác động trung bình (ATE) thì chính mục tiêu "tối ưu hóa lộ trình cá nhân hóa" mất cơ sở, vì không tồn tại khác biệt giữa các người học để cá nhân hóa. Báo cáo lại diễn giải sự trùng khít này là "mức độ nhất quán cao" — hiểu ngược ý nghĩa.
+- ⚠ Cải thiện nêu bằng chữ "khoảng 15%", "khoảng 14%" mà không có bảng số liệu đối chiếu kèm theo.
+- ⚠ Báo cáo chỉ 36 trang, 20 TLTK, cấu trúc theo "chuyên đề / tiến độ / sản phẩm" giống thuyết minh nhiệm vụ hơn là báo cáo khoa học.
+
+## 459-103 — AI nhận diện cảm xúc giọng nói trong lớp học trực tuyến (PB)
+TQ 6 · ND 13 · PP 11 · KQ 25 · HT 4 · CB 5 → **64**
+- Ưu: khung **ROWC** (lấy mẫu lại 16 kHz + lọc nhiễu phổ + phân đoạn cửa sổ trượt chồng chéo) có ablation 5 bậc rất rõ, tách được đóng góp từng bước: Wav2Vec2 gốc 85,41% → +0,74 (lấy mẫu lại) → +1,81 (phân đoạn) → +1,86 (chồng chéo) → +2,24 (cổng phổ) = **91,32% WA**, UA 90,74%.
+- So sánh với 6 phương pháp trên RAVDESS; phân tích theo từng lớp (7/8 cảm xúc F1 > 0,90; "buồn" thấp nhất 0,807) và **giải thích được nguyên nhân** (tương đồng âm học với bình tĩnh/trung tính, xác nhận qua ma trận nhầm lẫn).
+- Có phân tích đánh đổi kích thước khối / độ chồng lấp / tốc độ suy luận trên GPU T4; ứng dụng Streamlit; xác nhận ứng dụng.
+- ⚠⚠ **Khoảng cách giữa tên đề tài và bằng chứng**: đề tài là "trong môi trường lớp học", nhưng TOÀN BỘ số liệu định lượng đều trên **RAVDESS — dữ liệu diễn xuất tiếng Anh, 24 diễn viên, 1.440 mẫu, thu trong phòng thu**. Dữ liệu lớp học thực chỉ dùng mô tả định tính một bản ghi 12 phút, **không nhãn, không báo cáo độ chính xác nào**. Khẳng định cải thiện trong môi trường lớp học vì thế chưa được chứng minh bằng số liệu.
+- ⚠ Báo cáo tự nhận "giới hạn vốn có của dữ liệu phòng thu khi áp dụng cho tình huống thực" — nhận định đúng, nhưng chính vì thế càng cần dữ liệu lớp học có nhãn.
+- ⚠ Minh chứng công bố là thư chấp nhận của **ICMSCE 2026** — hội nghị đa ngành rất rộng (vật lý thống kê, khoa học tính toán, giáo dục, truyền thông), khó thẩm định chất lượng phản biện; tác giả liên hệ là giảng viên (TS. Trịnh Bảo Ngọc), không phải sinh viên.
+- ⚠ Báo cáo chỉ **24 trang** — mỏng nhất trong nhóm phản biện.
+
+## 466-103 — Phương pháp thống kê đánh giá độ tin cậy máy học sau thích ứng miền ⭐ HỌC THUẬT MẠNH NHẤT
+TQ 9 · ND 19 · PP 15 · KQ 37 · HT 5 · CB 10 → **95**
+- ⭐⭐⭐ **Ba công bố, sinh viên là TÁC GIẢ THỨ NHẤT ở cả ba**:
+  1. "Statistical Inference for Feature Selection after Optimal Transport-based Domain Adaptation" — **Nguyễn Thắng Lợi (SV)** tác giả 1, Dương Tấn Lộc (SV) tác giả 2, GV Võ Nguyễn Lê Duy (RIKEN) liên hệ.
+  2. **Statistics and Probability Letters (Elsevier)** — **Dương Tấn Lộc (SV)** tác giả 1.
+  3. **Statistics and Computing (Springer, 2026;36:138 — Q1 ngành Thống kê & Tính toán)** — **Trần Tuấn Kiệt (SV)** tác giả 1.
+- Hướng nghiên cứu khó và hiếm ở bậc sinh viên: **suy luận chọn lọc (selective inference) sau thích ứng miền dựa trên vận chuyển tối ưu** — bài toán thuần lý thuyết thống kê, đòi hỏi điều kiện hóa trên chính sự kiện lựa chọn.
+- Đóng góp có bảo đảm lý thuyết: SFS-DA và STAND-DA **kiểm soát tỷ lệ dương tính giả dưới mức α định trước trong khi tối đa hóa TPR** — bảo đảm toán học, khác hẳn các đề tài chỉ báo cáo chỉ số kinh nghiệm.
+- Thực nghiệm: kiểm soát FPR ở nhiều cỡ mẫu và nhiều chiều; so sánh statistical power với Bonferroni (quá bảo thủ, p-value xấp xỉ 1) và Data Splitting; 5 tập dữ liệu thực (Diabetes, Heart Failure, Seoul Bike…); dữ liệu riboflavin **4.088 đặc trưng** để chứng minh khả năng mở rộng.
+- Thiết kế miền nguồn/đích có ý nghĩa thực (nguồn = người trên 50 tuổi, đích = người dưới 50 tuổi; nguồn = ngày thường, đích = ngày lễ) chứ không chia ngẫu nhiên hình thức.
+- ⚠ Chỉ 17 TLTK cho 98 trang (do là báo cáo tổng hợp ba bài đã công bố).
+
+## 467-102 — P4P: phòng vệ chống tấn công đầu độc cho FL-IDS trong IoT (PB)
+TQ 8 · ND 18 · PP 14 · KQ 34 · HT 3 · CB 10 → **87**
+- ⭐⭐ Bài "P4P: A probe-guided anti-poisoning defense for federated learning-based intrusion detection in IoT networks under non-IID data" — **Journal of Network and Computer Applications (Elsevier, SCIE Q1)**, đã có thư chấp nhận đăng. Hồ sơ minh chứng do sinh viên Thái Tuấn Khang đứng tên.
+- ⭐ Ý tưởng cốt lõi giải đúng điểm nghẽn: **Vector dò đường (Probe Vector) làm neo tin cậy toàn cục dựa trên quỹ đạo chuyển động của mô hình, KHÔNG cần dữ liệu sạch ở máy chủ** — khắc phục giả định phi thực tế của nhiều cơ chế phòng vệ hiện có.
+- Kiến trúc đa lớp mạch lạc: lọc độ lớn L2 bằng ngưỡng MAD động (chặn weight-scaling) → nén cập nhật hàng triệu chiều về 1D bằng cosine similarity → dò bất thường **đồng thuận ba thuật toán** (K-Means, DBSCAN, Isolation Forest) → **chấm điểm nghi ngờ tích lũy theo thời gian** để bắt tấn công tắt-mở và trôi dần. Có chứng minh giới hạn lý thuyết cho độ lệch probe vector khi f nhỏ hơn 0,5.
+- Thực nghiệm bao quát: 2 bộ dữ liệu (IoTDIAD, ACI-IoT), 20 client, tỷ lệ độc hại 30%, Non-IID Dirichlet alpha thuộc {0,1; 0,5; 1,0}, **7 kịch bản tấn công** (LIE, Sign-Flip, Gaussian Noise, Scaling, Label Flip, Backdoor, không tấn công), đối sánh No-Defense / FedMP / RECESS; **có Mean±Std và kiểm định t-test (Bảng A.1)**; ablation; khảo sát độ nhạy siêu tham số; đo chi phí thời gian tại máy chủ.
+- Kết quả thuyết phục: No-Defense sụp còn 9,80% dưới Sign-Flip/LIE trên IoTDIAD, trong khi P4P giữ khoảng 90% ngay ở alpha = 0,1, vượt cả FedMP và RECESS.
+- ⚠ Mục 4.1 vẫn để **"Kết quả mong đợi"** ở thì tương lai kèm con số cụ thể ("đạt trên 87%", "phụ trội dưới 1%") — lẫn văn bản thuyết minh đề cương vào báo cáo kết quả.
+- ⚠ Chỉ **10 tài liệu tham khảo** cho 38 trang, quá mỏng so với số phương pháp được đối sánh và trích dẫn trong bài.
+- ⚠ Bản PDF còn sót ký tự LaTeX chưa biên dịch rải rác trong văn bản; văn phong đôi chỗ cảm tính ("độ ổn định đáng kinh ngạc").
+
+## 495-103 — AI trong phòng chống tội phạm trên không gian mạng (Hà Nội) ⭐ CHỈ ĐỊNH SÀN ≥ GIẢI BA
+Chấm thô: TQ 6 · ND 12 · PP 9 · KQ 22 · HT 4 · CB 5 = 58 → **áp sàn 80**
+Phân bổ sau áp sàn: TQ 8 · ND 16 · PP 12 · KQ 34 · HT 5 · CB 5 → **80**
+- Ưu điểm dùng để viết phiếu: tính cấp thiết và thời sự rất cao, gắn trực tiếp Văn kiện Đại hội XIII, **Luật An ninh mạng 2025** và các chiến lược quốc gia về chuyển đổi số; khảo sát thực tiễn tại địa bàn trọng điểm; có **số liệu ngân sách 6 năm liên tục** (58,932 tỷ đồng năm 2020 → 147,53 tỷ đồng năm 2025); phân tích thực trạng theo cả thế mạnh lẫn hạn chế; hệ thống giải pháp có địa chỉ áp dụng cụ thể; báo cáo 118 trang công phu; có công bố và xác nhận ứng dụng.
+- ⚠ (ghi chú nội bộ, KHÔNG đưa vào phiếu) Đây thực chất là đề tài **khoa học xã hội / quản lý nhà nước**, không phải khoa học tự nhiên: phương pháp luận là duy vật biện chứng, phương pháp cụ thể gồm nghiên cứu tài liệu, chuyên gia, phân tích - tổng hợp, nghiên cứu điển hình, dự báo. **Không xây dựng, huấn luyện hay đánh giá bất kỳ mô hình AI nào**; không có thực nghiệm và không có số liệu định lượng về hiệu năng.
+- ⚠ Khai lĩnh vực "Khoa học tự nhiên" nhưng bỏ trống chuyên ngành.
+- → Khi viết phiếu: tập trung vào giá trị thực tiễn và chính sách; nêu nhược điểm ở mức "cần bổ sung thực nghiệm định lượng trên dữ liệu thật để tăng sức thuyết phục cho các giải pháp đề xuất".

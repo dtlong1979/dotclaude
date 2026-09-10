@@ -1,0 +1,95 @@
+# -*- coding: utf-8 -*-
+"""Bảng điểm tổng hợp 59 đề tài — Hội đồng 01, Khoa học tự nhiên.
+Cột: TQ(10) ND(20) PP(15) KQ(40) HT(5) CB(10)."""
+import json, io, sys
+
+# ma: (TQ, ND, PP, KQ, HT, CB, ghi_chu_ngan)
+D = {
+ '1-103':  (10,19,14,38,5, 5, 'ViR3QA - bo chuan IR/QA tieng Viet; SV tac gia 1 ca 5 bai hoi nghi quoc te'),
+ '19-103': ( 9,18,14,35,5, 5, 'TriNet - mang tensor; ICASSP 2026; TSP moi under review'),
+ '22-101': ( 8,17,13,34,5,10, 'IRFB bao ham thuc don dieu; Adv. Comput. Math. Q1; SV tac gia 2'),
+ '39-102': ( 7,14,10,30,4, 5, 'HOU - URL Phishing; ap san Khuyen khich'),
+ '67-102': ( 7,13,10,28,4,10, 'KGRec; PLoS One; tinh moi thap so voi KGAT'),
+ '68-103': ( 8,15,11,30,4,10, 'XAI Twin-Systems; PeerJ CS; Agreement bao hoa 1.000'),
+ '71-103': ( 5,12, 9,22,3, 0, 'IELTS cham tu dong; khong co cong bo; QWK 0,62-0,64'),
+ '77-101': ( 8,15,12,31,5,10, 'Bong tiem can; J. Appl. Anal.; SV la tac gia DUY NHAT + corresponding'),
+ '101-103':( 6,12, 8,18,4, 5, 'Du bao co phieu; R2 Test AM o hau het cau hinh'),
+ '102-103':( 7,14,11,27,4, 5, 'RL dieu phoi giao hang; mau thuan Bang 16 va ket luan'),
+ '134-102':( 3, 7, 5,14,3, 0, 'Game 2D Unity; 5 TLTK toan trang huong dan; khong dong gop khoa hoc'),
+ '150-103':( 8,17,13,34,5, 5, 'TameMini-GS 3DGS; 4 tac gia dau deu la SV; LPIPS hang 1 ca 3 bo'),
+ '151-103':( 6,13,10,25,4, 5, 'Dai thao duong; SV tac gia 1-2; du lieu Kaggle, khong lam sang'),
+ '157-103':( 6,12, 9,25,4, 5, 'Dien mat troi; chia du lieu ngau nhien cho chuoi thoi gian'),
+ '174-103':( 8,17,13,33,4, 0, 'LegalQA da phuong thuc; TOP 1 VLSP 2025 ca 2 subtask; KHONG co cong bo'),
+ '176-103':( 7,15,12,30,4, 0, 'FE-TransRes50 viem phoi; chi co seminar cap khoa'),
+ '177-103':( 9,18,14,35,4,10, 'Sieu am tim thai; BSPC Elsevier Q1 da Accept; SV first author'),
+ '178-103':( 7,15,11,28,3, 5, 'ViCoHATE; FJCAI 2026; thieu do dong thuan gan nhan; bao cao 17 trang'),
+ '192-102':( 5,10, 8,17,3, 0, 'Luoi 3D Blender; SAI cong thuc Gyroid; khong danh gia co hoc'),
+ '193-102':( 7,14,12,27,4, 5, 'L-PINN L-PBF; minh chung chi la giay chung nhan tham du'),
+ '197-102':( 7,14,11,29,4, 5, 'Quan ly han su dung; 4 tac gia dau la SV; bao cao thieu so lieu'),
+ '205-102':( 9,18,14,35,5, 0, 'Eco-Track AIoT PM2.5; liem chinh cao; KHONG co cong bo'),
+ '215-103':( 7,13,10,24,4, 5, 'comBM25 LegalQA; bao cao khong co bang so lieu nao'),
+ '219-102':( 6,13,10,25,4, 5, 'OCR dat dai 9.978 GCN; 4 con so thoi gian mau thuan'),
+ '241-102':( 6,13,10,24,3, 5, 'Dinh vi 3D tren ban; mAP bao hoa, lech 5 fold chi 0,005%; thieu danh gia 3D'),
+ '261-103':( 7,15,12,29,4, 5, 'Phishing AI tao sinh; VNICT 2025; mau thuan 125 vs 4 cuoc tan cong'),
+ '267-103':( 5,10, 7,17,4, 0, 'Ten de tai UNG THU PHOI nhung thuc nghiem tren VIEM PHOI; FN=FP=0'),
+ '279-102':( 9,19,14,38,5,10, 'Bao luc hoc duong; Applied Soft Computing Q1; SV first author; 4 bo du lieu'),
+ '310-102':( 7,16,12,30,4,10, 'REBot CatRAG; Applied Intelligence; GV dung ten tac gia 1 ca 3 bai'),
+ '315-103':( 7,15,12,30,5,10, 'Phat hien dam chay; Applied Computer Systems; SV tac gia 1; mAP50-95 0,642'),
+ '369-102':( 6,12, 9,22,4, 0, 'Multi-Agent on thi Toan; khong co ket qua dinh luong; khong cong bo'),
+ '370-102':( 9,18,14,36,4, 0, 'AI phan tang IDS; liem chinh TOT NHAT hoi dong; KHONG co cong bo'),
+ '387-101':( 6,12,10,24,4, 5, 'Ham Lambert W; TC DH Dong Thap; dong gop ly thuyet han che; 11 TLTK'),
+ '388-101':( 8,16,13,30,5,10, 'Day lap CAT(0); Facta Universitatis (WoS) da nhan dang; SV corresponding'),
+ '395-103':(10,19,14,37,5, 5, 'Agentic CBT; EMNLP 2025 + Findings ACL 2026 (A*); 5 cong bo; 169 TLTK'),
+ '404-102':( 8,17,13,32,4, 5, 'IDS phan tang IoT; AETA 2025 Scopus Q4; KD + INT8 giam 53,96MB xuong 696kB'),
+ '405-103':( 9,18,14,35,5,10, 'KAMDA vi khuan-thuoc; Intelligence-Based Medicine Q2; t-test 30 lan chay'),
+ '425-102':( 8,16,13,31,4, 5, 'Bai toan co loi van ca nhan hoa; thiet ke thuc nghiem giao duc chuan nhat'),
+ '454-103':( 6,15,12,30,4, 5, 'AWWL diffusion; CITA 2026; CHI 8 TLTK cho 76 trang'),
+ '456-103':( 6,12, 9,20,3, 5, 'ICALiNGAM; mau thuan moc thoi gian, quy mo du lieu, ATE=ATT=CATE'),
+ '459-103':( 6,13,11,25,4, 5, 'SER lop hoc; toan bo so lieu tren RAVDESS phong thu, khong phai lop hoc'),
+ '466-103':( 9,19,15,37,5,10, 'Suy luan thong ke sau thich ung mien; SV tac gia 1 ca 3 bai; Stat & Computing Q1'),
+ '467-102':( 8,19,14,36,3,10, 'P4P chong dau doc FL-IDS; JNCA Elsevier Q1 accepted; 7 kich ban tan cong'),
+ '495-103':( 8,16,12,34,5, 5, 'AI phong chong toi pham mang HN; CHI DINH san >= Giai Ba'),
+ '567-102':( 6,14,10,26,4, 5, 'DevSecOps; SCI-2026 Best Paper; khong co nhom doi chung that'),
+ '591-103':( 7,14,12,26,4, 5, 'RBMO-SBOA gene; TRUNG THUC bao cao phuong phap minh THUA ANOVA'),
+ '592-103':( 7,15,12,28,4, 5, 'ViRes-HotelABSA; DASGRI 2026; thieu do dong thuan gan nhan'),
+ '593-103':( 8,16,14,32,5, 5, 'FTTA-KOA tua-bin gio; 30 lan chay + kiem dinh Wilcoxon'),
+ '603-103':( 8,16,15,32,4, 0, 'Du doan tram cam; dao duc nghien cuu tot nhat; KHONG co cong bo'),
+ '607-103':( 5,11, 8,20,3, 5, 'Chatbot Mentor-EAUT; van phong khau ngu; so sanh khong cong bang'),
+ '613-103':( 7,15,13,30,4,10, 'MD + AI polymer; over-claim "cao nhat the gioi"; minh chung chi la anh chup'),
+ '615-103':( 9,19,15,37,5,10, 'AutoMind; IEEE Access Q1 da xuat ban; 3 LLM nen + p-value + chuyen gia nguoi'),
+ '626-103':( 9,18,14,35,4,10, 'UFR-GAN phuc hoi anh; 4 cong bo (NCA, PRL, JVCIR); kiem chung YOLOv11'),
+ '631-103':( 9,18,14,35,4,10, 'MLFork + MatchDA vong bi; Neurocomputing Q1; SV tac gia 1-2; 10 baseline'),
+ '643-103':( 8,16,14,32,4,10, 'Du bao toc do gio; AIMS Energy 14(2):335-357; du bao XAC SUAT PICP/PINAW/CWC'),
+ '645-101':( 9,17,14,34,5, 5, 'SA-IFB danh muc dau tu thua; FF48+FF100; dam bao cao minh THUA Corsaro'),
+ '649-103':( 7,14,11,26,4, 5, 'Data Lake + RAG NEU; khong co baseline doi chung; do tre 11-17s'),
+ '676-101':( 9,18,14,34,5,10, 'On dinh vi phan minimax; Optimization (T&F) Q1 da xuat ban; ho VO HAN rang buoc'),
+ '708-103':( 7,14,11,26,4, 5, 'Phan hoach do thi MXH; ICIT 2025 Springer; thieu kiem dinh thong ke'),
+}
+
+PB = set('67-102 134-102 177-103 192-102 197-102 205-102 219-102 241-102 279-102 310-102 370-102 405-103 456-103 459-103 467-102 567-102 615-103 626-103 708-103'.split())
+
+
+def xep(t):
+    if t >= 90: return 'Vào vòng chung khảo'
+    if t >= 80: return 'Giải Ba'
+    if t >= 70: return 'Giải Khuyến khích'
+    return 'Không đạt giải'
+
+
+if __name__ == '__main__':
+    rows = []
+    for ma, v in D.items():
+        tong = sum(v[:6])
+        rows.append((ma, *v[:6], tong, xep(tong), 'PB' if ma in PB else '', v[6]))
+    rows.sort(key=lambda r: -r[7])
+    from collections import Counter
+    c = Counter(r[8] for r in rows)
+    n = len(rows); xet = n - c['Không đạt giải']
+    print(f'Tổng {n} đề tài | Xét giải {xet} ({xet/n*100:.1f}%)')
+    for k in ['Vào vòng chung khảo', 'Giải Ba', 'Giải Khuyến khích', 'Không đạt giải']:
+        pct = c[k]/xet*100 if k != 'Không đạt giải' else c[k]/n*100
+        print(f'  {k}: {c[k]}  ({pct:.1f}%{" trong số xét giải" if k!="Không đạt giải" else " tổng"})')
+    print()
+    print(f"{'Mã':<9}{'TQ':>3}{'ND':>4}{'PP':>4}{'KQ':>4}{'HT':>3}{'CB':>4}{'Tổng':>6}  {'PB':<3}{'Xếp giải':<22}Ghi chú")
+    for r in rows:
+        print(f'{r[0]:<9}{r[1]:>3}{r[2]:>4}{r[3]:>4}{r[4]:>4}{r[5]:>3}{r[6]:>4}{r[7]:>6}  {r[9]:<3}{r[8]:<22}{r[10]}')

@@ -1,0 +1,47 @@
+## 567-102 — DevSecOps triển khai phần mềm an toàn trên Cloud (PB)
+TQ 6 · ND 13 · PP 10 · KQ 25 · HT 4 · CB 5 = 63 → nới do SV chủ công + Best Paper → **65**
+- Bài "Applying DevSecOps for Secure Software Deployment in Cloud Computing Environments" trình bày tại **SCI-2026** (Swinburne Vietnam, Hà Nội, 28–29/4/2026) và **đoạt Best Paper Award**. Năm tác giả đầu là sinh viên (Nguyễn Hoàng Sơn, Phạm Minh Đào, Chu Văn Tuấn, Vũ Xuân Quyết, Nguyễn Đức Minh), giảng viên Trần Trung là tác giả liên hệ → sinh viên chủ công.
+- Ưu: quy trình công nghiệp chỉn chu — phân tích rủi ro **STRIDE** trước khi phát triển; pipeline GitHub Actions 7 giai đoạn; tích hợp SonarQube (SAST), SpotBugs (bytecode), OWASP Dependency-Check (SCA), Trivy (container), JaCoCo (coverage), OWASP ZAP (DAST); kiến trúc 3 lớp Spring Boot + ReactJS + PostgreSQL, container hóa Docker/Kubernetes, Secrets quản lý riêng, BCrypt + AES-256 + TLS 1.3.
+- Số liệu định lượng đầy đủ: 120 lỗi mã nguồn (35 nghiêm trọng → còn 12), 19 lỗ hổng khắc phục 100%, độ phủ mã 85% với hơn 1.200 unit test, pipeline 10 phút, uptime 99,8%, phản hồi API dưới 150 ms.
+- ⚠⚠ **Tính khoa học yếu**: đây là việc **áp dụng bộ công cụ có sẵn theo quy trình chuẩn công nghiệp**, không có phương pháp hay thuật toán mới. Ba "đóng góp mới" tự nêu (tích hợp 6 công cụ, bộ chỉ số, hệ thống mẫu) đều ở mức triển khai kỹ thuật.
+- ⚠⚠ **So sánh "truyền thống vs DevSecOps" không có nhóm đối chứng thật**: các mốc "30 phút thủ công", "1 ngày phát hiện lỗ hổng", "chu kỳ 2 tuần", "10 triệu VNĐ/lỗi" đều là ước lượng tham chiếu, không phải số đo trên cùng hệ thống bằng quy trình cũ. Toàn bộ các tỷ lệ "giảm 65%", "giảm 70%", "giảm 73%" vì thế thiếu cơ sở đối chứng.
+- ⚠ **Mâu thuẫn trong hồ sơ minh chứng**: giấy Best Paper Award ghi cơ quan của nhóm tác giả là "Universitas Bhayangkara Jakarta Raya", trong khi Certificate of Appreciation cùng bài lại ghi "Electric Power University, Hanoi". Hai giấy cho cùng một công trình nhưng ghi hai cơ quan khác nhau.
+- ⚠ Quy mô thử nghiệm rất nhỏ (50 sinh viên, 10 giảng viên, 5 admin trên hệ thống giả lập); báo cáo chỉ **24 trang**.
+
+## 591-103 — Chọn đặc trưng gene bằng thuật toán lai RBMO–SBOA (ung thư máu)
+TQ 7 · ND 14 · PP 12 · KQ 26 · HT 4 · CB 5 → **68**
+- ⭐⭐ **Liêm chính khoa học rất cao — dám báo cáo phương pháp của mình THUA**: nêu rõ RBMO-SBOA-EG chỉ đạt Accuracy trung bình **0,821 ± 0,108**, thấp hơn ANOVA (0,862 ± 0,044) **4,1 điểm phần trăm** và thấp hơn cả CCO / RF-Embedded (0,826). Viết thẳng "không có phương pháp nào dẫn đầu đồng thời trên mọi tiêu chí" và "khoảng cách này nhỏ hơn đáng kể độ lệch chuẩn nên chưa đủ để kết luận phương pháp nào vượt trội nếu chưa có kiểm định thống kê".
+- Phương pháp trình bày đúng chuẩn: 10 lần chạy độc lập, báo cáo trung bình kèm độ lệch chuẩn, phân biệt rõ Accuracy trung bình với best run, giải thích vì sao thứ hạng fitness không trùng thứ hạng Accuracy.
+- Có câu hỏi nghiên cứu rõ ràng (4 câu), tổng quan xác định khoảng trống, 94 trang, 48 TLTK, 2 văn bản xác nhận ứng dụng.
+- ⚠ Nhưng chính vì trung thực mà thấy rõ: **đề tài chưa chứng minh được giá trị của thuật toán lai đề xuất**. Câu hỏi nghiên cứu số 2 ("giảm số gene có duy trì hoặc cải thiện hiệu năng không?") chưa có câu trả lời khẳng định; ưu thế duy nhất là fitness trung bình thấp nhất, mà fitness là hàm mục tiêu do chính nhóm thiết kế.
+- ⚠ Thiếu kiểm định thống kê (báo cáo tự nhận) — trong khi đây là điều bắt buộc để so sánh metaheuristic.
+- ⚠ Tệp minh chứng công bố là bản chụp bằng "AnyScanner", không đọc được thông tin nơi đăng — chất lượng hồ sơ kém.
+
+## 592-103 — Bộ dữ liệu ViRes-HotelABSA cho phân tích cảm xúc theo khía cạnh
+TQ 7 · ND 15 · PP 12 · KQ 28 · HT 4 · CB 5 → **71**
+- Xây bộ dữ liệu ABSA tiếng Việt lĩnh vực khách sạn – nhà hàng từ Traveloka và Booking, gán nhãn theo quy trình human-in-the-loop; đề xuất PhoBERT-KGAN-CRF (đồ thị tri thức + cross-attention + CRF theo lược đồ BIOES).
+- Kết quả báo cáo Mean ± Std qua nhiều lần chạy: trích xuất khía cạnh F1 76,15 (PhoBERT) → 78,56 (đề xuất); phân loại cảm xúc F1 79,50 → 80,74 (CRF) …
+- ⭐ Trung thực: báo cáo cả kết quả bất lợi — PhoBERT-CRF F1 (73,46) **thấp hơn** PhoBERT gốc (76,15) và giải thích nguyên nhân; đồng thời nói rõ vì sao F1 trong bảng không bằng giá trị tính trực tiếp từ Precision và Recall trung bình.
+- ⚠⚠ **Không báo cáo độ đồng thuận giữa người gán nhãn (IAA / Cohen kappa)** — thiếu sót căn bản đối với một công trình mà sản phẩm chính là BỘ DỮ LIỆU. Không có chỉ số này thì không thể đánh giá độ tin cậy của nhãn.
+- ⚠ Báo cáo không nêu quy mô bộ dữ liệu (số câu, số khía cạnh, phân bố nhãn) ở phần kết quả.
+- ⚠ Mức cải thiện của mô hình đề xuất so với PhoBERT-KG chỉ **0,28 điểm F1** — nhỏ hơn độ lệch chuẩn — nhưng vẫn kết luận "đạt kết quả tốt nhất trên toàn bộ chỉ số đánh giá".
+- Bài tại DASGRI-2026 (School of Computing, Goldsmiths, University of London, 10–11/4/2026); minh chứng là Certificate of Participation, người trình bày là giảng viên. 57 trang, 19 TLTK.
+
+## 593-103 — Tối ưu hóa bố trí tua-bin gió bằng thuật toán lai FTTA–KOA
+TQ 8 · ND 16 · PP 14 · KQ 32 · HT 5 · CB 5 → **80**
+- ⭐⭐ **Phương pháp luận tối ưu hóa metaheuristic chuẩn mực**: **30 lần chạy độc lập với seed 0–29** để bảo đảm tái lập; **kiểm định Wilcoxon signed-rank, mức ý nghĩa 0,05**; 3 kịch bản chuẩn Grady (gió đơn hướng, 8 hướng đều, 8 hướng đa vận tốc); đối sánh GA, PSO, FTTA gốc, KOA gốc; nêu rõ cấu hình phần cứng và phiên bản thư viện.
+- Kết quả: 123.556 / 118.024 / 147.901 MWh; cải thiện 0,41–1,32% so PSO, 2,63–5,67% so FTTA, 4,03–7,45% so KOA, 5,18–10,70% so GA. Hội tụ sau 25–30 vòng lặp so với 175–180 vòng của GA (nhanh gấp 6 lần) trên không gian 78 chiều.
+- ⭐ Trung thực: kiểm định Wilcoxon chỉ khẳng định khác biệt có ý nghĩa với **GA, FTTA và KOA — KHÔNG nêu PSO**, tức ngầm thừa nhận chưa vượt PSO một cách có ý nghĩa thống kê; báo cáo trình bày đúng như vậy thay vì gộp chung.
+- Ba đóng góp thiết kế rõ ràng và có lý do: (1) lai ghép theo nguyên tắc **kế thừa có chọn lọc** — giữ khung ba pha của FTTA, tích hợp quỹ đạo elip của KOA, nối bằng lựa chọn tham lam để mỗi cá thể chỉ tốt lên hoặc giữ nguyên; (2) **phân vai exploration/exploitation** — tìm kiếm Gaussian cho 15% cá thể tốt nhất, Lévy flight thích nghi cho 20% cá thể kém nhất, tránh lãng phí tài nguyên; (3) **học đối lập động như "van an toàn"** kích hoạt khi phát hiện trì trệ — cơ chế chưa có ở cả FTTA lẫn KOA gốc.
+- Khắc phục được nhược điểm độ lệch chuẩn cao của FTTA gốc (giảm 46–52%). Có ước lượng giá trị kinh tế khi áp dụng vào trang trại gió thực. 76 trang, 38 TLTK, 2 văn bản xác nhận ứng dụng.
+
+## 603-103 — Học máy dự đoán trầm cảm ở thanh thiếu niên ⭐ ĐẠO ĐỨC NGHIÊN CỨU TỐT NHẤT
+TQ 8 · ND 16 · PP 15 · KQ 32 · HT 4 · CB 0 → **75**
+- ⭐⭐ **Kỷ luật đánh giá thuộc nhóm tốt nhất hội đồng**: Repeated Stratified 5-Fold Cross-Validation, 3 lần lặp (15 fold), random_state cố định — đúng cách cho dữ liệu nhỏ; **thống nhất MỘT bộ chỉ số cho mọi mô hình** và nêu rõ lý do loại các chỉ số ngoài bộ chính "để tránh lệch hệ quy chiếu"; chọn cấu hình tốt nhất theo **ba nhóm tiêu chí** thay vì một con số; báo cáo Mean ± Std ở mọi ô; tiền xử lý riêng phù hợp từng nhóm mô hình (chuẩn hóa cho tuyến tính, giữ nguyên cho tree-based, one-hot cho deep tabular) để so sánh công bằng.
+- Phổ mô hình rộng và cập nhật: Logistic Regression, Random Forest, XGBoost, LightGBM, CatBoost, và nhóm deep tabular hiện đại **REALMLP, TABICL, MITRA, TabPFN, AutoGluon**. Dùng SHAP để định lượng đóng góp đặc trưng.
+- ⭐⭐ **Thận trọng đạo đức mẫu mực với đề tài sức khỏe tâm thần**: mục tiêu ghi rõ "**tuyệt đối không hướng tới chẩn đoán y khoa hay thay thế chuyên gia tâm lý**"; kết luận nhấn mạnh kết quả "chỉ nên được hiểu như bằng chứng thực nghiệm ban đầu trên dữ liệu phi lâm sàng"; không thổi phồng thành công cụ sàng lọc.
+- ⭐ Trung thực về hiệu năng thấp: Accuracy chỉ 0,50–0,56 trên 3 lớp và báo cáo đúng như vậy; kết luận thẳng "không có mô hình nào vượt trội tuyệt đối"; chỉ ra Logistic Regression baseline lại có Recall Lớp 2 cao nhất (0,510) — phát hiện có giá trị thực tiễn cho bài toán sàng lọc (ưu tiên không bỏ sót).
+- ⚠ Cỡ mẫu 520, **chủ yếu là sinh viên, chỉ 54 mẫu học sinh THPT**, trong khi tên đề tài là "lứa tuổi thanh thiếu niên" — phạm vi phát biểu rộng hơn dữ liệu.
+- ⚠ Nhãn dựa trên DASS-21 tự khai, không phải chẩn đoán lâm sàng; Accuracy 0,5 trên bài toán 3 lớp chỉ nhỉnh hơn mức ngẫu nhiên (0,33), giá trị ứng dụng thực tế còn hạn chế.
+- ⚠ **Tiêu chí 6 = 0**: hồ sơ chỉ có văn bản xác nhận ứng dụng, không có bài báo hay kỷ yếu nào. Đây là đề tài có phương pháp luận tốt nhưng bị mất trắng 10 điểm vì thiếu công bố.
+- ⚠ Lỗi biên tập: lặp nguyên câu ở hai gạch đầu dòng phần kết luận.

@@ -1,0 +1,45 @@
+"""Tạo bản rút gọn của báo cáo tổng kết: mục lục + tóm tắt + phần đầu + kết luận + tài liệu tham khảo (đếm)."""
+import os, re, sys
+
+TXT = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'txt')
+
+
+def pages(raw):
+    parts = re.split(r'\n===== \[Trang (\d+)\] =====\n', raw)
+    head = parts[0]
+    out = []
+    for i in range(1, len(parts), 2):
+        out.append((int(parts[i]), parts[i + 1]))
+    return head, out
+
+
+def digest(code, first_n=14, last_n=10):
+    raw = open(os.path.join(TXT, code + '.txt'), encoding='utf-8').read()
+    head, pg = pages(raw)
+    if not pg:
+        return raw[:40000]
+    n = len(pg)
+    keep = set(range(1, min(first_n, n) + 1)) | set(range(max(1, n - last_n + 1), n + 1))
+    # thêm các trang có từ khoá kết quả
+    kw = re.compile(r'(KẾT QUẢ|Kết quả thực nghiệm|THẢO LUẬN|Bảng \d|ĐÁNH GIÁ|KẾT LUẬN)', re.I)
+    scored = sorted(((len(kw.findall(t)), i) for i, t in pg), reverse=True)[:10]
+    keep |= {i for _, i in scored}
+    buf = [head]
+    prev = 0
+    for i, t in pg:
+        if i in keep:
+            if i != prev + 1:
+                buf.append(f'\n... [bỏ qua trang {prev+1}-{i-1}] ...\n')
+            buf.append(f'\n===== [Trang {i}/{n}] =====\n' + t)
+            prev = i
+    if prev < n:
+        buf.append(f'\n... [bỏ qua trang {prev+1}-{n}] ...\n')
+    return ''.join(buf)
+
+
+if __name__ == '__main__':
+    for code in sys.argv[1:]:
+        d = digest(code)
+        p = os.path.join(TXT, code + '.digest.txt')
+        open(p, 'w', encoding='utf-8').write(d)
+        print(p, len(d))

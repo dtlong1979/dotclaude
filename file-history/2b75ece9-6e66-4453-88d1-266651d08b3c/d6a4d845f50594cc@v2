@@ -1,0 +1,65 @@
+## 631-103 — MLFork và MatchDA chẩn đoán lỗi vòng bi máy điện
+TQ 9 · ND 18 · PP 14 · KQ 35 · HT 4 · CB 10 → **90**
+- ⭐⭐ **Bốn công bố, sinh viên là tác giả thứ nhất hoặc thứ hai ở cả bốn** (nhóm ĐH Bách khoa Hà Nội):
+  1. **Neurocomputing (Elsevier, SCIE Q1)** — "MLFork: Bearing fault diagnosis via Mamba-powered few-shot learning…"; Nguyễn Duy Thái (SV) tác giả 1, Nguyễn Văn Quốc Việt (SV) tác giả 2; GV Trần Thị Thảo và Phạm Văn Trường là tác giả liên hệ.
+  2. **Journal of Vibration Engineering & Technologies (Springer)** — đã có thư chấp nhận đăng ngày 29/6/2026 (JVET-D-26-00579R1).
+  3. ATiGB 2025 (IEEE) — SV Nguyễn Văn Quốc Việt tác giả 1.
+  4. CBSSNet (hội thảo) — SV Nguyễn Duy Thái tác giả 1.
+- ⭐ Đặt bài toán rất rõ: tách hai thách thức khác nhau và giải bằng hai phương pháp riêng — **khan hiếm dữ liệu** dùng MLFork (few-shot), **dịch chuyển phân phối giữa lý thuyết và thực tiễn** dùng MatchDA (thích nghi miền). Đây là cách phân rã vấn đề đúng đắn thay vì gộp vào một mô hình.
+- MLFork: hai nhánh chú ý theo chiều không gian (PSVA) và chiều kênh (PCVA), khối Bi-Context VSS dựa trên Mamba để học phụ thuộc tầm xa, mô-đun SAFE tự điều chỉnh phạm vi tiếp nhận ngữ nghĩa. MatchDA: quy trình ba bước tối đa hóa – tối thiểu hóa sai khác cộng học tự giám sát, với ba hàm mất mát tự đề xuất (Channel Cosine, Spatial Covariance, Multi-view Contrastive).
+- ⭐⭐ **Thực nghiệm bao quát nhất trong nhóm chẩn đoán lỗi**: ba bộ dữ liệu (CWRU, PU, HUST); riêng HUST có **6 kịch bản chuyển giao miền × 2 cấu hình dữ liệu** (140 và 280 mẫu), PU có **12 trường hợp × 2 cấu hình** (650 và 1.300 mẫu); đối sánh với **10 phương pháp** được phân nhóm theo hướng tiếp cận (giảm thiểu phân phối: CORAL, JMMD, MK-MMD, LMMD; học đối kháng: DANN, CDAN, ADACNN, SDCDN; tối ưu đồng thời: MCD, SLDDA).
+- Kết quả rõ rệt: các phương pháp đối sánh chỉ đạt 65,03–73,77% trong điều kiện dữ liệu hạn chế, MatchDA đạt **93,05%** (140 mẫu) và **96,08%** (280 mẫu).
+- Phân tích lỗi có chiều sâu: ma trận nhầm lẫn chỉ ra các mô hình so sánh hay nhầm lớp 3 với 5 và lớp 2 với 4, còn mô hình đề xuất khắc phục được; kèm trực quan hóa t-SNE để giải thích vì sao đặc trưng tách tốt hơn.
+- ⚠ Mức chênh lệch so với baseline rất lớn (93% so với 72%) — cần được nhìn thận trọng, tuy nhiên việc có nhiều kịch bản chuyển miền, nhiều cấu hình dữ liệu và ablation khiến kết quả đáng tin hơn.
+- ⚠ Báo cáo còn nhiều lỗi chính tả và diễn đạt ("ổn ấn tượng", "chuyên giao miền", "đat tới", "giải đoạn học tự giám sát"). 66 trang, 43 TLTK.
+
+## 643-103 — Dự báo tốc độ gió ngắn hạn bằng mô hình lai và phân tách tín hiệu
+TQ 8 · ND 16 · PP 14 · KQ 32 · HT 4 · CB 10 → **84**
+- ⭐ Bài **AIMS Energy 14(2): 335–357 (2026)** — "Secondary decomposition-based EVMD-DWT-Transformer for wind speed prediction", tạp chí quốc tế → 10 điểm. Kèm bài trên *Measurement, Control and Automation* (ISSN 1859-0551) và hai công bố khác.
+- Thiết kế so sánh công bằng: bốn mô hình lai (CNN-Transformer, CEEMDAN-OS-ELM, EEMD-LSTM, EVMD-DWT-Transformer) huấn luyện và đánh giá **trong cùng điều kiện dữ liệu**; dữ liệu thật theo giờ tại Nhà máy điện gió Thái Hòa, Bình Thuận; bài báo đối sánh thêm với sáu benchmark.
+- ⭐⭐ **Điểm mạnh nổi bật: mở rộng sang DỰ BÁO XÁC SUẤT** bằng Gaussian Process mô hình hóa sai số dư, đánh giá bằng bộ ba PICP / PINAW / CWC. Rất ít đề tài sinh viên đi tới mức định lượng được **độ bất định** của dự báo — đây là yêu cầu thực tế then chốt khi vận hành hệ thống điện có nguồn tái tạo. Kết quả: PICP 0,97 và PINAW 0,19 (1 bước); PICP 0,95 và PINAW 0,24 (24 bước).
+- ⭐ Trung thực và diễn giải đúng: nêu rõ EVMD-DWT-Transformer **không đạt sai số thấp nhất ở dự báo 1 bước** (EEMD-LSTM tốt hơn) nhưng ổn định hơn ở 24 bước, và chọn mô hình theo mục tiêu chứ không theo điểm cao nhất; giải thích PINAW tăng theo số bước là "phù hợp với bản chất bài toán vì sai số và bất định tích lũy theo thời gian". Bài báo cũng nêu mức cải thiện thật là **chỉ 1,9% so với baseline tốt nhất** thay vì chỉ khoe con số 63% so với mô hình kém nhất.
+- ⚠ Chỉ 21 TLTK cho 46 trang. Bốn tệp minh chứng công bố không có trang bìa thống nhất nên khó tra cứu nhanh; trong đó một bài (Nhi Ha Solar Farm) thuộc chủ đề **điện mặt trời**, không cùng đề tài gió — nên tách bạch rõ đâu là công bố của đề tài.
+
+## 645-101 — Phương pháp quán tính hai bước cho bao hàm biến phân và danh mục đầu tư thưa
+TQ 9 · ND 17 · PP 14 · KQ 34 · HT 5 · CB 5 → **84**
+- Đóng góp lý thuyết rõ ràng: thuật toán **SA-IFB** kết hợp ba thành phần có lý do — ngoại suy hai bước quán tính (tăng tốc), xấp xỉ viscosity (bảo đảm hội tụ **mạnh** chứ không chỉ hội tụ yếu), và chiến lược cỡ bước tự thích nghi **không cần biết trước hằng số Lipschitz**; thiết lập tính bị chặn và chứng minh hội tụ mạnh.
+- ⭐⭐ **Chất lượng thực nghiệm rất cao đối với một đề tài toán**: kiểm chứng trên hai bộ dữ liệu tài chính chuẩn Fama–French 48 và Fama–French 100; đánh giá ngoài mẫu theo **cửa sổ trượt qua 6 giai đoạn từ 1976 đến 2006**; đối sánh với Hieu's, Corsaro's, Brodie's và chiến lược 1/N; **có kiểm định thống kê kèm p-value**; **phân tích độ nhạy tham số λ trên lưới mở rộng [10⁻⁶, 10]** để kiểm tra tính bền vững; thống kê phân phối λ* qua các cửa sổ; đo thời gian thực thi.
+- ⭐⭐ **Trung thực xuất sắc**: nêu rõ tỷ lệ Sharpe của phương pháp đề xuất (0,98) **thấp hơn** Corsaro's Alg. (1,08) trong Trường hợp 2, và diễn giải đúng rằng khác biệt **không có ý nghĩa thống kê (p > 0,05)** — không giấu kết quả bất lợi, cũng không suy diễn quá mức từ nó.
+- Kết quả bền vững: tỷ lệ Sharpe khoảng 1,44 và cấu trúc danh mục 6–7 tài sản gần như không đổi khi mở rộng lưới siêu tham số; λ* của phương pháp đề xuất tập trung ở vùng 10⁻³–10⁻², trong khi các phương pháp so sánh phân bố sát biên miền tìm kiếm (dấu hiệu chưa ổn định).
+- Bài "A two-step inertial method for variational inclusions with application to ℓ1-sparse portfolio selection", **TNU Journal of Science and Technology 231(06): 355–363, 2026** — SV Nguyễn Thế Sơn (ĐH Bách khoa HN) là tác giả thứ nhất. Tạp chí trong nước → 5 điểm.
+- ⚠ Bài thứ hai gửi *Studies in Economics and Finance* (SCIE Q2) **đang ở vòng chỉnh sửa thứ ba, chưa được chấp nhận** → không tính điểm.
+- 58 trang, 62 TLTK — tổng quan bài bản.
+
+## 649-103 — Data Lake cho hệ thống RAG với cơ chế phát hiện lỗ hổng tri thức
+TQ 7 · ND 14 · PP 11 · KQ 26 · HT 4 · CB 5 → **67**
+- Ý tưởng đáng chú ý: coi **phát hiện lỗ hổng tri thức là một thành phần của quản trị dữ liệu** — truy vấn không đủ bằng chứng trở thành đầu vào để bổ sung tài liệu và mở rộng độ bao phủ theo vòng lặp, thay vì chỉ trả lời "không biết". Hướng này gắn kỹ thuật với nghiệp vụ thư viện số, có giá trị thực tiễn.
+- Có cơ chế từ chối trả lời khi thiếu căn cứ và dẫn nguồn minh bạch — đúng yêu cầu của RAG học thuật.
+- Đánh giá trên 150 truy vấn chia bốn nhóm (dễ / khó / lỗ hổng / không liên quan); F1@10 khoảng 0,68; ACR trung bình 0,62; có boxplot phân bố.
+- ⭐ Trung thực: nêu rõ "Recall chưa đạt mức cao" và giải thích lựa chọn ưu tiên Precision để giảm nguy cơ sinh thông tin sai — đánh đổi có ý thức.
+- ⚠⚠ **Không có bất kỳ đường cơ sở đối chứng nào** (RAG chuẩn, BM25, hybrid retrieval). Không có baseline thì không thể biết cơ chế đề xuất đóng góp bao nhiêu so với một hệ RAG thông thường.
+- ⚠ **ACR là chỉ số do nhóm tự định nghĩa**, và "ngưỡng tối ưu 0,5 đã được xác định qua thực nghiệm" nhưng không trình bày cách xác định ngưỡng đó — chỉ số tự định nghĩa kèm ngưỡng tự đặt thì khó dùng làm bằng chứng.
+- ⚠ **Thời gian phản hồi 11,7–17,5 giây mỗi truy vấn** là rất chậm với một hệ hỏi đáp phục vụ người dùng; báo cáo trình bày số liệu nhưng không bàn về tính khả dụng thực tế.
+- 106 trang nhưng danh mục tài liệu tham khảo không theo định dạng đánh số chuẩn.
+
+## 676-101 — Tính ổn định vi phân của bài toán tối ưu minimax
+TQ 9 · ND 18 · PP 14 · KQ 34 · HT 5 · CB 10 → **90**
+- ⭐⭐ Bài **"Subdifferentials of optimal value functions in parametric convex minimax programming", tạp chí *Optimization* (Taylor & Francis), DOI 10.1080/02331934.2026.2658586, xuất bản trực tuyến 13/4/2026** — tạp chí quốc tế chuyên ngành tối ưu có uy tín lâu đời → 10 điểm.
+- Đóng góp toán học rõ ràng và đếm được: (1) thiết lập quy tắc tính dưới vi phân cho hàm cực đại dưới điều kiện chính quy về giao các phần trong tương đối; (2) công thức tường minh cho dưới vi phân và dưới vi phân suy biến của hàm giá trị tối ưu trong bài toán minimax **rời rạc** có tham số ở không gian hữu hạn chiều; (3) mở rộng sang bài toán minimax **liên tục**.
+- ⭐ **Điểm mới cốt lõi được xác định đúng**: xử lý trường hợp **họ VÔ HẠN các hàm thành phần và ràng buộc** — hướng mà báo cáo khẳng định chưa từng được công bố trong tài liệu hiện có. Đây là bước tổng quát hóa thực chất, không phải chỉ chuyển bối cảnh.
+- ⭐ Cách kiểm chứng đúng chuẩn toán học: xây dựng ví dụ cụ thể (Ví dụ 2.4, 2.5), tính dưới vi phân bằng định lý đề xuất rồi **tính trực tiếp hàm giá trị tối ưu để đối chiếu**, cho thấy hai kết quả trùng khớp — chứng minh định lý hoạt động đúng chứ không chỉ phát biểu.
+- Kế thừa có ý thức: nêu rõ dựa trên kết quả không gian vô hạn chiều của An – Ngoan – Tuyên và sách của Mordukhovich – Nam, đồng thời chỉ ra sự tinh gọn khi chuyển sang hữu hạn chiều.
+- ⚠ **Chỉ 09 tài liệu tham khảo** cho 73 trang — quá mỏng đối với một đề tài toán lý thuyết.
+- ⚠ Chương 1 chiếm dung lượng lớn nhưng báo cáo tự nhận là "tổng hợp, biên dịch và sắp xếp" kiến thức nền từ sách chuyên khảo; phần đóng góp mới thực sự nằm gọn trong Chương 2.
+
+## 708-103 — Phân hoạch đồ thị mạng xã hội bằng metaheuristic (PB)
+TQ 7 · ND 14 · PP 11 · KQ 26 · HT 4 · CB 5 → **67**
+- Bài "IEP-WOCD: An Improved Whale Optimization Algorithm for Community Detection with Enhanced Population Diversity" tại **ICIT 2025**, in trong **Springer LNDECT vol. 281, tr. 13–23** — Nguyễn Trần Việt Hào, Nguyễn Tấn Phát, Lê Mạnh Thắng (đều là sinh viên) là ba tác giả đầu, GV Đặng Đại Thọ đứng cuối → sinh viên chủ công. Kỷ yếu hội nghị quốc tế → 5 điểm.
+- Đặt vấn đề tốt: phân tích cụ thể ba hạn chế của thuật toán nền EP-WOCD (đột biến chỉ tạo thay đổi cục bộ ở mức nút; hợp nhất cộng đồng chỉ áp dụng cho nghiệm tốt nhất; tìm kiếm cục bộ chưa thực hiện ở nhiều mức cấu trúc) rồi thiết kế cải tiến tương ứng — mạch lập luận rõ ràng.
+- Đề xuất hai giải thuật: **NE-EPWOCD** (đột biến nhận thức topo + hợp nhất cộng đồng trên toàn bộ quần thể) và **DEP-WOCD** (tìm kiếm cục bộ đa quy mô + duy trì đa dạng động). Có **phân tích độ phức tạp tính toán** cho từng thuật toán và bảng so sánh ba thuật toán. Có phần mềm web trực quan hóa mạng và kết quả phân hoạch.
+- ⭐ Trung thực trong cách phát biểu: kết luận phần kết quả viết các thuật toán đề xuất "**không làm suy giảm hiệu năng** so với phương pháp gốc EP-WOCD, đồng thời **duy trì được** chất lượng phân hoạch"; cũng nêu rõ hiệu năng "có xu hướng **giảm nhẹ** khi áp dụng trên các mạng rất lớn" và DEP-WOCD tốn nhiều thời gian hơn.
+- ⚠⚠ **Nhưng chính cách phát biểu đó cho thấy đóng góp chưa được chứng minh**: nếu cải tiến chỉ "không làm suy giảm" và "duy trì" chất lượng so với thuật toán nền thì chưa đủ căn cứ khẳng định giá trị. Các nhận định "NE-EPWOCD cải thiện trên mạng nhỏ và trung bình", "DEP-WOCD ưu thế trên mạng lớn" không đi kèm con số cụ thể nào trong phần thuyết minh.
+- ⚠⚠ **Không có kiểm định thống kê** (Wilcoxon hoặc t-test) — điều bắt buộc khi so sánh các thuật toán metaheuristic vốn có tính ngẫu nhiên. Cũng không nêu số lần chạy độc lập và độ lệch chuẩn, chỉ báo cáo Qavg và Qmax.
+- ⚠ **Chỉ dùng Modularity Q làm hàm mục tiêu và tiêu chí đánh giá duy nhất**. NMI được giới thiệu ở phần tổng quan nhưng **không xuất hiện trong kết quả**, dù các bộ Karate, Dolphins, Polbooks, Football đều có cấu trúc cộng đồng tham chiếu. Modularity đơn thuần có hạn chế đã biết về giới hạn phân giải (resolution limit).
+- ⚠ Sáu bộ dữ liệu đều là mạng cổ điển rất nhỏ (Karate 34 đỉnh, Dolphins 62, Polbooks 105, Football 115) — chưa phản ánh được quy mô "mạng xã hội" như tên đề tài.
+- ⚠ Lỗi trình bày: mục 3.2.3 bị lặp số ở cả hai chương; lỗi chính tả ở phần mở đầu ("ngày này", "đa đa dạng").

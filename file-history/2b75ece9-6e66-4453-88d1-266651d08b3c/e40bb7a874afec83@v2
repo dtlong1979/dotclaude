@@ -1,0 +1,328 @@
+# SỔ CHẤM NHÁP — Hội đồng 01, Khoa học tự nhiên
+Cột điểm: TQ(10) · ND(20) · PP(15) · KQ(40) · HT(5) · CB(10) = Tổng
+PB = đề tài TS. Đinh Tuấn Long phản biện.
+
+---
+## 001-103 — ViR³QA: bộ chuẩn IR/QA tiếng Việt
+TQ 10 · ND 19 · PP 14 · KQ 38 · HT 5 · CB 5 → **91**
+- SV **Nguyễn Song Thiên Long là tác giả thứ nhất cả 5 bài** (AACL, EACL Findings, ACIIDS, ICCCI, PAKDD); corresponding là GVHD TS. Tho T. Quan → công sức SV rõ ràng, NỚI ĐIỂM.
+- Hợp nhất 10 bộ dữ liệu / 6 lĩnh vực về một lược đồ + giao thức chung; taxonomy 3 trục; nâng "tính trả lời được" thành trục độc lập — đóng góp khái niệm thật.
+- Khảo sát 5 họ truy hồi × 15 backbone; 2 hệ đề xuất (SRKG đa tác tử F1 0,8334 vượt HippoRAG 2; URASys 85,0/82,6/81,2 trên UniQA).
+- 4 giấy xác nhận ứng dụng (HUST, UIT, HCMUT, YouthDev); phát hành mã nguồn mở.
+- Trừ điểm duy nhất: CB chỉ 5/10 vì toàn kỷ yếu hội nghị, không có tạp chí (quy chế chọn 01 sản phẩm).
+
+## 019-103 — TriNet: mạng tensor bậc cao
+TQ 9 · ND 18 · PP 14 · KQ 35 · HT 5 · CB 5 → **86**
+- ICASSP 2026 (hội nghị hàng đầu XLTH, A1 Qualis). **TSP mới "submitted, under review" → KHÔNG tính**.
+- Có chứng minh hội tụ 2 khung (ADMM, PAM), 4 phụ lục chứng minh; thực nghiệm 100 tensor nhân tạo + video/ảnh siêu phổ; PSNR vượt TT/TR/FCTN/TW.
+- Chưa xác định được vị trí tác giả SV (minh chứng chỉ là trang giới thiệu venue, không có bài).
+- Hạn chế: không có ứng dụng thực tiễn; báo cáo chính là bản dịch bài báo.
+
+## 022-101 — Bao hàm thức đơn điệu (IRFB)
+TQ 8 · ND 17 · PP 13 · KQ 34 · HT 5 · CB 10 → **87**
+- Adv. Comput. Math. (Springer, SCIE, Q1, SJR 0,935). Tác giả: Van Dung Nguyen (1) · **Hoang Thi Kim Hoa (2)**; SV là tác giả thứ 2, GV đứng đầu → KHÔNG nới thêm.
+- Mở rộng miền cỡ bước γL<(5−7α)/12 so với γL<√2−1 của RFB; hội tụ tuyến tính khi A đơn điệu mạnh.
+- Thực nghiệm LASSO, TV, khôi phục ảnh Lena/House.
+- Hạn chế thẳng thắn: báo cáo tự khai "đề tài dựa trên công trình đã công bố", phần thêm chủ yếu là thực nghiệm.
+
+## 039-102 — Phát hiện URL Phishing (⭐ HOU — sàn ≥ Khuyến khích)
+Chấm thô: TQ 6 · ND 12 · PP 9 · KQ 25 · HT 4 · CB 5 = 61 → **áp sàn 70**
+Phân bổ sau áp sàn: TQ 7 · ND 14 · PP 10 · KQ 30 · HT 4 · CB 5 → **70**
+- SV Nguyễn Anh Tuấn (tác giả thứ 4/4), Nguyễn Thị Nhung; GVHD TS. Vũ Xuân Hạnh. Bài: Tạp chí KH Trường ĐH Mở Hà Nội số 128, 6/2025 → tạp chí trong nước = 5đ.
+- Ưu: dữ liệu thực PhishTank/OpenPhish 2023-nay; so sánh RF/XGBoost/BERT; có ablation đặc trưng max_sub_30; triển khai web demo/REST API; có xác nhận ứng dụng (i3 Network System).
+- ⚠ BERT đạt ACC/F1 = 99,98%, FNR 0,01%, FPR 0,03% — gần như hoàn hảo, nghi rò rỉ dữ liệu / trùng lặp train-test; không có kiểm định, không tách nguồn dữ liệu.
+- ⚠ Văn bản mô tả ngược số liệu bảng ("FPR và FNR lần lượt 0.01% và 0.03%" trong khi bảng ghi FNR 0,01% / FPR 0,03%).
+- Tính mới thấp (BERT cho URL đã phổ biến); tổng quan nặng số liệu thị trường, mỏng học thuật.
+→ Khi viết phiếu: nhấn ưu điểm ứng dụng & dữ liệu thực, nêu nhược điểm ở mức "cần kiểm chứng thêm khả năng tổng quát hóa".
+
+## 067-102 — KGRec (PB)
+TQ 7 · ND 13 · PP 10 · KQ 28 · HT 4 · CB 10 → **72**
+- PLoS One 21(3):e0344585, 2026 (SCIE) + kỷ yếu YSC 2025. Bản PDF minh chứng ẩn tên tác giả → chưa rõ vị trí SV.
+- ⚠ Tính mới thấp: gần trùng KGAT 2019 (đồ thị tri thức cộng tác, TransR, 3 hàm tổng hợp, BPR); khác biệt thực chất chỉ ở dạng hàm chú ý (ct.13) và chuẩn hóa ma trận kề.
+- ⚠ Cải thiện ở ranh giới nhiễu (Amazon-Book P 0,014 vs KGAT 0,013); không kiểm định thống kê.
+- ⚠ CKAN thấp bất thường (P 0,004 Last-FM) → baseline chưa tinh chỉnh, so sánh thiếu công bằng.
+- ⚠ Mâu thuẫn: Bảng 7 nói "kích thước không tăng đáng kể" (46,28 vs 46,34 MB) nhưng Bảng 5 bộ nhớ gấp ~3 lần (7.252 vs 2.435 MB).
+- ⚠ Bảng 4 chỉ chạy lại KGRec, không chạy lại baseline → chưa đủ căn cứ.
+- Thiếu siêu tham số cấu hình chính; lỗi phông PDF; mục lục lệch trang.
+
+## 068-103 — Lá thư từ hộp đen: XAI Twin-Systems
+TQ 8 · ND 15 · PP 11 · KQ 30 · HT 4 · CB 10 → **78**
+- PeerJ Computer Science (SCIE, Q1/Q2) + xác nhận báo cáo hội thảo.
+- Ưu: phủ 3 kiểu dữ liệu (bảng/ảnh/văn bản), so sánh có hệ thống 5 chiến lược trọng số đặc trưng, dùng Agreement + MDO.
+- ⚠ C-HP (COLE-Hadamard Product) là phương pháp có sẵn của Kenny & Keane, không phải đề xuất mới; đóng góp chủ yếu là mở rộng/nhân rộng sang nhiều modality.
+- ⚠ Agreement = 1,000 tuyệt đối ở mọi k và mọi tập → chỉ số bão hòa, mất khả năng phân biệt; báo cáo tự nhận rủi ro này nhưng chưa thay bằng độ đo khác.
+
+## 071-103 — Hệ thống luyện thi IELTS chấm tự động
+TQ 5 · ND 12 · PP 9 · KQ 22 · HT 3 · CB 0 → **51**
+- ⚠ Excel: "Công bố hoặc ứng dụng trong năm 2025: **Không có**" → tiêu chí 6 = 0.
+- QWK 0,62 (Writing) / 0,64 (Speaking) — mức khiêm tốn so với chuẩn chấm tự động.
+- Dữ liệu rất nhỏ: 2.100 bài Writing, **280 mẫu Speaking**.
+- Chỉ 13 mục TLTK; không có chương tổng quan học thuật đúng nghĩa; nặng tính sản phẩm kỹ thuật (client-server + microservices) hơn nghiên cứu.
+
+## 077-101 — Tính chất bóng tiệm cận & ổn định tôpô
+TQ 8 · ND 15 · PP 12 · KQ 31 · HT 5 · CB 10 → **81**
+- ⭐ **J. Appl. Anal. (De Gruyter) 2026** — tác giả **Ha Le và Linh Vu\*** = chính 2 SV (Vũ Khánh Linh, Lê Việt Hà, lớp 23ST1, ĐHSP Đà Nẵng); SV là **tác giả duy nhất + corresponding** → NỚI ĐIỂM mạnh.
+- 2 định lý: (i) đồng phôi tuyến tính giãn có bóng tiệm cận trên Banach thì ổn định tôpô; (ii) tương đương hai khái niệm ở hữu hạn chiều.
+- Có phản ví dụ chứng minh không thể tổng quát Walters — hiểu vấn đề sâu.
+- Hạn chế: phạm vi hẹp (31 trang, 17 TLTK), không ứng dụng.
+
+## 101-103 — Dự báo giá cổ phiếu + phân tích tin tức
+TQ 6 · ND 12 · PP 8 · KQ 18 · HT 4 · CB 5 → **53**
+- ⚠⚠ **R² Test ÂM ở hầu hết cấu hình** (−0,2087; −2,5934; −0,4197; −1,2017; −1,6983; −0,9153…) → mô hình kém hơn cả dự báo bằng trung bình, tức là THẤT BẠI. Kết luận vẫn khẳng định "hiệu quả tích cực", "CNN-LSTM đạt độ chính xác cao hơn" → mâu thuẫn nghiêm trọng giữa số liệu và kết luận.
+- Chỉ 3 mã cổ phiếu (VNM, FPT, HPG); không có đường cơ sở naive/ARIMA để đối chứng.
+- Bài công bố trên Tạp chí Quản lý nhà nước, tác giả đứng đầu là PGS.TS Nguyễn Thị Thu Thủy → 5đ.
+- 117 trang nhưng phần lớn là phụ lục bảng cấu hình.
+
+## 102-103 — Học tăng cường điều phối tài xế giao hàng (Hà Nội)
+TQ 7 · ND 14 · PP 11 · KQ 27 · HT 4 · CB 5 → **68**
+- Bài toán R-RDP động; GAT-PPO / GAT-DQN so với Hybrid GA trên 4 bộ DO1–DO4; giảm 3,91–22,04% thời gian giao. 93 trang, 72 TLTK — công phu.
+- ⚠ Mâu thuẫn: Bảng 16 cho thấy DO4 GAT-DQN (718,50) TỐT HƠN GAT-PPO (787,82), nhưng văn bản khẳng định GAT-PPO "liên tục cắt giảm thời gian ở cả 4 kịch bản" và "ổn định, hiệu quả nhất".
+- ⚠ Kết luận tự mâu thuẫn: thừa nhận "Hybrid GA đạt hiệu quả tốt hơn ở bộ dữ liệu quy mô vừa" trong khi phần kết quả nói RL vượt trội.
+- Dữ liệu mô phỏng, chưa phải dữ liệu vận hành thật; không nêu rõ nguồn 4 bộ DO.
+
+## 134-102 — Game 2D stealth "Vụ trộm lặng lẽ" trên Unity (PB)
+TQ 3 · ND 7 · PP 5 · KQ 14 · HT 3 · CB 0 → **32**
+- ⚠⚠ Chỉ **05 tài liệu tham khảo**, toàn trang hướng dẫn lập trình (W3Schools, Stack Overflow, GeeksforGeeks, TutorialsTeacher, Microsoft Docs); 3/5 mục (ASP.NET, SQL Server, quản trị CSDL) KHÔNG liên quan Unity/C#/game. Không có một tài liệu khoa học nào.
+- ⚠ Khai lĩnh vực "Khoa học xã hội / Khoa học giáo dục" nhưng dự Hội đồng Khoa học tự nhiên.
+- ⚠ Không có câu hỏi nghiên cứu, không giả thuyết, không đóng góp khoa học — bản chất là đồ án môn học/sản phẩm phần mềm.
+- ⚠ "Kết quả nghiên cứu" = khảo sát Google Forms 51 mẫu, thang Likert, không nhóm đối chứng, không tiền/hậu kiểm; không thể kết luận về "giá trị giáo dục".
+- ⚠ Sản phẩm công bố nộp dưới dạng .rar mã nguồn — không phải công bố khoa học. Tiêu chí 6 = 0.
+- ⚠ Văn phong lẫn lộn ngôi "tôi" và "nhóm nghiên cứu".
+
+## 150-103 — Tái cấu trúc 3D bằng học sâu (TameMini-GS)
+TQ 8 · ND 17 · PP 13 · KQ 34 · HT 5 · CB 5 → **82**
+- ⭐ Bài "TameMini-GS: A Hybrid Approach for Efficient and Compact 3D Gaussian Splatting" — **4 tác giả đầu đều là SV** (Trung-Phien Nguyen, Minh-Luan Su, Xuan-Huy Dinh, Mai-Hieu Hoang @student.hcmute), GV Van-Dung Hoang là corresponding → SV chủ công, NỚI ĐIỂM.
+- Đánh giá trên 3 bộ chuẩn (Mip-NeRF 360, Tanks&Temples, DeepBlending) với SSIM/PSNR/LPIPS + thời gian + bộ nhớ + số Gaussian.
+- Nhanh hơn 3DGS 3,1×, giảm 4,3× số Gaussian; nhanh hơn Taming-3DGS 1,2×; **LPIPS hạng 1 trên cả 3 bộ**.
+- Hạn chế: kỷ yếu hội nghị (5đ), không có tạp chí; báo cáo thiếu chương kết luận riêng.
+
+## 151-103 — AI chẩn đoán sớm đái tháo đường + dinh dưỡng
+TQ 6 · ND 13 · PP 10 · KQ 25 · HT 4 · CB 5 → **63**
+- Bài "Hybrid Ensemble and Deep Learning Models for Improving Diabetes Prediction" — **SV Cuu-Duong Dang (TG1) và Thi-My-Dung Le (TG2)**, GV Van-Dung Hoang thứ 3 → SV chủ công, nới điểm.
+- Ưu: so sánh GAN vs SMOTENC cho mất cân bằng (GAN RMSE 0,19 < SMOTENC 0,45); 3 mô hình LSTM/MLP/Stacking; báo cáo **thẳng thắn thừa nhận** recall và F1 thấp dù accuracy >94% do lệch lớp 11:1 — trung thực.
+- ⚠ Dùng bộ Kaggle "Diabetes Prediction Dataset" công khai, không phải dữ liệu lâm sàng Việt Nam, nên nhan đề "chẩn đoán sớm" là quá tầm.
+- ⚠ Mục "Mục tiêu nghiên cứu" lẫn nội dung tổng quan của công trình khác — lỗi biên tập.
+- ⚠ Hợp phần "thiết kế chế độ dinh dưỡng" chỉ là gợi ý theo luật, không được đánh giá định lượng. Chỉ 19 TLTK cho 57 trang.
+
+## 157-103 — AI dự đoán sản lượng điện mặt trời
+TQ 6 · ND 12 · PP 9 · KQ 25 · HT 4 · CB 5 → **61**
+- Bài "A comparative analysis of ML algorithms for solar power generation forecasting" — **SV Danh Vũ Thị Ngọc Hân là tác giả thứ nhất**, GV Xuan-Vien Nguyen corresponding → nới điểm.
+- ⚠ Bản chất là nghiên cứu SO SÁNH các thuật toán có sẵn, tính mới thấp; đề tài tự nhận "điểm mới" chỉ vì "mô hình chưa phổ biến ở Việt Nam" — lập luận yếu.
+- ⚠ **Chia dữ liệu ngẫu nhiên cho bài toán chuỗi thời gian** → rò rỉ thông tin tương lai, làm kết quả lạc quan giả; báo cáo có tự nêu nhưng không khắc phục.
+- ⚠ Dữ liệu một địa điểm duy nhất, không có dữ liệu thời tiết thời gian thực (báo cáo tự nêu).
+- Điểm cộng: mục "Hạn chế của nghiên cứu" viết trung thực, có phân tích.
+
+## 174-103 — LegalQA đa phương thức tiếng Việt
+TQ 8 · ND 17 · PP 13 · KQ 33 · HT 4 · CB 0 → **75**
+- ⭐ **Hạng NHẤT (Top 1) cả 2 subtask trên tập Private Test của VLSP 2025 MLQA-TSR** — kiểm chứng khách quan bởi bên thứ ba, giá trị cao.
+- Pipeline hoàn chỉnh: ImageProcessing + YOLOE + CLIP-GmP-ViT-L-14 + Qwen2.5-VL-7B + đồ thị tri thức pháp lý + Personalized PageRank + Reciprocal Rank Fusion; có ablation 4 baseline (F2 0,546 → 0,638).
+- Có biến thể mã nguồn mở chạy được trên GPU phổ thông — thực dụng.
+- ⚠ **Tiêu chí 6 = 0**: hồ sơ không có bài tạp chí/kỷ yếu nào (chỉ có xác nhận ứng dụng) → mất trắng 10 điểm dù chất lượng chuyên môn tốt.
+
+## 176-103 — Chẩn đoán bệnh phổi, mô hình lai CNN–Transformer (FE-TransRes50)
+TQ 7 · ND 15 · PP 12 · KQ 30 · HT 4 · CB 0 → **68**
+- Ưu: đánh giá trên 3 bộ (Kermany 98,36% · Cohen 97,05% · Rahman 94,66%); chỉ 4,1 triệu tham số; 5 seed có độ lệch chuẩn; ablation ECA/DSA; tích hợp Grad-CAM.
+- Ưu về liêm chính: **tự nhận "kết quả chưa phải cao nhất so với một số nghiên cứu trước"** và nêu rõ hiệu năng giảm khi đổi bộ dữ liệu → trung thực, hiếm gặp.
+- ⚠ **Tiêu chí 6 = 0**: minh chứng duy nhất là seminar cấp khoa (2 trang), không có tạp chí/kỷ yếu — seminar không thuộc 3 mục của tiêu chí 6.
+
+## 177-103 — Khung học ba giai đoạn phân loại siêu âm tim thai (PB)
+TQ 8 · ND 17 · PP 13 · KQ 33 · HT 4 · CB 10 → **85**
+- ⭐ **Biomedical Signal Processing and Control (Elsevier, Q1)** — thư biên tập 29/6/2026 ghi rõ *"A final disposition of Accept has been registered"* cho BSPC-D-25-08699R2 → ĐÃ ĐƯỢC CHẤP NHẬN ĐĂNG, tính đủ 10 điểm.
+- **SV Huỳnh M. Quyên là First Author**; corresponding là GVHD Bay Vo → SV chủ công, nới điểm.
+- Đóng góp thật: học ba giai đoạn theo độ khó (curriculum) + Knowledge Distillation + DenseNet-201 gắn CBAM + focal loss, nhắm đúng khó khăn của siêu âm tim thai tuần 12–14.
+- Có huấn luyện lại baseline DenseNet-201 trên **cùng phiên bản dữ liệu công bố** để so sánh công bằng; báo cáo trung bình ± độ lệch chuẩn qua 5 lần chạy.
+- Cải thiện rõ ở lớp thiểu số khó (X-sign, V-sign Precision 0,9572 vs 0,9398; Aorta 0,8330 vs 0,8048).
+- Hạn chế: báo cáo 42 trang, 24 TLTK, thiếu chương kết luận độc lập; lớp Aorta còn độ lệch chuẩn cao (±0,0522).
+
+## 178-103 — ViCoHATE: bộ dữ liệu ngôn từ thù ghét giàu ngữ cảnh
+TQ 7 · ND 15 · PP 11 · KQ 28 · HT 3 · CB 5 → **69**
+- Bài tại **FJCAI 2026** (Hội thảo KH Quốc gia về TTNT, Cần Thơ) — SV Hoàng Thái Anh, Nguyễn Võ Hoàng Sơn, Nguyễn Việt Hoàng là 3 tác giả đầu, GVHD Bùi Danh Hường thứ 4 → SV chủ công. Có thêm minh chứng giải thưởng.
+- Ưu: ý tưởng đúng chỗ đau — thiết kế mẫu là bộ ba (Post + Parent + Target) thay vì bình luận đơn; bổ sung nhãn thái độ Stance; 10.007 mẫu Reddit; MTL PhoBERT; Hate-Precision +6,75 điểm so với text-only.
+- ⚠ **Không báo cáo độ đồng thuận giữa người gán nhãn (IAA/Cohen kappa)** — thiếu sót căn bản với một công trình công bố bộ dữ liệu; nhãn do LLM sinh rồi người kiểm, càng cần chỉ số này.
+- ⚠ Báo cáo tổng kết chỉ **17 trang** — quá mỏng so với quy mô công bố bộ dữ liệu; nhiều bảng trong báo cáo để trống số liệu.
+- ⚠ Dữ liệu chỉ từ Reddit tiếng Việt (cộng đồng nhỏ, thiên lệch nhân khẩu), chưa phải nền tảng phổ biến ở VN.
+
+## 192-102 — Tự động sinh cấu trúc lưới 3D bằng Python với Blender (PB)
+TQ 5 · ND 10 · PP 8 · KQ 17 · HT 3 · CB 0 → **43**
+- Nội dung: add-on Blender sinh lưới TPMS (Schwarz P/D, Gyroid, Fischer-Koch, Double…) bằng hàm ẩn + Marching Cubes (PyMCubes), có UI tham số resolution/frequency/threshold/thickness; áp lên mô hình xương đùi.
+- Ưu: công cụ chạy được, có giao diện; đo thời gian sinh ở 10 mức tần số, **100 lần thử mỗi mức, có độ lệch chuẩn** — phần đo lường duy nhất được làm tử tế.
+- ⚠⚠ **SAI CÔNG THỨC GYROID (ct.3)**: viết `sin(x)cos(y) + sin(y)cos(x) + sin(z)cos(z)`; công thức đúng là `sin(x)cos(y) + sin(y)cos(z) + sin(z)cos(x)`. Sai ở chính phương trình cốt lõi của đề tài.
+- ⚠⚠ **Tuyên bố vượt xa kết quả**: mục 1 nói đã đánh giá "geometric accuracy, mechanical performance, porosity control, manufacturing feasibility", nhưng chương Kết quả CHỈ có 01 bảng thời gian sinh. Không FEA, không đo độ xốp, không in thử, không kiểm tra watertight/manifold. Khẳng định "cân bằng giữa độ bền cơ học, nhẹ và tương thích sinh học" hoàn toàn không có số liệu.
+- ⚠ Không so sánh với công cụ hiện có (nTopology, Grasshopper, MSLattice…); mốc "thủ công mất hàng giờ" là ước lượng, không đo.
+- ⚠ Kết luận "độ phức tạp tăng theo hàm mũ" không khớp dữ liệu (chỉ là siêu tuyến tính).
+- ⚠ Chỉ 27 trang, 8 TLTK, 1 bảng, 4 hình; mục 2.2 và 2.3 trùng tiêu đề; xưng "I"/"this thesis" trong khi là đề tài nhóm.
+- Minh chứng chỉ có biên bản nghiệm thu cấp trường (Giải nhất, 453đ); Excel ghi "Công bố/ứng dụng 2025: Không có" → tiêu chí 6 = 0.
+
+## 193-102 — L-PINN mô phỏng nhiệt đa lớp L-PBF
+TQ 7 · ND 14 · PP 12 · KQ 27 · HT 4 · CB 5 → **69**
+- Bài "DEM-Compatible Physics-Informed Neural Networks for Temperature Prediction in SLM" tại EAI RAIDS 2026 (Đà Nẵng, 3/2026) — SV Nguyễn Hiếu Đức đứng đầu, GVHD Lê Kim Quy thứ 2.
+- Hướng PINN cho L-PBF là bài toán khó và thời sự; báo cáo 71 trang, 35 TLTK, có phần literature review về AM/SLM/DEM/PINN.
+- ⚠ Minh chứng công bố chỉ là **"Certificate of Attendance"** (giấy chứng nhận tham dự), KHÔNG phải giấy chấp nhận đăng hay bản kỷ yếu → giá trị chứng minh yếu.
+- ⚠ Báo cáo viết tiếng Anh, không có bản tiếng Việt; cấu trúc mục không tách rõ đóng góp mới so với PINN chuẩn.
+
+## 197-102 — Ứng dụng quản lý hạn sử dụng & gợi ý món ăn (PB)
+TQ 7 · ND 14 · PP 11 · KQ 26 · HT 4 · CB 5 → **67** (nới do SV chủ công → **70**)
+- Bài "VNExpirationDate: A Novel Expiration Date Dataset and A Robust Framework for Expiration Date Recognition on Complex Packaging in Vietnam" — **4 tác giả đầu đều là SV** (Lê Thanh Tiến, Hứa Nguyễn Minh Hiền, Hoàng Thị Xuân Ny, Nguyễn Hữu An @student.tdtu.edu.vn), GV Quảng Dũng Cẩm corresponding → SV chủ công, nới điểm.
+- Ưu: xây dựng bộ dữ liệu ngày hết hạn riêng cho bao bì Việt Nam (khoảng trống thật); mô hình VVA; sản phẩm hoàn chỉnh Android + Django + Firebase, có cảnh báo và gợi ý món ăn.
+- ⚠⚠ **Báo cáo tổng kết KHÔNG có số liệu thực nghiệm**: chương Kết quả chỉ mô tả luồng thao tác và "hiệu quả kinh tế - xã hội"; không một bảng so sánh nào với FCOS/ATSS/EAST/CRNN dù tổng quan đã nêu các mô hình này. Toàn bộ minh chứng định lượng nằm ở bài báo, không đưa vào báo cáo.
+- ⚠ Kết luận mang giọng quảng bá sản phẩm ("công cụ hỗ trợ vô giá", "hiệu suất vượt trội", "độ chính xác tuyệt đối") thay vì đánh giá khoa học có dẫn số.
+- ⚠ Hợp phần gợi ý món ăn không được đánh giá bằng bất kỳ độ đo nào.
+
+## 205-102 — Eco-Track: AIoT quan trắc & dự báo PM2.5 vi mô (PB)
+TQ 9 · ND 18 · PP 14 · KQ 35 · HT 5 · CB 0 → **81**
+- ⭐ Hệ thống khép kín thật sự: nút biên ESP32 + cảm biến → MQTT → InfluxDB/MongoDB → pipeline QC/Event → Hybrid CNN-LSTM → cảnh báo sức khỏe. Triển khai thực địa tại An Khánh, TP.HCM với 2 nền tảng phần cứng song song.
+- Thực nghiệm A (dữ liệu mở OpenAQ/AirGradient): đối sánh 6 mô hình; Hybrid CNN-LSTM MAE 1,471 · RMSE 1,843 · MAPE 10,898% · R² 0,902; giảm 11,9% MAE so với LSTM baseline.
+- Thực nghiệm B (ngoài mẫu, thực địa, có co-location): QC/Event làm RMSE giảm 18,4%, MSE giảm 33,4%, MAE giảm 12,5%, R² 0,872 → 0,915.
+- ⭐⭐ **Liêm chính khoa học xuất sắc**: tự nêu MAPE TĂNG nhẹ (16,47% → 17,06%) tức cải thiện không đồng đều; viết rõ "kết quả chưa nên được diễn giải như bằng chứng mô hình tối ưu tuyệt đối", "bằng chứng bước đầu", "chưa phải khẳng định hệ thống đạt chuẩn đo lường". Mức độ tiết chế phát biểu này hiếm thấy ở đề tài SV.
+- Mục Hạn chế cụ thể, đúng trọng tâm (co-location còn ngắn, thiếu biến ngoại sinh gió/mưa/giao thông, rủi ro mất kết nối, bảo mật broker).
+- ⚠ **Tiêu chí 6 = 0**: hồ sơ chỉ có xác nhận ứng dụng, giấy xác nhận cấp khoa và danh mục giải thưởng — KHÔNG có bài tạp chí hay kỷ yếu. Đây là đề tài chất lượng chuyên môn cao nhất trong nhóm không có công bố.
+
+## 215-103 — Cải tiến Okapi BM25 (comBM25) cho RAG pháp luật tiếng Việt
+TQ 7 · ND 13 · PP 10 · KQ 24 · HT 4 · CB 5 → **63**
+- Bài "Optimizing Retrieval Strategies for Vietnamese Legal RAG Systems" (định dạng LNCS, 15 trang). Xây dựng bộ LegalQA tiếng Việt.
+- Đóng góp: comBM25 kết hợp unigram + bigram với trọng số λ, và Hybrid Sparse+Dense.
+- ⚠⚠ **Báo cáo tổng kết KHÔNG có một bảng số liệu nào ở phần kết quả**: chỉ kết luận định tính "có khả năng cải thiện… trong một số trường hợp", "cho thấy tiềm năng". Một đề tài truy xuất thông tin mà không dẫn được nDCG/MRR/Recall@k nào là thiếu sót căn bản.
+- ⚠ Tính mới hạn chế: kết hợp n-gram vào BM25 là hướng đã có nhiều biến thể; chưa so với các baseline mạnh (BM25+, SPLADE, ColBERT).
+- ⚠ Bộ LegalQA chưa nêu quy mô, cách gán nhãn mức liên quan, độ đồng thuận.
+
+## 219-102 — OCR + tự động hóa nhập liệu hồ sơ đất đai (PB)
+TQ 6 · ND 13 · PP 10 · KQ 25 · HT 4 · CB 5 → **63**
+- Bài đăng **Tạp chí Khoa học Tài nguyên và Môi trường** (ĐH TN&MT HN, tạp chí trong nước) → 5đ. Có xác nhận báo cáo hội thảo.
+- ⭐ Ưu điểm thật: quy mô dữ liệu THẬT 9.978 giấy chứng nhận do Chi nhánh VPĐK đất đai Phù Cát cung cấp (tồn đọng từ dự án VLAP 2014); OCR nhận dạng thành công 94,4%; lỗi thuật toán 1,2%; có phân tích loại lỗi cụ thể (0/O, 1/I, 8/B); tích hợp Tesseract + PyAutoGUI + OpenCV + Pandas vào phần mềm VNPT iLIS; bám sát Thông tư 25/2024/TT-BTNMT và 01/2023/TT-VPCP. Giá trị thực tiễn và tính thời sự cao (bối cảnh sáp nhập hành chính).
+- ⚠⚠ **Số liệu so sánh mâu thuẫn ở bốn chỗ** cho cùng một phép so sánh: Bảng 2 ghi thủ công "58 ngày (1 người)"; cùng mục lại tính "41–42 giờ/người" (≈5–6 ngày); mục 2.7.2 ghi "33–56 giờ (5–7 ngày)"; kết luận (3) ghi "rút ngắn từ 180 ngày xuống 90 ngày". Bốn con số không thể đồng thời đúng.
+- ⚠ Mốc đối chứng thủ công (2–3% lỗi, 15–20 giây/file) là **ước lượng, không có thực nghiệm đối chứng**, trong khi đó chính là cơ sở của mọi kết luận "vượt trội 12–15 lần".
+- ⚠ Kịch bản "10 máy chạy song song" được nêu rõ là "giả sử", không phải kết quả đo.
+- ⚠ Không so sánh với OCR khác (VietOCR, PaddleOCR, Google Vision) dù tiếng Việt có dấu là thách thức chính; tính mới về phương pháp thấp (công cụ sẵn có, đóng góp là quy trình nghiệp vụ).
+- ⚠ Tổng quan dài nhưng chủ yếu là các nghiên cứu SWOT/Likert về "chuyển đổi số đất đai", ít liên quan trực tiếp đến OCR.
+
+## 241-102 — Phát hiện, nhận dạng, định vị đối tượng 3D trên bàn (PB)
+TQ 6 · ND 13 · PP 10 · KQ 24 · HT 3 · CB 5 → **61**
+- Bối cảnh tốt: hỗ trợ người khiếm thị và robot cầm nắm; tự thu dữ liệu RGB-D bằng Intel RealSense D435 cho 5 lớp vật dụng; YOLOv12 gọn (2.539.071 tham số, 3,08 GFLOPs); đánh giá cross-validation 5 fold và 4 tỷ lệ chia dữ liệu; 100 trang, 47 TLTK; có xác nhận ứng dụng (23 trang) và seminar.
+- ⚠⚠ **Chỉ số bão hòa bất thường**: mAP50 99,496% · mAP50-95 98,195% · Precision 99,841% · Recall 99,864%. Nghiêm trọng hơn, chênh lệch giữa 5 fold chỉ **0,005%** (99,494–99,499%) — biến thiên nhỏ đến mức phi thực tế, dấu hiệu điển hình của việc trích ảnh từ cùng video/cùng bối cảnh rồi chia ngẫu nhiên, khiến các frame gần trùng nhau nằm cả ở train lẫn test (rò rỉ dữ liệu).
+- ⚠⚠ **Phần định vị 3D — trọng tâm và điểm mới tự công bố của đề tài — không có kết quả đánh giá nào**: mọi bảng chỉ đo phát hiện 2D. Không có sai số vị trí 3D (mm), không đánh giá điểm cầm nắm, không kiểm thử với người khiếm thị hay cánh tay robot.
+- ⚠ Không so sánh với mô hình nào khác (YOLOv8/v11, Faster R-CNN, SSD) dù tổng quan có nêu.
+- ⚠ **Trang bìa bỏ trống tên đề tài** (dòng "TÊN ĐỀ TÀI:" không có nội dung) và bị lặp hai lần.
+- ⚠ Xưng "chúng em" trong báo cáo khoa học.
+
+## 261-103 — AI tạo sinh phát hiện phishing
+TQ 7 · ND 15 · PP 12 · KQ 29 · HT 4 · CB 5 → **72**
+- 2 bài kỷ yếu hội thảo quốc gia: NSA2026 và **VNICT 2025** (Viện CNTT - Viện HLKHCNVN) → 5đ. Có xác nhận ứng dụng + chứng nhận hội thảo.
+- Khung đa phương thức OCR + mBERT; mBERT Recall 98,85%, F1 98,26%, AUC 0,9985; OCR nâng F1 từ 58,7% → 97,4% trên dữ liệu ảnh và 52,1% → 96,2% trên mẫu homoglyph (mức cải thiện này thuyết phục vì đo đúng thứ OCR giải quyết).
+- ⭐ Đáng khen: báo cáo **chủ động bàn về tính hợp lệ của chỉ số cao** — nêu rõ AUC 0,9985 đạt trên tập cân bằng 50:50, và khi triển khai thực tế (mất cân bằng) phải hiệu chỉnh ngưỡng quyết định. Ý thức phương pháp luận tốt.
+- ⚠ **Hai con số mâu thuẫn cho cùng một suy luận**: một đoạn nói mBERT "ngăn thêm 125 cuộc tấn công mỗi ngày", đoạn ngay sau lại nói "ngăn chặn thêm khoảng 4 cuộc tấn công mỗi ngày".
+- ⚠ Suy diễn từ FN sang "số cuộc tấn công bị ngăn" là phép quy đổi không có căn cứ thực nghiệm.
+
+## 267-103 — CNN + XAI hỗ trợ phát hiện ung thư phổi
+TQ 5 · ND 10 · PP 7 · KQ 17 · HT 4 · CB 0 → **43**
+- ⚠⚠ **Sai lệch căn bản giữa tên đề tài và thực nghiệm**: đề tài công bố là phát hiện **UNG THƯ PHỔI**, nhưng toàn bộ thực nghiệm chạy trên tập "Normal / **Pneumonia**" (viêm phổi) — hai bệnh lý hoàn toàn khác nhau. Kết luận vẫn khẳng định "hỗ trợ chẩn đoán ung thư qua ảnh X-quang phổi".
+- ⚠⚠ Lightweight CNN đạt Accuracy 99,68%, ROC-AUC 0,9999, **FN = 0 VÀ FP = 0**. Một mô hình 0,316 triệu tham số vượt tuyệt đối ResNet-18 (11,5 triệu) và MobileNetV2 là điều bất thường; kết hợp với FN=FP=0 thì nhiều khả năng có rò rỉ dữ liệu (bộ Kermany có nhiều ảnh cùng một bệnh nhân, nếu chia ngẫu nhiên sẽ lọt cả train lẫn test).
+- ⚠ Văn phong kết luận thổi phồng: "giải pháp đột phá", "phá vỡ rào cản hộp đen", "củng cố niềm tin vững chắc cho đội ngũ y bác sĩ" — trong khi chưa có bất kỳ kiểm chứng lâm sàng nào.
+- ⚠ 97 trang nhưng chỉ ~15 TLTK; XAI chỉ dừng ở Grad-CAM, không đánh giá chất lượng giải thích.
+- ⚠ Tiêu chí 6 = 0 (chỉ có xác nhận ứng dụng, không có công bố).
+
+## 279-102 — Mô hình học sâu cảnh báo sớm bạo lực học đường (PB) ⭐ MẠNH NHẤT NHÓM PB
+TQ 9 · ND 19 · PP 14 · KQ 38 · HT 5 · CB 10 → **95**
+- ⭐⭐ Bài **"Hierarchical multimodal cross-interactive learning for school violence detection", Applied Soft Computing (Elsevier, SCIE, Q1)** — đã xuất bản, có Highlights. **SV Ngô Quang Khánh là tác giả thứ nhất**, Tạ Phi thứ hai; corresponding là GVHD Nguyễn Viết Hưng → SV chủ công rõ ràng.
+- Thêm 2 công bố nữa đã chấp nhận đăng: PMI-Net (Tạp chí KH ĐHSP TP.HCM) và Semantic Adaptive GCN (IEA/AIE 2026) + seminar.
+- Hai mô hình đề xuất có kiến trúc thật: **MAPNet** (RGB + Masked Pose Encoder khôi phục khớp bị che + Cross-Modal Attention) và **HMCI-Net** (thị giác + tư thế + biểu cảm, tương tác phân cấp).
+- Kết quả trên 4 bộ: RSVD Acc 94,66% / F1 95,70% (vượt mô hình mạnh nhất 5,06 điểm); UE-E2V Acc 90,96% (vượt VideoMAE-v1 86,34%); Hockey Fight 98,50%; Airtlab 98,10%. So sánh với 8–9 đường cơ sở mạnh và cập nhật (ViViT, VideoMAE-v1, SlowFast, TSGCNeXt, SelfGCN, LG-SGNet, DeGCN, ASGCN).
+- Tự xây bộ dữ liệu bạo lực học đường thực tế (RSVD) — giải quyết khoảng trống dữ liệu thật.
+- ⭐ **Trung thực khi thua**: thừa nhận SKP-Net (99,50%) và RTPNet (99,40%) cao hơn trên Hockey Fight, và giải thích nguyên nhân theo đặc thù dữ liệu thay vì giấu.
+- Mục hạn chế rất cụ thể và đúng: bottleneck ở bộ ước lượng tư thế, chi phí tính toán, độ trễ, khó triển khai trên edge/CCTV cấu hình thấp, giới hạn tổng quát hóa với góc máy lạ.
+- 67 trang, 59 TLTK. Đề tài gắn trực tiếp Chỉ thị 03/CT-TTg về ứng dụng AI phòng chống bạo lực học đường.
+
+## 310-102 — REBot: CatRAG tư vấn quy chế học vụ (PB)
+TQ 7 · ND 16 · PP 12 · KQ 30 · HT 4 · CB 10 → **79**
+- 3 công bố: **CRANE — Applied Intelligence (Springer, SCIE, 2026;56:283)**; NEDA-KAN; REBot: From RAG to CatRAG.
+- ⚠ **Ở CẢ BA bài, giảng viên đứng tên tác giả thứ nhất** (Huu-Hoa Nguyen / Thanh Ma), SV Tri-Tam La và nhóm đứng từ vị trí thứ hai trở đi → theo tiêu chí vị trí tác giả, KHÔNG nới điểm.
+- Nội dung có chiều sâu: CatRAG hợp nhất truy hồi dày đặc với suy luận trên đồ thị; đồ thị tri thức phân cấp 3 tầng gán nhãn chủ đề; bộ phân lớp ý định nhẹ định tuyến truy vấn sang phân vùng chỉ mục tương ứng; NER tiếng Việt + PhoBERT.
+- Có đánh giá đầy đủ: phân lớp ý định (RF 97,97%), phân lớp chủ đề 6 lớp (FastText 95,75%), Bảng 16 so sánh CatRAG vs RAG qua nhiều ngưỡng, Bảng 17 thời gian chạy trung bình 10 lần.
+- ⚠ Chương tổng quan dài dòng, mang tính giáo khoa (lịch sử Word2Vec → Transformer → GPT-5 → RLHF) hơn là định vị khoảng trống riêng của đề tài.
+- ⚠ Phạm vi chỉ trong quy chế của một trường (ĐH Cần Thơ); chưa kiểm chứng khả năng chuyển sang trường khác.
+- 105 trang, 53 TLTK.
+
+## 315-103 — Nhận dạng và phân loại đám cháy thời gian thực
+TQ 7 · ND 15 · PP 12 · KQ 30 · HT 4 · CB 10 → **78** (nới do SV chủ công → **79**)
+- ⭐ Bài "RT-DETR for Intelligent Fire Detection" đăng **Applied Computer Systems (Sciendo, 2026, 31(1):138–154)** — tạp chí quốc tế → 10đ. **SV Trần Phạm Thái Toàn là tác giả thứ nhất**, GV Hai Thanh Nguyen corresponding.
+- Bài thứ hai: "Towards Reliable Early Fire and Smoke Detection Using Optimized YOLOv11" — SV Nguyễn Phi Nhân đứng đầu.
+- ⚠ **Lỗi hồ sơ**: phần tóm tắt của bài YOLOv11 trong tệp minh chứng lại là tóm tắt của một công trình HOÀN TOÀN KHÁC ("automated knowledge extraction system from English scientific papers… seven core entity types"). Nhầm lẫn khi ghép minh chứng, cần đối chiếu lại.
+- Kết quả thực nghiệm hợp lý, KHÔNG bão hòa: k-fold (k=5), 300 epoch, ảnh 640×640; fold tốt nhất P 0,954 · R 0,895 · F1 0,924 · mAP50 0,944 · **mAP50-95 chỉ 0,642** — con số thực tế, đáng tin.
+- Nêu rõ giữ nguyên siêu tham số gốc để làm đường cơ sở so sánh thay vì tối ưu lấy điểm cao — cách làm đúng đắn.
+
+## 369-102 — Hệ thống Multi-Agent ôn thi Toán THPT
+TQ 6 · ND 12 · PP 9 · KQ 22 · HT 4 · CB 0 → **53**
+- Kiến trúc 4 tác nhân (Classifier / Planner / Solver / Verifier) có cơ chế tự sửa lỗi; dùng MCP, REST API, Cloudflare D1, pipeline OCR (YOLOv10 DocNet); bám thay đổi cấu trúc đề thi theo Thông tư 24/2024.
+- ⚠ **Báo cáo không trình bày kết quả thực nghiệm định lượng**: nêu sẽ đánh giá "độ chính xác lời giải, tính logic, khả năng tự sửa lỗi, độ trễ" nhưng phần kết quả không có bảng số liệu nào; hai bảng duy nhất là "tiêu chí chấm điểm URL" và "top 10 domain ưu tiên".
+- ⚠ Không so sánh với đường cơ sở (LLM đơn lẻ, ChatGPT, các hệ giải toán sẵn có) — không chứng minh được multi-agent hơn gì.
+- ⚠ Tiêu chí 6 = 0 (chỉ có xác nhận ứng dụng). 51 trang, 25 TLTK.
+
+## 370-102 — AI phân tầng giảm dương tính giả trong IDS (PB) ⭐ LIÊM CHÍNH TỐT NHẤT
+TQ 9 · ND 18 · PP 14 · KQ 36 · HT 4 · CB 0 → **81**
+- Kiến trúc 3 tầng có lập luận: Autoencoder sàng lọc luồng bất thường → LightGBM xác nhận tấn công → Stacking ensemble phân loại loại tấn công. Thiết kế **tách quyết định "bất thường" khỏi quyết định "phát cảnh báo"** — đúng trọng tâm bài toán dương tính giả.
+- Đánh giá hai tầng độc lập: (a) CIC-IDS-2017, 504.151 luồng: Accuracy 0,9984 · Macro F1 0,9712 · **FPR 0,0799%** (335/419.012 luồng BENIGN); (b) testbed VMware Suricata–Zeek–AI có kiểm soát, 10 lần lặp: giữ **100%** cảnh báo tấn công thật, giảm **83,1%** cảnh báo giả (12,4±1,6 → 2,1±0,7 alert/run).
+- Có RFECV chọn đặc trưng, chọn ngưỡng LightGBM theo phân bố lỗi tái tạo, liên kết Suricata–Zeek qua Community ID.
+- ⭐⭐ **Chuẩn mực học thuật cao nhất trong cả 59 hồ sơ**: (i) báo cáo thẳng lớp Bot chỉ đạt F1 0,7363 và viết rõ "cần báo cáo minh bạch thay vì chỉ trình bày Accuracy hay weighted F1"; (ii) nêu rõ FPR 0,0799% là của TOÀN khung chứ không phải từng thành phần; (iii) khẳng định "đánh giá này KHÔNG so sánh một NIDS-AI độc lập với Suricata"; (iv) giới hạn kết quả VMware trong đúng 3 kịch bản tương thích đặc trưng (PortScan, SSH-Patator, Web Attack) và nói rõ "không đại diện cho hiệu năng chung"; (v) cảnh báo distribution shift giữa CIC-IDS-2017 và Zeek logs; (vi) "hai kết quả này KHÔNG được gộp thành một chỉ số"; (vii) "chỉ nên hiểu là trình diễn ban đầu, không phải bằng chứng sẵn sàng vận hành".
+- ⚠ Tiêu chí 6 = 0: chỉ có chứng nhận giải thưởng NCKH cấp trường và xác nhận ứng dụng, không có công bố.
+- ⚠ Báo cáo toàn tiếng Anh, không có bản tiếng Việt; 43 trang, 21 TLTK — mỏng so với chất lượng nội dung.
+
+## 387-101 — Hàm Lambert W: tính chất và áp dụng
+TQ 6 · ND 12 · PP 10 · KQ 24 · HT 4 · CB 5 → **61**
+- Bài "Nghiên cứu một số áp dụng trong Toán học phổ thông của hàm Lambert W", **Tạp chí Khoa học ĐH Đồng Tháp, 15(2), 2026** — tác giả Võ Đức Thịnh (GV) và Bùi Phương Nam (SV, thứ 2). Tạp chí trong nước → 5đ; SV không phải tác giả đầu.
+- Có sản phẩm ứng dụng: web-app "Lambert W Function & Exponential Equation" xấp xỉ hai nhánh thực và giải phương trình — hữu ích cho dạy học.
+- ⚠ Đóng góp lý thuyết hạn chế: hàm Lambert W đã được Corless và cộng sự đặc tả rất kỹ từ 1996; các "tính chất đề xuất" và thuật toán Newton xấp xỉ đều là kiến thức đã biết. Giá trị chủ yếu ở khía cạnh sư phạm phổ thông, không phải khoa học mới.
+- ⚠ Chỉ **11 tài liệu tham khảo** cho 45 trang.
+
+## 388-101 — Dãy lặp cho ánh xạ không giãn tiệm cận trong CAT(0)
+TQ 8 · ND 16 · PP 13 · KQ 30 · HT 5 · CB 10 → **82**
+- ⭐ Hai công bố: (1) Dong Thap University Journal of Science 15(5):103–120 — Nguyễn Trung Hiếu (GV) và **Lê Thị Phương (SV) là tác giả liên hệ (corresponding)**; (2) **Facta Universitatis, Series: Mathematics and Informatics — ĐÃ NHẬN ĐĂNG**, tạp chí thuộc Web of Science (Q4) → tính 10đ. Thêm kỷ yếu hội thảo cấp trường.
+- Đóng góp cụ thể, đếm được: 1 dãy lặp ba bước + 1 dãy lặp bốn bước cho điểm bất động chung của **ba** ánh xạ không giãn tiệm cận (các công trình trước chỉ xét MỘT ánh xạ); 6 định lý ∆-hội tụ và hội tụ mạnh; 3 ví dụ minh họa tốc độ hội tụ nhanh hơn dãy lặp đã biết.
+- Tổng quan bài bản, có mạch lịch sử rõ (Kirk 2003 → Nanjaras–Panyanak 2010 → Sahin–Basarir 2013 → Asaduzzaman–Hossain 2018 → Hammad 2022 → Yambangwai–Thianwan 2021) và định vị đúng khoảng trống.
+- Hạn chế: chưa có áp dụng vào bài toán tối ưu / bất đẳng thức biến phân (đề tài tự nêu ở kiến nghị).
+
+## 395-103 — Agentic CBT Prompting hỗ trợ sức khỏe tâm lý
+TQ 10 · ND 19 · PP 14 · KQ 37 · HT 5 · CB 5 → **90**
+- ⭐⭐ **5 công bố quốc tế, trong đó có hai hội nghị hạng A\***: **EMNLP 2025** (System Demonstrations, "Metamo") và **Findings of ACL 2026** ("CMTD"); thêm PACLIC 39 (2025 — **SV Phan Mạnh Cường là tác giả thứ nhất**), ICALT 2026 (accepted) và ACII Workshops 2025. SV có mặt ở cả 5 bài.
+- Tiêu chí 6 chỉ được 5/10 vì toàn kỷ yếu hội nghị, không có tạp chí — thiệt thòi so với chất lượng thực.
+- Nội dung có chiều sâu phương pháp luận: chuyển bài toán nhận diện lỗi tư duy từ phân loại trực tiếp sang **trích xuất chuỗi (span extraction) theo lối đọc hiểu máy** — lập luận rõ vì sao (giảm nhiễu ngữ cảnh, tăng khả năng diễn dịch); khung đa tác tử kết hợp ngôn ngữ + biểu cảm thị giác + đặc điểm tính cách cho ERC; sinh phản hồi thấu cảm ERG; tái cấu trúc nhận thức lặp.
+- Thực nghiệm trên MELD và IEMOCAP với 10 LLM nền (4o-mini, 4.1-nano/mini, gpt-4.1, o4-mini, gpt-5, 5-nano/mini, Qwen, Mistral) — phổ đối chứng rộng.
+- Triển khai thật: MindReframe (web), Chat POSE (trợ lý ảo), Metamo; có thẩm định của chuyên gia tâm lý.
+- 114 trang, **169 tài liệu tham khảo** — công phu nhất trong hội đồng.
+- ⚠ Tự nhận hạn chế: quy mô mẫu đánh giá thủ công của chuyên gia còn vừa phải.
+
+## 404-102 — Học sâu phát hiện xâm nhập trong hệ thống IoT
+TQ 8 · ND 17 · PP 13 · KQ 33 · HT 4 · CB 5 → **80**
+- Bài tại **AETA 2025** (ĐH Tôn Đức Thắng, kỷ yếu Springer Book Series, Scopus Q4) — SV Nguyễn Mạnh Niên, Trần Văn Nhã đứng đầu, GV Lê Thị Anh corresponding. Bài thứ hai đang phản biện tại EIDT → **không tính**.
+- ⭐ Lập luận thiết kế sắc: chỉ ra rằng trong IDS phân cấp, lỗi bỏ sót ở tầng sàng lọc là **không thể sửa** ở tầng sau, nên chọn hướng safety-first thay vì tối ưu F1. Ngưỡng định tuyến được quét trên tập xác thực theo ràng buộc **rò rỉ tấn công**, không theo Max-F1 — đúng bản chất bài toán.
+- Định tuyến 3 vùng (Chắc chắn an toàn / Không chắc chắn / Chắc chắn tấn công) tăng Drop 15,37% → 16,28%, giảm chi phí 9,4635 → 9,4324, giữ Recall 99,90%, rò rỉ ~0,10%.
+- Stage-2 chuyển dữ liệu bảng thành ảnh giả RGB (rolling/channel stacking) cho EfficientNet; có lọc đặc trưng SHAP và quy trình chống rò rỉ dữ liệu.
+- Tối ưu triển khai đo được: chưng cất tri thức + lượng tử hóa INT8 giảm mô hình **53,96 MB → 696,26 kB**, độ trễ **10,77 → 4,663 ms/mẫu**; chạy thử trên Raspberry Pi 3.
+- ⚠ Chỉ 21 TLTK cho 81 trang.
+
+## 405-103 — KAMDA: dự đoán quan hệ vi khuẩn–thuốc (PB) ⭐ THỐNG KÊ CHẶT NHẤT
+TQ 9 · ND 18 · PP 14 · KQ 35 · HT 5 · CB 10 → **91**
+- ⭐ **Intelligence-Based Medicine (Elsevier, Scopus Q2)** — đã chấp nhận đăng.
+- ⚠ Tác giả thứ nhất kiêm liên hệ là **GV Nguyễn Văn Tình**; SV (Lâu Minh Tuấn, Nguyễn Thị Kim Anh, Nguyễn Quốc Phú, Nguyễn Thị Na, Ngô Thị Tú Khuyên) đứng từ vị trí thứ hai → theo tiêu chí vị trí tác giả, KHÔNG nới điểm.
+- Ba đóng góp rõ ràng, đếm được: (1) **tầng KAGAT** — đưa hàm kích hoạt B-spline học được của mạng Kolmogorov–Arnold vào cơ chế chú ý đồ thị; (2) học đa góc nhìn thích nghi qua cổng chú ý theo từng nút (góc nhìn sinh học A_bio + góc nhìn GIP A_gip), khác với tổng hợp đồng đều của các phương pháp trước; (3) khởi tạo đặc trưng lai ChemBERTa + DNABERT kết hợp điền khuyết K-NN có trọng số, xử lý được 16–25% thực thể thiếu dữ liệu phân tử.
+- ⭐⭐ Đánh giá nghiêm ngặt nhất hội đồng: vượt cả **7** phương pháp so sánh; AUC 0,9682 / AUPR 0,9652 (MDAD), AUC 0,9774 / AUPR 0,9719 (aBiofilm); **kiểm định t-test theo cặp trên 30 lần chạy độc lập** (p = 0,00052 cho AUC; p = 0,04256 cho AUPR) — đề tài DUY NHẤT trong hội đồng làm kiểm định ý nghĩa thống kê đầy đủ; thêm ablation, phân tích độ nhạy siêu tham số, đánh giá theo nhiều seed lấy mẫu âm, kiểm chứng bỏ qua.
+- ⭐ Case study Curcumin: **7/10 dự đoán hàng đầu được xác nhận bởi tài liệu đã công bố** — kiểm chứng ngoài mô hình.
+- ⭐ Trung thực về mức cải thiện: nêu rõ KAGAT chỉ hơn MLP-GAT **0,29 điểm % AUC và 0,89 điểm % AUPR**, kèm đầy đủ chi phí (ít tham số hơn: 642.177 vs 661.773; thời gian huấn luyện tăng 9,1 giây, dưới 4%). Không thổi phồng con số nhỏ.
+- ⭐ Mục hạn chế thể hiện hiểu biết sâu: nhận diện đúng vấn đề **Positive-Unlabeled** (coi mọi cặp chưa quan sát là âm là sai bản chất trong dự đoán liên kết sinh học) và đề xuất hướng PU-learning; hạn chế đơn phương thức (chỉ SMILES + 16S rRNA).
+
+## 425-102 — Tự động tạo bài toán có lời văn cá nhân hóa cho trẻ khó tính toán
+TQ 8 · ND 16 · PP 13 · KQ 31 · HT 4 · CB 5 → **77**
+- ⭐⭐ **Thiết kế thực nghiệm giáo dục chuẩn mực nhất trong toàn hội đồng**: có nhóm thực nghiệm (15) và nhóm đối chứng (15), pre-test/post-test, 9 phiên can thiệp; **kiểm tra giả định Levene trước khi t-test** (F(1,28)=0,571, p=0,456); Independent t-test t(28)=5,498, p<0,001; Cohen's d = 2,008 kèm **khoảng tin cậy 95% [6,44; 14,09]**; Paired t-test nội nhóm; Mann-Whitney U cho ba chiều ENG/FOC/ANX (|Z|>4,5, p<0,001). Đây là mức kỷ luật thống kê hiếm thấy ở đề tài SV.
+- Tổng quan tài liệu theo **quy trình PRISMA trên 169 nghiên cứu** — bài bản.
+- Diễn giải kết quả bằng khung lý thuyết (Lý thuyết tải trọng nhận thức CLT + Hiệu ứng tự tham chiếu SRE), giải thích cơ chế chứ không chỉ báo cáo số.
+- Chuyển hồ sơ nhận thức của trẻ khó tính toán (thiếu hụt cảm nhận số lượng, trí nhớ làm việc không gian – thị giác, lo âu toán học) thành ràng buộc thiết kế kỹ thuật cụ thể — liên ngành đúng cách.
+- ⚠ **Cỡ mẫu nhỏ (15/nhóm)**; d = 2,008 lớn bất thường trong can thiệp giáo dục. Báo cáo có ghi nhận là "hiếm gặp" nhưng chưa bàn tới hiệu ứng Hawthorne hay kỳ vọng của người thực nghiệm.
+- ⚠ **Nhóm đối chứng cũng cải thiện rất lớn (d = 2,847)** — gợi ý phần lớn tiến bộ đến từ luyện tập lặp và hiệu ứng làm lại bài, không phải riêng cá nhân hóa. Đây là điểm cần bóc tách nhưng báo cáo mới chỉ nêu qua.
+- Bài trên tạp chí trong nước → 5đ.
+
+## 454-103 — Cải tiến mô hình khuếch tán (AWWL) trong tạo ảnh có điều kiện
+TQ 6 · ND 15 · PP 12 · KQ 30 · HT 4 · CB 5 → **72**
+- Đề xuất **hàm mất mát Wavelet trọng số thích ứng (AWWL)**: phân rã phổ bằng 2D-DWT + lịch trọng số động theo biên độ nhiễu, đồng bộ với hai pha "thô → tinh" của mô hình khuếch tán. Ý tưởng có cơ sở lý thuyết rõ (hàm MSE đồng nhất không khớp động học phân tầng tần số).
+- Nghiên cứu cắt bỏ toàn diện trên CIFAR-10 theo α, p và loại wavelet; FID xấu đi từ 16,62 (α=0,2) lên 27,95 (α=0,95); IS 7,95; thêm tác vụ DreamBooth.
+- ⭐ Phát hiện có chiều sâu và trung thực: chỉ ra **"đặc tính đối nghịch của tham số α phụ thuộc miền dữ liệu"** — α tối ưu là 0,2 trên CIFAR-10 nhưng 0,8 trên DreamBooth — và giải thích thuyết phục (ảnh 32×32 định danh chủ yếu bằng biên sắc nét ở dải tần cao; huấn luyện từ đầu phải tự học kết cấu, khác với tinh chỉnh kế thừa trọng số tiền huấn luyện).
+- Có phần mềm đóng gói (hệ thống tạo ảnh khuếch tán thích nghi theo tần số) + xác nhận ứng dụng.
+- Bài "Adaptive Weight Wavelet Loss…" được chấp nhận tại **CITA 2026** (~450 bài nộp, tỷ lệ chấp nhận ~36%) → 5đ.
+- ⚠⚠ **Chỉ 08 tài liệu tham khảo** cho 76 trang — quá mỏng với một lĩnh vực đang bùng nổ như mô hình khuếch tán; không thể định vị được đóng góp so với các công trình về wavelet/frequency loss đã có.

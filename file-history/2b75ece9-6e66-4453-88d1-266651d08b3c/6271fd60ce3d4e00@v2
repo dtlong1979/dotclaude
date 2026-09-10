@@ -1,0 +1,116 @@
+"""Rút hồ sơ gọn, KHÔNG trùng lặp, cho từng đề tài."""
+import os, re, sys, fitz
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+TXT = os.path.join(HERE, 'txt')
+ROOT = r'D:/HĐ NCKH/Tài liệu'
+
+TOCLINE = re.compile(r'(\.\s*){6,}|^\s*\d{1,4}\s*$|^\s*[ivxlIVXL]{1,5}\s*$|^\s*[\d.,%]+\s*$|^\s*\.+\s*$')
+
+
+def clean(s):
+    s = re.sub(r'[ \t]+', ' ', s)
+    out, blank = [], 0
+    for ln in s.split('\n'):
+        t = ln.strip()
+        if not t or TOCLINE.search(ln):
+            blank += 1
+            continue
+        # gộp các dòng chỉ có 1-2 từ ngắn (di chứng của bảng bị vỡ) lại với nhau
+        if out and len(t) < 22 and len(out[-1]) < 200 and not t.endswith(('.', ':')):
+            out[-1] += ' | ' + t
+        else:
+            out.append(t)
+    return '\n'.join(out).strip()
+
+
+def load(code):
+    raw = open(os.path.join(TXT, code + '.txt'), encoding='utf-8').read()
+    return re.sub(r'\n===== \[Trang \d+\] =====\n', '\n', raw)
+
+
+class Picker:
+    """Chọn các đoạn không chồng lấn nhau."""
+
+    def __init__(self, body):
+        self.body = body
+        self.used = []
+
+    def free(self, s, e):
+        return not any(s < ue and e > us for us, ue in self.used)
+
+    def take(self, pattern, n, label):
+        for m in re.finditer(pattern, self.body, re.I):
+            s, e = m.start(), m.start() + n
+            if self.free(s, e):
+                self.used.append((s, e))
+                return f'--- {label} ---\n' + clean(self.body[s:e])
+        return f'--- {label} ---\n(không có mục riêng)'
+
+
+def results_span(body, n):
+    best, bi = -1, None
+    for m in re.finditer(r'(Kết quả thực nghiệm|Kết quả và (phân tích|thảo luận|đánh giá)|KẾT QUẢ (NGHIÊN CỨU|VÀ)|Đánh giá kết quả|So sánh với các)', body, re.I):
+        seg = body[m.start():m.start() + 3500]
+        sc = len(re.findall(r'(vượt|cao hơn|tốt hơn|đạt|so với)', seg, re.I)) * 3 + len(re.findall(r'\d+[.,]\d+', seg))
+        if sc > best:
+            best, bi = sc, m.start()
+    return bi
+
+
+def evidence(code):
+    fp = os.path.join(ROOT, code)
+    rep = open(os.path.join(TXT, code + '.txt'), encoding='utf-8').readline().replace('FILE: ', '').strip()
+    out = []
+    for f in sorted(os.listdir(fp)):
+        if f == rep:
+            continue
+        p = os.path.join(fp, f)
+        try:
+            if f.lower().endswith('.pdf'):
+                d = fitz.open(p)
+                t = f'[{len(d)} trang] ' + ''.join(pg.get_text() for pg in d[:2])
+            elif f.lower().endswith('.docx'):
+                import docx
+                t = '\n'.join(x.text for x in docx.Document(p).paragraphs[:50])
+            else:
+                t = '[tệp ảnh/khác - không đọc được văn bản]'
+        except Exception as e:
+            t = f'[lỗi đọc: {e}]'
+        t = re.sub(r'\s+', ' ', t).strip()
+        out.append(f'  ◦ {f}\n    {t[:1000]}')
+    return '\n'.join(out) or '  (không có minh chứng kèm theo)'
+
+
+def build(code, deep=False):
+    body = load(code)
+    n = 3400 if deep else 2200
+    p = Picker(body)
+    parts = [f'######## ĐỀ TÀI {code}',
+             '--- TRANG BÌA ---\n' + clean(body[:750])]
+    p.used.append((0, 750))
+    parts.append(p.take(r'\n\s*(TÓM TẮT|Tóm tắt|ABSTRACT)\s*\n', n, 'TÓM TẮT'))
+    parts.append(p.take(r'(Lý do chọn đề tài|Tính cấp thiết|Đặt vấn đề|Tổng quan tình hình nghiên cứu)', n, 'LÝ DO / TỔNG QUAN'))
+    parts.append(p.take(r'(Những đóng góp|Đóng góp chính|Đóng góp của đề tài|Điểm mới|Mục tiêu nghiên cứu)', n - 600, 'ĐÓNG GÓP / MỤC TIÊU'))
+    parts.append(p.take(r'(PHƯƠNG PHÁP ĐỀ XUẤT|Mô hình đề xuất|Kiến trúc đề xuất|Thuật toán đề xuất|Phương pháp nghiên cứu|Thiết kế hệ thống)', n, 'PHƯƠNG PHÁP / ĐỀ XUẤT'))
+    bi = results_span(body, n)
+    if bi is not None and p.free(bi, bi + n + 700):
+        p.used.append((bi, bi + n + 700))
+        parts.append('--- KẾT QUẢ ---\n' + clean(body[bi:bi + n + 700]))
+    else:
+        parts.append(p.take(r'(THỰC NGHIỆM|Kết quả)', n, 'KẾT QUẢ'))
+    m = list(re.finditer(r'\n\s*(KẾT LUẬN|Kết luận)', body))
+    parts.append('--- KẾT LUẬN ---\n' + (clean(body[m[-1].start():m[-1].start() + n]) if m else '(không tìm thấy)'))
+    ntl = len(re.findall(r'\n\s*\[\d+\]', body))
+    pgm = re.search(r'PAGES: (\S+)', body)
+    parts.append('--- SỐ MỤC TLTK (ước): %d · SỐ TRANG: %s ---' % (ntl, pgm.group(1) if pgm else '?'))
+    parts.append('--- MINH CHỨNG KÈM THEO ---\n' + evidence(code))
+    return '\n\n'.join(parts)
+
+
+if __name__ == '__main__':
+    deep = set(open(os.path.join(HERE, 'phanbien.txt'), encoding='utf-8').read().split())
+    os.makedirs(os.path.join(HERE, 'prof'), exist_ok=True)
+    for code in sys.argv[1:]:
+        open(os.path.join(HERE, 'prof', code + '.md'), 'w', encoding='utf-8').write(build(code, code in deep))
+    print('xong', len(sys.argv) - 1)

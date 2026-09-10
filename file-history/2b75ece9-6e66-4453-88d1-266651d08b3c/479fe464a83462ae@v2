@@ -1,0 +1,49 @@
+## 607-103 — Chatbot nâng cao trải nghiệm người học (Mentor-EAUT)
+TQ 5 · ND 11 · PP 8 · KQ 20 · HT 3 · CB 5 → **52**
+- Hệ thống chạy được: FastAPI + RAG + Docling + tiny-agents + Ollama, dùng SLM mã nguồn mở thay LLM thương mại, xác thực JWT, bộ nhớ đệm câu hỏi lặp; lập luận về chi phí và triển khai nội bộ là hợp lý với bối cảnh nhà trường.
+- ⚠⚠ **Văn phong không đạt chuẩn báo cáo khoa học**: xưng hô với người đọc là "bạn" ("bạn có thể nhìn vào bảng so sánh"), dùng khẩu ngữ ("mấy ông lớn như GPT-4", hệ thống "sống tốt" trên PC cũ), khẳng định tuyệt đối hóa ("tiết kiệm tài nguyên tính toán tuyệt đối", "chi phí bản quyền 0 đồng").
+- ⚠⚠ **Phép so sánh không công bằng**: đối chứng là Qwen3-Coder-480B **không được cung cấp ngữ cảnh truy xuất**, còn hệ đề xuất là SLM **có** RAG từ kho học liệu. Bên có tri thức nội bộ tất nhiên trả lời sát giáo trình hơn; phép so sánh này không tách được đóng góp của SLM. Muốn có ý nghĩa phải so RAG+SLM với RAG+LLM.
+- ⚠ Các bảng kết quả 4.2, 4.3, 4.4 không có số liệu; kết luận nêu "độ chính xác trên 90%" nhưng không dẫn được bảng nào.
+- ⚠ Trang bìa ghi **"NĂM 2025"** trong khi đây là Giải thưởng năm 2026.
+- ⚠ Chỉ 11 TLTK; báo cáo nộp dưới dạng .docx trong khi toàn bộ hồ sơ khác đều là PDF.
+
+## 613-103 — Tích hợp mô phỏng động lực học và AI dự đoán động lực học phân tử polymer
+TQ 7 · ND 15 · PP 13 · KQ 30 · HT 4 · CB 10 → **79**
+- Hướng liên ngành mạnh và hiếm: kết hợp **ba tầng** — mô phỏng động lực học phân tử (MD), học máy (GPR / TinyLlama) và lý thuyết Langevin phi tuyến tập thể đàn hồi (ECNLE) — để dự đoán nhiệt độ chuyển thủy tinh Tg và động học tái cấu trúc của 6 polymer (PDMS, PB, PPG, PEO, PI, PPS).
+- Kết quả: Tg từ MD phù hợp tốt với thực nghiệm; GPR đạt R² = 90%, RMSE 35,5 K; TinyLlama R² = 85,4%, RMSE 42 K; ECNLE tái tạo được log(tau) theo Tg/T phù hợp định lượng với dữ liệu thực nghiệm.
+- ⭐ Trung thực ở nhiều chỗ: nêu rõ dự đoán Tg từ học máy **có xu hướng cao hơn** thực nghiệm và chỉ đúng nguyên nhân (thiếu dữ liệu ở vùng nhiệt độ thấp); khẳng định dạng chuẩn của ECNLE (ac = 1) đã đủ chính xác **mà không cần tham số hiệu chỉnh** — chống lại cám dỗ nhồi tham số cho đẹp số liệu.
+- ⚠⚠ **Over-claim rõ ràng**: viết "kết quả từ CML của chúng tôi đang cho **hiệu suất dự đoán cao nhất thế giới hiện nay**", trong khi căn cứ duy nhất là so với Bảng 1 của MỘT bài báo. Đây là tuyên bố vượt xa bằng chứng và cần rút lại hoặc hạ giọng thành "cao hơn các mô hình đã báo cáo trên cùng bộ dữ liệu này".
+- ⚠ RMSE 35,5 K là sai số khá lớn về mặt vật lý khi Tg của các polymer khảo sát chỉ nằm trong 160–227 K (tương đương sai số khoảng 20%); R² = 90% vì thế chưa phản ánh đủ độ tin cậy cho ứng dụng.
+- ⚠ Toàn bộ minh chứng công bố là **ảnh chụp màn hình (.png/.jpg)**, không có bản toàn văn; khai có 1 bài Q1 (2026), 2 bài Q2 (2025), 1 bài Scopus (accepted) và 1 bài Tạp chí Đồng Tháp nhưng không thẩm định được tên tạp chí, vị trí tác giả. Hồ sơ minh chứng cần bổ sung.
+- 35 trang, 40 TLTK.
+
+## 615-103 — AutoMind: khám phá tri thức tự động bằng điều hướng đa tác nhân (PB) ⭐ THỰC NGHIỆM CHUẨN NHẤT
+TQ 9 · ND 19 · PP 15 · KQ 37 · HT 5 · CB 10 → **95**
+- ⭐⭐ **Ba công bố**: (1) **IEEE Access (ISI/Scopus Q1) — ĐÃ XUẤT BẢN**, đúng tên đề tài; (2) DEFI 2025 (hội thảo quốc tế, đã trình bày); (3) CITA 2026 (chấp nhận, Springer Proceedings).
+- Kiến trúc rõ ràng và có lý do: mô hình điều phối – thực thi (orchestrator–worker) dạng hub-and-spoke với 4 nhóm tác nhân chuyên biệt (lập hồ sơ dữ liệu / khám phá tri thức / mô hình hóa / suy luận), vòng lặp tự sửa lỗi và **Verifier Agent** để chặn ảo giác trong biến đổi dữ liệu.
+- ⭐⭐ **Thiết kế thực nghiệm chuẩn mực nhất trong toàn hội đồng về đối chứng**:
+  · Chạy trên **ba LLM nền khác nhau** (GPT-4o, Llama3-70B, Qwen3-Coder-70B) để tách biệt mức phụ thuộc vào mô hình nền — điều rất ít đề tài làm.
+  · **Báo cáo p-value cho mọi so sánh** (p < 0,001) kèm Mean ± Std.
+  · Đối chứng với 4 baseline (ZeroShot, AutoKaggle, CoT, Insight Agents) **và cả chuyên gia người**.
+  · Có thí nghiệm tách riêng multi-agent với single-agent trên cùng nền GPT-4o để cô lập đóng góp của cơ chế điều phối.
+- ⭐ **Chọn chỉ số theo bản chất bài toán, không máy móc**: nhận ra nhãn tập Education là thang Likert **có thứ bậc** nên chuyển sang chỉ số hồi quy (MSE/RMSE/R²) vì "dự đoán 1 khi nhãn thật là 5 nghiêm trọng hơn nhiều so với dự đoán 4" — lập luận đúng và hiếm gặp.
+- ⭐ Chỉ ra **"nghịch lý độ chính xác"** trên ShopMania: ZeroShot đạt Accuracy 86,82% nhưng F1 chỉ 34,22% do lớp chiếm đa số — thể hiện hiểu sâu về chỉ số thay vì chạy theo Accuracy.
+- Kết quả mạnh: Education MSE 0,093 so với AutoKaggle 0,213 (p < 0,001), R² = 0,901; ShopMania (191 danh mục lá, hơn 300.000 mẫu) F1 86,72 ± 1,56 so với Insight Agents 77,37 ± 11,72 — **độ lệch chuẩn nhỏ hơn 7 lần**, chứng minh tính ổn định chứ không chỉ điểm cao.
+- ⭐ Phân tích có sắc thái: Qwen3-Coder-70B mã nguồn mở vượt GPT-4o khoảng 10% F1 trên Heart Disease, nhưng GPT-4o lại tốt hơn trên Fake News nhiều nhiễu — kết luận theo từng bối cảnh thay vì tuyên bố một chiều.
+- Báo cáo đầu ra đa phương thức có truy xuất nguồn gốc (mỗi khẳng định gắn với hình ảnh hoặc số liệu cụ thể). 76 trang, 62 TLTK.
+
+## 626-103 — Khung mô hình sinh thống nhất phục hồi ảnh đa suy giảm (UFR-GAN) (PB)
+TQ 9 · ND 18 · PP 14 · KQ 35 · HT 4 · CB 10 → **90**
+- ⭐⭐⭐ **Bốn công bố, ba trong đó là tạp chí quốc tế Elsevier/Springer**:
+  1. **Neural Computing and Applications (Springer, 2026;38:214)** — "Efficient multitask model for image restoration in degraded conditions".
+  2. **Pattern Recognition Letters (Elsevier)** — "UFR-GAN: A lightweight multi-degradation image restoration model" (đúng đề tài).
+  3. **J. Visual Communication and Image Representation (Elsevier)** — "QaMatch: Adaptive semi-supervised learning for no-reference IQA".
+  4. FAIR 2024 (Hội nghị KHCN Quốc gia lần thứ XVII, có DOI).
+- Thiết kế có lý do rõ ràng: dịch ảnh hai chiều kiểu CycleGAN + lõi **Restormer** cho phụ thuộc tầm xa + nhánh **miền tần số** + **học tương phản trên miền tần số** để tách các biểu hiện suy giảm chồng lấn **mà không cần biết trước loại suy giảm** — giải đúng điểm nghẽn của các mô hình đơn suy giảm.
+- Phủ 7 dạng suy giảm (mưa, sương mù, tuyết, thiếu sáng, nhòe, nhiễu, nén ảnh) trong một kiến trúc; 45,40 triệu tham số.
+- ⭐ **Ablation cho thấy đúng thành phần nào tạo ra hiệu quả**: khung gốc 23,05 PSNR → thêm biểu diễn miền tần số 23,91 → thêm học tương phản trên miền tần số **26,87** — chứng minh vai trò then chốt của thông tin tần số bằng số liệu chứ không bằng khẳng định.
+- ⭐⭐ **Kiểm chứng ở tác vụ hạ nguồn**: đo mAP@50 của YOLOv11 phát hiện phương tiện **trước và sau** khi phục hồi ảnh trong điều kiện thời tiết bất lợi — chứng minh giá trị thực tế thay vì chỉ dừng ở PSNR/SSIM. Đây là cách kiểm chứng đúng đắn mà nhiều đề tài phục hồi ảnh bỏ qua.
+- ⭐ **Mục hạn chế rất trung thực**: nêu rõ dữ liệu chưa phủ hết điều kiện cực đoan nên "chưa thể tuyệt đối đánh giá được tính tổng quát"; mô hình vẫn thất bại với suy giảm rất nặng do thông tin gốc đã mất; và thẳng thắn thừa nhận **"độ trễ vẫn là thách thức lớn, chưa đảm bảo yêu cầu thời gian thực, còn giới hạn khi triển khai trên thiết bị biên"**.
+- Kiến nghị chuyên sâu và cập nhật: Mixture of Experts để chuyên biệt hóa từng loại suy giảm mà không tăng kích thước, diffusion và flow matching kèm học ít bước để khắc phục độ trễ, phát triển độ đo cân bằng giữa chất lượng tri giác và độ méo.
+- ⚠ PSNR 26,87 trên bộ dữ liệu kết hợp là mức khiêm tốn so với các mô hình chuyên biệt cho từng loại suy giảm; báo cáo nên nêu rõ hơn sự đánh đổi giữa "một mô hình cho tất cả" và chất lượng đỉnh của mô hình chuyên biệt.
+- ⚠ Báo cáo chỉ 41 trang, 44 TLTK — mỏng so với khối lượng công bố đi kèm; danh mục bảng bị lặp (Bảng 3, 5, 6 xuất hiện hai lần).

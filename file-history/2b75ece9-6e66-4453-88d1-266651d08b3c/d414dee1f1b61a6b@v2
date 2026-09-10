@@ -1,0 +1,58 @@
+import fitz, os, re, sys, glob
+
+ROOT = r'D:/HĐ NCKH/Tài liệu'
+OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'txt')
+os.makedirs(OUT, exist_ok=True)
+
+
+def norm(s):
+    return re.sub(r'[ \t]+', ' ', s)
+
+
+def pick_report(files):
+    cands = [f for f in files if f.lower().endswith(('.pdf', '.docx'))]
+    def score(f):
+        l = f.lower()
+        s = 0
+        if 'minh ch' in l or 'công bố' in l or 'cong bo' in l or 'xác nhận' in l or 'xac nhan' in l or 'sản phẩm' in l:
+            s -= 100
+        if 'tổng kết' in l or 'tong ket' in l or 'báo cáo' in l or 'bao cao' in l or 'baocao' in l:
+            s += 50
+        if '(vna)' in l or 'vna' in l:
+            s += 10
+        return s
+    cands.sort(key=score, reverse=True)
+    return cands[0] if cands else None
+
+
+def extract(folder):
+    fp = os.path.join(ROOT, folder)
+    files = os.listdir(fp)
+    tgt = pick_report(files)
+    path = os.path.join(fp, tgt)
+    if tgt.lower().endswith('.docx'):
+        import docx
+        d = docx.Document(path)
+        parts = [p.text for p in d.paragraphs]
+        for t in d.tables:
+            for r in t.rows:
+                parts.append(' | '.join(c.text for c in r.cells))
+        txt = '\n'.join(parts)
+        npages = 'docx'
+    else:
+        doc = fitz.open(path)
+        npages = len(doc)
+        parts = []
+        for i, p in enumerate(doc):
+            parts.append(f'\n===== [Trang {i+1}] =====\n' + p.get_text())
+        txt = ''.join(parts)
+    out = os.path.join(OUT, folder + '.txt')
+    with open(out, 'w', encoding='utf-8') as f:
+        f.write(f'FILE: {tgt}\nPAGES: {npages}\nOTHERS: {[x for x in files if x != tgt]}\n')
+        f.write(norm(txt))
+    return out, tgt, npages, len(txt)
+
+
+if __name__ == '__main__':
+    for folder in sys.argv[1:]:
+        print(extract(folder))
