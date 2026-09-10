@@ -1,0 +1,40 @@
+// Chụp thanh đầu trang của site Dottie khi menu con ĐANG MỞ — kiểm bằng mắt điều mà phép kiểm số đã nói.
+import { chromium } from 'playwright-core';
+import { writeFileSync } from 'node:fs';
+
+const [ip, out] = process.argv.slice(2);
+const browser = await chromium.launch({
+  executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium-browser',
+  args: [`--host-resolver-rules=MAP qcv2-mau.localhost ${ip}`, '--no-sandbox', '--disable-gpu'],
+});
+const page = await browser.newPage({ viewport: { width: 1280, height: 900 }, locale: 'vi-VN' });
+await page.goto('http://qcv2-mau.localhost:8081/', { waitUntil: 'networkidle' });
+
+const truoc = await page.evaluate(() => document.querySelector('.dau-trang').getBoundingClientRect().height);
+await page.locator('.dau-trang__muc--co-con > .dau-trang__lk').first().hover();
+await page.waitForTimeout(250);
+const sau = await page.evaluate(() => document.querySelector('.dau-trang').getBoundingClientRect().height);
+
+const do_ = await page.evaluate(() => {
+  const c = document.querySelector('.dau-trang__muc--co-con > .dau-trang__con');
+  const t = document.querySelector('.dau-trang');
+  const m = document.querySelector('#qcv-page');
+  if (!c) return { menuCon: 'KHÔNG THẤY' };
+  const a = c.getBoundingClientRect(), b = t.getBoundingClientRect(), n = m?.getBoundingClientRect();
+  // Điểm giữa của menu con: phần tử nào đang nằm TRÊN cùng ở đó? Nếu không phải menu con thì nó bị che.
+  const giua = document.elementFromPoint(a.x + a.width / 2, a.y + a.height / 2);
+  return {
+    viTri: getComputedStyle(c).position,
+    hien: getComputedStyle(c).display,
+    hopMenuCon: { x: Math.round(a.x), y: Math.round(a.y), w: Math.round(a.width), h: Math.round(a.height) },
+    mepDuoiThanh: Math.round(b.bottom),
+    tranQuaBody: Math.round(a.bottom - b.bottom),
+    dinhBody: n ? Math.round(n.top) : null,
+    phanTuTrenCung: giua ? `${giua.tagName}.${giua.className}`.slice(0, 60) : null,
+  };
+});
+
+writeFileSync(`${out}/do.json`, JSON.stringify({ caoTruoc: Math.round(truoc), caoSau: Math.round(sau), ...do_ }, null, 1));
+console.log(JSON.stringify({ caoTruoc: Math.round(truoc), caoSau: Math.round(sau), ...do_ }, null, 1));
+await page.screenshot({ path: `${out}/menu-con-dang-mo.png`, clip: { x: 0, y: 0, width: 1280, height: 520 } });
+await browser.close();
