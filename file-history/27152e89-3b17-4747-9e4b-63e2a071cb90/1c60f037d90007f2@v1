@@ -1,0 +1,65 @@
+name: hou_cntt
+description: App hỗ trợ học tập Khoa CNTT - Trường Đại học Mở Hà Nội
+publish_to: 'none'
+version: 0.6.0+21
+
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  dio: ^5.4.0
+  provider: ^6.1.2
+  shared_preferences: ^2.2.3
+  google_fonts: ^6.2.1         # Be Vietnam Pro — đồng bộ font với web
+  mobile_scanner: ^7.0.0       # quét QR + trả về 4 góc (tính độ méo). 7.x: lib ML Kit/CameraX đã căn 16 KB
+  geolocator: ^12.0.0          # GPS (Haversine ở backend)
+  sensors_plus: ^6.0.1         # accelerometer -> góc nghiêng máy
+  qr_flutter: ^4.1.0           # tạo mã QR cho thẻ SV số
+  url_launcher: ^6.3.0         # mở file đính kèm thông báo + mở website trên trình duyệt
+  package_info_plus: ^8.0.0    # đọc phiên bản app cho màn Giới thiệu
+  webview_flutter: ^4.10.0     # tab Website: xem tin tức website ngay trong app
+  firebase_core: ^3.6.0        # FCM push
+  firebase_messaging: ^15.1.3
+  flutter_local_notifications: ^18.0.1   # hiện thông báo khi app đang mở
+  image_picker: ^1.1.2         # đính kèm ảnh trong chat
+  file_picker: ^10.3.2         # đính kèm TỆP (pdf/office/zip…) trong chat + trao đổi
+  speech_to_text: ^7.0.0       # GV điểm danh bằng giọng nói (tìm nhanh + lệnh Vắng/Có mặt)
+  web_socket_channel: ^3.0.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+  flutter_launcher_icons: ^0.14.1
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/logo.png
+    - assets/logo_icon.png
+    # icon_app.png chỉ là NGUỒN sinh icon ứng dụng, không nhúng vào gói app.
+
+# Sinh icon ứng dụng cho Android + iOS. Chạy: dart run flutter_launcher_icons
+#
+# ⚠ Nguồn icon là `assets/icon_app.png` — CHỈ huy hiệu, KHÔNG có dòng "Khoa Công Nghệ Thông
+#   Tin". Ở cỡ 48px dòng chữ ấy không đọc được, mà icon thích ứng của Android còn xén tròn
+#   nên chữ ở đáy sẽ mất. Trọn bộ logo (có chữ) dùng cho MÀN HÌNH, ở `assets/logo.png`.
+# ⚠ Ảnh phải vuông 1024x1024 (cỡ lớn nhất iOS cần) và KHÔNG có kênh alpha — App Store từ
+#   chối icon có nền trong; `remove_alpha_ios: true` là lớp chặn thứ hai.
+# ⚠ File sinh ra (android/.../mipmap-*, ios/.../AppIcon.appiconset) PHẢI COMMIT: Codemagic
+#   dựng bản phát hành từ repo chứ không chạy lại bộ sinh icon.
+flutter_launcher_icons:
+  android: true
+  ios: true
+  remove_alpha_ios: true
+  # HAI ảnh nguồn khác nhau, cố ý:
+  #  · icon_app.png          — lề 14%, dùng cho iOS + Android bản cũ (chỉ bo góc nhẹ).
+  #  · icon_adaptive_fg.png  — lề rộng hơn (huy hiệu chỉ chiếm 59% bề ngang), cho icon THÍCH ỨNG
+  #    của Android: launcher xén còn vòng tròn ~66%, mà huy hiệu NẰM NGANG nên phải tính theo
+  #    ĐƯỜNG CHÉO. Dùng chung một ảnh cho cả hai thì Android xén cụt hai mép huy hiệu.
+  image_path: "assets/icon_app.png"
+  background_color: "#FFFFFF"
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "assets/icon_adaptive_fg.png"
