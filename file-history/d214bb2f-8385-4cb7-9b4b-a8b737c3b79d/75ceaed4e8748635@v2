@@ -1,0 +1,19 @@
+
+### 4b-bis. Hình chiếu CHI TIẾT (`detail`) — cho khuôn trang chi tiết *(2026-09-10, ADR QG4-51)*
+
+Khoá **`detail`** ở cấp gốc `app/Entities/<loại>.json`, mảng chuỗi, **cùng ba dạng ký hiệu với `card`** và chiếu bằng **cùng một lớp** `App\Content\Cards` (`HINH_CHIEU` là danh sách đóng). Không có lớp thứ hai: ba dạng ký hiệu, việc gộp truy vấn `ref.`, việc đọc `EntitySchema` đều y hệt.
+
+**`card` và `detail` KHÔNG thay nhau.** `card` là hình chiếu của một **THẺ trong lưới** — nó nhân với số ô, nên nó cấm `body` và chỉ lấy `gallery[0..1]`. `detail` là hình chiếu của **đúng một** bản ghi, nên nó chở được thứ `card` cố ý không chở.
+
+| Thực thể | `detail` |
+|---|---|
+| `post` | `title, slug, excerpt, body, cover, author, published_at, status, readingMinutes, category.name, category.slug` |
+| `product` | `name, slug, sku, summary, body, gallery, price, sale_price, status, weight, category.name, category.slug, brand.name, brand.slug` |
+
+Mỗi trường có một lý do đo được, không phải « cho đủ »: `body` (trang chi tiết có một bản ghi, lưới có hàng trăm KB) · `gallery` đủ bộ (đây là chỗ duy nhất bày cả bộ ảnh) · `sku`, `weight`, `brand.name` (đúng ba trường làm nên bảng thông số, không trường nào có trong `card`) · `author` (cột có thật, thẻ trong lưới không hiện tác giả) · `category.slug`/`brand.slug` (không có thì tên chuyên mục **không trỏ về đâu được**, mà một liên kết đoán từ tên là một liên kết 404) · `status` (để khối nói được « bài này chưa đăng » trong Studio, dù route công khai đã chặn bản ghi ẩn).
+
+**`readingMinutes` là khoá SUY RA thứ hai** bên cạnh `count` — §4b nói « `count` là khoá suy ra duy nhất », nay đọc là **hai**. Ước theo số chữ của `body`, hằng **200 chữ/phút** của core, chỉ có nghĩa trong `detail`. Nó ở tầng dữ liệu chứ không ở Blade vì 19 khối hỏi là 19 cách đếm, và mỗi lượt kết xuất là một lượt quét trên hàng chục KB HTML.
+
+**Trường kiểu mảng (`media[]`, `ref[]`) lưu JSON trong một cột chữ phải được GIẢI MÃ trước khi tới khối.** `card` chỉ đọc chúng qua lát cắt (`gallery[0..1]`) nên nhánh này chưa từng gặp; trả nguyên chuỗi JSON cho khối là một `@foreach` chạy trên một chuỗi — **sai im lặng**: thư viện ảnh rỗng, không lỗi, không dấu vết.
+
+**Thi hành câu « trường ngoài hình chiếu thì block không truy cập được »** (§4b): ở cửa Blade `$qcv->banGhi($truong)` — một trường mỗi lần — trả `null` **kèm một dòng nhật ký có tên thực thể và tên trường** (ADR QG4-52). Trả cả bản ghi qua một khoá của `ngucanh()` thì câu ấy không có chỗ nào thi hành.
