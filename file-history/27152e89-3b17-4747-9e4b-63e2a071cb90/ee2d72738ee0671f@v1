@@ -1,0 +1,514 @@
+import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
+
+import '../../core/theme.dart';
+import '../../core/ui.dart';
+import 'workload_api.dart';
+
+const _buoiList = [
+  ('sang', 'Sáng'),
+  ('chieu', 'Chiều'),
+  ('toi', 'Tối'),
+  ('ngay', 'Cả ngày'),
+];
+const _mucList = [
+  ('30p', '≤30 phút'),
+  ('1h', '1 giờ'),
+  ('2h', '2 giờ'),
+  ('3h', '3 giờ'),
+  ('4h', '4 giờ'),
+  ('ca_buoi', 'Cả buổi'),
+  ('ca_ngay', 'Cả ngày'),
+];
+const _mucShort = {
+  '30p': '30p', '1h': '1h', '2h': '2h', '3h': '3h', '4h': '4h',
+  'ca_buoi': 'Cả buổi', 'ca_ngay': 'Cả ngày',
+};
+const _srcLabel = {
+  'hop': ('Họp', brandBlue),
+  'giang_day': ('Giảng dạy', cSchedule),
+  'website': ('Website', cHandbook),
+  'tu_dong': ('Tự động', Color(0xFF64748B)),
+};
+
+/// GHI NHẬT KÝ 1 CHẠM — khớp màn /log web: việc đang giao × buổi × mức thời lượng, tự lưu từng chạm.
+/// Mục tự-ghi (giảng dạy/họp/website) hiển thị khóa; có Báo nghỉ tại chỗ + "không có việc".
+class WorkloadLogTab extends StatefulWidget {
+  final WorkloadApi api;
+  final VoidCallback? onHistory;
+  const WorkloadLogTab({super.key, required this.api, this.onHistory});
+  @override
+  State<WorkloadLogTab> createState() => _WorkloadLogTabState();
+}
+
+class _WorkloadLogTabState extends State<WorkloadLogTab> {
+  bool _loading = true;
+  String? _err;
+  Map _d = const {};
+  DateTime _day = DateTime.now();
+  // sel[taskId|"p:text"][buoi] = muc
+  final Map<String, Map<String, String>> _sel = {};
+  final List<String> _personal = []; // nội dung việc khác đang hiển thị
+  String? _openKey; // mục nhật ký đang MỞ (accordion — mở 1, thu gọn còn lại)
+
+  String get _ds =>
+      '${_day.year.toString().padLeft(4, '0')}-${_day.month.toString().padLeft(2, '0')}-${_day.day.toString().padLeft(2, '0')}';
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    if (!mounted) return;
+    setState(() => _loading = true);
+    try {
+      final d = await widget.api.log(d: _ds);
+      _sel.clear();
+      _personal.clear();
+      final sbt = (d['sel_by_task'] as Map?) ?? const {};
+      sbt.forEach((k, v) => _sel['$k'] = Map<String, String>.from(
+          (v as Map).map((a, b) => MapEntry('$a', '$b'))));
+      for (final p in ((d['personal'] as List?) ?? const []).cast<Map>()) {
+        final key = 'p:${p['text']}';
+        _personal.add('${p['text']}');
+        _sel[key] = Map<String, String>.from(
+            ((p['sel'] as Map?) ?? const {}).map((a, b) => MapEntry('$a', '$b')));
+      }
+      if (mounted) setState(() { _d = d; _loading = false; _err = null; });
+    } catch (_) {
+      if (mounted) setState(() { _err = 'Không tải được nhật ký'; _loading = false; });
+    }
+  }
+
+  void _goDay(int delta) {
+    setState(() => _day = _day.add(Duration(days: delta)));
+    _load();
+  }
+
+  bool get _editable => _d['editable'] == true;
+
+  Future<void> _pickMuc(String key, String buoi, {String? taskId, String? text}) async {
+    final cur = _sel[key]?[buoi] ?? '';
+    final picked = await showModalBottomSheet<String>(
+      context: context,
+      builder: (c) => SafeArea(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
+            child: Row(children: [
+              Text('Mức thời lượng · ${_buoiLabel(buoi)}',
+                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
+            ]),
+          ),
+          for (final m in _mucList)
+            ListTile(
+              dense: true,
+              leading: Icon(cur == m.$1 ? Icons.radio_button_checked : Icons.radio_button_off,
+                  color: cur == m.$1 ? brandBlue : null),
+              title: Text(m.$2),
+              onTap: () => Navigator.pop(c, m.$1),
+            ),
+          if (cur.isNotEmpty)
+            ListTile(
+              dense: true,
+              leading: const Icon(Icons.remove_circle_outline, color: Colors.redAccent),
+              title: const Text('Bỏ chọn buổi này'),
+              onTap: () => Navigator.pop(c, '__none__'),
+            ),
+          const SizedBox(height: 8),
+        ]),
+      ),
+    );
+    if (picked == null) return;
+    final muc = picked == '__none__' ? '' : picked;
+    try {
+      final r = await widget.api.logSet(
+          logDate: _ds, buoi: buoi, mucTg: muc, taskId: taskId ?? '', text: text ?? '');
+      if (r['ok'] != true) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(_errMsg('${r['error'] ?? ''}'))));
+        }
+        return;
+      }
+      if (!mounted) return; // (C7) tránh setState sau khi widget đã bị gỡ
+      setState(() {
+        _sel.putIfAbsent(key, () => {});
+        if (muc.isEmpty) {
+          _sel[key]!.remove(buoi);
+        } else {
+          // 'ngay' loại trừ sáng/chiều/tối; buổi lẻ loại trừ 'ngay'
+          if (buoi == 'ngay') {
+            _sel[key]!..remove('sang')..remove('chieu')..remove('toi');
+          } else {
+            _sel[key]!.remove('ngay');
+          }
+          _sel[key]![buoi] = muc;
+        }
+      });
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Lỗi kết nối')));
+      }
+    }
+  }
+
+  String _errMsg(String code) => {
+        'khoa_ngay': 'Ngày này đã quá hạn ghi nhật ký.',
+        'loi_viec': 'Việc không hợp lệ.',
+        'muc': 'Mức thời lượng không hợp lệ.',
+        'empty': 'Chưa có nội dung.',
+      }[code] ?? 'Không lưu được';
+
+  String _buoiLabel(String b) => _buoiList.firstWhere((e) => e.$1 == b, orElse: () => (b, b)).$2;
+
+  // Tóm tắt giờ đã ghi (cho mục thu gọn): "Sáng: Cả buổi · Chiều: 1h" hoặc "Cả ngày".
+  String _selSummary(Map sel) {
+    if (sel['ngay'] != null && '${sel['ngay']}'.isNotEmpty) return 'Cả ngày';
+    final parts = <String>[];
+    for (final b in const ['sang', 'chieu', 'toi']) {
+      final m = sel[b];
+      if (m != null && '$m'.isNotEmpty) parts.add('${_buoiLabel(b)}: ${_mucShort[m] ?? m}');
+    }
+    return parts.join(' · ');
+  }
+
+  Future<void> _addPersonal() async {
+    // Hộp soạn thảo lớn thay ô một dòng cũ — việc ngoài danh sách thường phải mô tả mấy dòng
+    // mới đủ nghĩa, gõ trong ô một dòng thì không đọc lại được thứ mình vừa viết.
+    final txt = await nhapVanBan(context,
+        icon: Icons.playlist_add,
+        title: 'Thêm việc khác',
+        sendLabel: 'Thêm',
+        moTa: 'Việc ngoài danh sách được giao — ghi để tính vào nhật ký ngày.',
+        hint: 'Nội dung công việc…',
+        minLines: 4,
+        heightFactor: 0.5);
+    if (txt == null || txt.isEmpty || !mounted) return;
+    setState(() {
+      if (!_personal.contains(txt)) _personal.add(txt);
+      _sel.putIfAbsent('p:$txt', () => {});
+    });
+  }
+
+  Future<void> _idle() async {
+    try {
+      await widget.api.logIdle(_ds);
+      _load();
+    } on DioException catch (e) {
+      // (C6) đừng nuốt câm — báo lỗi cho người dùng.
+      final msg = (e.response?.data is Map)
+          ? (e.response!.data['error'] ?? e.response!.data['detail'] ?? 'Không lưu được')
+          : 'Lỗi kết nối';
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$msg')));
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Lỗi kết nối')));
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppColors.of(context);
+    return Scaffold(
+      body: Column(children: [
+        // Thanh chọn ngày
+        Container(
+          color: t.soft,
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+          child: Row(children: [
+            IconButton(onPressed: () => _goDay(-1), icon: const Icon(Icons.chevron_left)),
+            Expanded(
+              child: Center(
+                child: Text(
+                    '${_ds == _todayStr() ? 'Hôm nay · ' : ''}$_ds',
+                    style: const TextStyle(fontWeight: FontWeight.w800)),
+              ),
+            ),
+            IconButton(
+                onPressed: _ds == _todayStr() ? null : () => _goDay(1),
+                icon: const Icon(Icons.chevron_right)),
+            if (widget.onHistory != null)
+              IconButton(
+                  tooltip: 'Lịch sử nhật ký',
+                  onPressed: widget.onHistory,
+                  icon: const Icon(Icons.history)),
+          ]),
+        ),
+        Expanded(
+          child: _loading
+              ? const Center(child: CircularProgressIndicator())
+              : _err != null
+                  ? Center(
+                      child: Column(mainAxisSize: MainAxisSize.min, children: [
+                        Text(_err!),
+                        TextButton(onPressed: _load, child: const Text('Thử lại')),
+                      ]))
+                  : _body(t),
+        ),
+      ]),
+    );
+  }
+
+  String _todayStr() {
+    final n = DateTime.now();
+    return '${n.year.toString().padLeft(4, '0')}-${n.month.toString().padLeft(2, '0')}-${n.day.toString().padLeft(2, '0')}';
+  }
+
+  Widget _body(AppColors t) {
+    final myTasks = (_d['my_tasks'] as List?) ?? const [];
+    final teaching = (_d['teaching'] as List?) ?? const [];
+    final meetings = (_d['meetings'] as List?) ?? const [];
+    final website = (_d['website'] as List?) ?? const [];
+    return RefreshIndicator(
+      onRefresh: _load,
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(14, 12, 14, 28),
+        children: [
+          if (!_editable)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: AppCard(
+                accent: t.warn,
+                padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 10),
+                child: Row(children: [
+                  Icon(Icons.lock_clock, size: 18, color: t.warn),
+                  const SizedBox(width: 8),
+                  const Expanded(child: Text('Ngày này đã quá hạn ghi/sửa nhật ký (chỉ xem).',
+                      style: TextStyle(fontSize: 13))),
+                ]),
+              ),
+            ),
+
+          // Việc được giao
+          const SectionHeader('Việc được giao', icon: Icons.assignment_outlined),
+          if (myTasks.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              child: Text('Không có việc đang giao trong ngày.',
+                  style: TextStyle(fontSize: 13, color: t.muted)),
+            )
+          else
+            for (final tk in myTasks.cast<Map>())
+              _taskRow('${tk['id']}', '${tk['title'] ?? ''}', taskId: '${tk['id']}', t: t),
+
+          // Việc khác (cá nhân)
+          const SizedBox(height: 12),
+          Row(children: [
+            const Expanded(child: SectionHeader('Việc khác')),
+            if (_editable)
+              TextButton.icon(
+                  onPressed: _addPersonal,
+                  icon: const Icon(Icons.add, size: 18),
+                  label: const Text('Thêm')),
+          ]),
+          if (_personal.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 2),
+              child: Text('Ghi các việc ngoài danh sách được giao (nếu có).',
+                  style: TextStyle(fontSize: 12.5, color: t.muted)),
+            )
+          else
+            for (final p in _personal)
+              _taskRow('p:$p', p, text: p, t: t),
+
+          // Mục tự ghi (khóa)
+          if (teaching.isNotEmpty || meetings.isNotEmpty || website.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            const SectionHeader('Tự động ghi', subtitle: 'Hệ thống ghi — không sửa tay'),
+            for (final tc in teaching.cast<Map>()) _teachingRow(tc, t),
+            for (final m in meetings.cast<Map>()) _autoRow('${m['activity_text'] ?? ''}', 'hop', t),
+            for (final w in website.cast<Map>()) _autoRow('${w['activity_text'] ?? ''}', 'website', t),
+          ],
+
+          // Không có việc
+          const SizedBox(height: 18),
+          if (_editable)
+            OutlinedButton.icon(
+              onPressed: _idle,
+              icon: const Icon(Icons.event_busy_outlined, size: 18),
+              label: const Text('Hôm nay không có việc'),
+              style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(44)),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _taskRow(String key, String title, {String? taskId, String? text, required AppColors t}) {
+    final sel = _sel[key] ?? const {};
+    final hasSel = sel.isNotEmpty;
+    final open = _openKey == key;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: AppCard(
+        accent: open ? brandBlue : null, // dải màu trái làm nổi mục đang mở
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header: bấm để MỞ/GẬP. Mở mục này -> các mục khác tự thu gọn.
+            InkWell(
+              borderRadius: BorderRadius.circular(8),
+              onTap: () => setState(() => _openKey = open ? null : key),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 2),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(title,
+                          style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: open ? brandDark : t.ink)),
+                    ),
+                    if (!open && hasSel)
+                      Container(
+                        margin: const EdgeInsets.only(left: 8),
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                        decoration: BoxDecoration(
+                            color: brandBlue.withValues(alpha: .13),
+                            borderRadius: BorderRadius.circular(11)),
+                        child: Text(_selSummary(sel),
+                            style: const TextStyle(
+                                fontSize: 11.5, color: brandDark, fontWeight: FontWeight.w700)),
+                      ),
+                    const SizedBox(width: 4),
+                    Icon(open ? Icons.expand_less : Icons.expand_more, size: 20, color: t.muted),
+                  ],
+                ),
+              ),
+            ),
+            if (open) ...[
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 7,
+                runSpacing: 7,
+                children: [
+                  for (final b in _buoiList)
+                    _buoiChip(b.$1, b.$2, sel[b.$1] ?? '',
+                        onTap: _editable
+                            ? () => _pickMuc(key, b.$1, taskId: taskId, text: text)
+                            : null),
+                ],
+              ),
+            ] else if (!hasSel)
+              Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: Text('Chạm để ghi giờ', style: TextStyle(fontSize: 11.5, color: t.muted)),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buoiChip(String buoi, String label, String muc, {VoidCallback? onTap}) {
+    final t = AppColors.of(context);
+    final on = muc.isNotEmpty;
+    return InkWell(
+      borderRadius: BorderRadius.circular(10),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
+        decoration: BoxDecoration(
+          color: on ? brandBlue.withValues(alpha: .13) : t.soft,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: on ? brandBlue : t.line, width: on ? 1.3 : 1),
+        ),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Text(label,
+              style: TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: on ? FontWeight.w800 : FontWeight.w600,
+                  color: on ? brandDark : t.ink)),
+          if (on)
+            Text(_mucShort[muc] ?? muc,
+                style: const TextStyle(fontSize: 10.5, color: brandBlue, fontWeight: FontWeight.w700)),
+        ]),
+      ),
+    );
+  }
+
+  Widget _teachingRow(Map tc, AppColors t) {
+    final nghi = tc['nghi'] == true;
+    final ten = '${tc['ten_hp'] ?? tc['ma_lop_tc'] ?? ''}';
+    final maLop = '${tc['ma_lop_tc'] ?? ''}';
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: AppCard(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        child: Row(children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+            decoration: BoxDecoration(
+                color: cSchedule.withValues(alpha: .14), borderRadius: BorderRadius.circular(5)),
+            child: const Text('Giảng dạy',
+                style: TextStyle(fontSize: 10.5, color: cSchedule, fontWeight: FontWeight.w700)),
+          ),
+          const SizedBox(width: 9),
+          Expanded(
+            child: Text(
+                '$ten${tc['phong'] != null ? ' · P.${tc['phong']}' : ''}',
+                style: TextStyle(
+                    fontSize: 13,
+                    color: nghi ? t.muted : t.ink,
+                    decoration: nghi ? TextDecoration.lineThrough : null)),
+          ),
+          if (_editable && maLop.isNotEmpty)
+            TextButton(
+              onPressed: () async {
+                // (C6) bọc try/catch + snackbar để lỗi mạng/quyền không im lặng.
+                try {
+                  await widget.api.logGvNghi(
+                      logDate: _ds, maLopTc: maLop, action: nghi ? 'day' : 'nghi');
+                  _load();
+                } on DioException catch (e) {
+                  final msg = (e.response?.data is Map)
+                      ? (e.response!.data['error'] ?? e.response!.data['detail'] ?? 'Không lưu được')
+                      : 'Lỗi kết nối';
+                  if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$msg')));
+                } catch (_) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context)
+                        .showSnackBar(const SnackBar(content: Text('Lỗi kết nối')));
+                  }
+                }
+              },
+              style: TextButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                  foregroundColor: nghi ? cSchedule : t.danger),
+              child: Text(nghi ? 'Hủy báo nghỉ' : 'Báo nghỉ'),
+            ),
+        ]),
+      ),
+    );
+  }
+
+  Widget _autoRow(String text, String src, AppColors t) {
+    final meta = _srcLabel[src] ?? ('Tự động', const Color(0xFF64748B));
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: AppCard(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        child: Row(children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+            decoration: BoxDecoration(
+                color: meta.$2.withValues(alpha: .14), borderRadius: BorderRadius.circular(5)),
+            child: Text(meta.$1,
+                style: TextStyle(fontSize: 10.5, color: meta.$2, fontWeight: FontWeight.w700)),
+          ),
+          const SizedBox(width: 9),
+          Expanded(child: Text(text, style: TextStyle(fontSize: 13, color: t.ink))),
+          Icon(Icons.lock_outline, size: 14, color: t.muted),
+        ]),
+      ),
+    );
+  }
+}

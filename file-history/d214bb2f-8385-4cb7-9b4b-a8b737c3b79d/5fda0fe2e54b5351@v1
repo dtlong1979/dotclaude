@@ -1,0 +1,87 @@
+import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+
+// Vỏ Studio (React) → apps/site/public/assets/studio/app.js + app.css (Blade quan-tri/studio.blade.php nạp; ?v=mtime).
+// Đồng thời chép tài nguyên block (packages/blocks/<type>/style.css, frontend.js, _runtime) → public/assets/blocks/ —
+// bước "build block" của release; ở sản xuất do tooling/release làm, ở local gộp vào đây cho tiện.
+const blocksSrc = '../blocks';
+const blocksOut = '../../apps/site/public/assets/blocks';
+
+export default defineConfig({
+  plugins: [
+    react(),
+    {
+      name: 'qcv-copy-block-assets',
+      closeBundle() {
+        mkdirSync(blocksOut, { recursive: true });
+        for (const dir of readdirSync(blocksSrc, { withFileTypes: true })) {
+          if (!dir.isDirectory()) continue;
+          // `icons.svg` là gói biểu tượng `icons@1` (HD-02 6.3d(g)) — một sprite cho mọi khối, tham chiếu bằng
+          // `<use href="{{ asset_v('assets/blocks/icons.svg') }}#<tên>">`; đi cùng đường với `chung.css`.
+          // `brands.svg` là gói nhãn hiệu `brands@1` (ADR QG4-15) — sprite RIÊNG, không gộp vào `icons.svg`:
+          // trang chỉ có khối trung tính không phải tải 3,2 KB gzip dấu hiệu thương hiệu, và phạm vi nhãn hiệu
+          // nhìn thấy được ở đúng một tệp. Chỉ `footer` và `contact-bar` trỏ tới nó.
+          // `khoi-chung.css`, `khoi-cum.js`, `khoi-luoi.js` là TẦNG DÙNG CHUNG cấp SDK (ADR QG4-34, QM5-10): chép giữ
+          // NGUYÊN tên — `BlockRegistry::assets()` nhận đúng ba tên này trong `block.json.assets`, và chúng chỉ
+          // nạp trên trang có khối khai chúng (trang chỉ có `hero` không tải một byte nào).
+          if (dir.name === '_runtime') {
+            for (const f of ['qcv-runtime.js', 'decor.css', 'chung.css', 'icons.svg', 'brands.svg']) copyFileSync(join(blocksSrc, dir.name, f), join(blocksOut, f));
+            // BA TỆP CỦA TẦNG CHUNG CHÉP CÓ BỎ CHÚ THÍCH. Nguồn giữ đủ tài liệu (và vẫn là thứ `qcv:kiem-blade`
+            // soi); bản đi trên dây tới người xem thì không cần. Đây KHÔNG phải bước rút gọn của cả kho (chưa
+            // có, `CHI-TIEU.md` 2.3) — chỉ áp cho tài sản dùng chung, và có lý do đo được: một tệp dùng chung
+            // trả giá phần đầu của nó ngay từ khối ĐẦU TIÊN dùng nó, trong khi phần tiết kiệm chỉ tới khi trang
+            // có ≥ 2 khối cùng nhóm. Giữ nguyên văn thì trang chỉ có một khối lưới NẶNG HƠN 2,2 KB gzip so với
+            // trước khi có tầng chung; bỏ chú thích thì hoà. Số đo đầy đủ: BLOCK-MAU.md §2.1g.
+            // Bỏ theo DÒNG, không bằng một mẫu `/\*[\s\S]*?\*\//` trên cả tệp: mẫu đó bắt đầu ăn từ chuỗi
+            // `khuon/*.blade.php` trong một chú thích `//` và nuốt luôn `(function () {` ở dưới — bản build khi
+            // ấy vẫn "chạy" ở chỗ đọc lướt nhưng hỏng. Chỉ bỏ dòng CHỈ có chú thích; và khẳng định lại kết quả.
+            const bo = (s: string, js: boolean) => {
+              const ra: string[] = [];
+              let trongKhoi = false;
+              for (const l of s.split('\n')) {
+                if (trongKhoi) { if (l.includes('*/')) trongKhoi = false; continue; }
+                if (/^\s*\/\*/.test(l)) { if (!l.includes('*/')) trongKhoi = true; continue; }
+                if (js && /^\s*\/\//.test(l)) continue;
+                ra.push(l);
+              }
+              return ra.join('\n').replace(/\n{2,}/g, '\n').trim() + '\n';
+            };
+            for (const f of ['khoi-chung.css', 'khoi-cum.js', 'khoi-luoi.js']) {
+              const nguon = readFileSync(join(blocksSrc, dir.name, f), 'utf8');
+              const ra = bo(nguon, f.endsWith('.js'));
+              // Lưới an toàn của chính bước này: bản ra phải CÂN dấu ngoặc nhọn và còn giữ mốc cuối cùng của
+              // tệp. Lần đầu viết bước này, mẫu `/\*…\*/` trên cả tệp đã ăn mất `(function () {` (nó bắt đầu từ
+              // chuỗi `khuon/*.blade.php` nằm trong một chú thích `//`) — đúng ca mà phép đếm này bắt được.
+              // Không cân, hoặc mất mốc → chép NGUYÊN VĂN: nặng hơn vài trăm byte còn hơn phát ra mã hỏng.
+              const mo = (ra.match(/\{/g) || []).length, dong = (ra.match(/\}/g) || []).length;
+              const conMoc = f.endsWith('.js') ? ra.includes('window.QCV.chung =') : ra.includes('.qcvk-mui-ten');
+              writeFileSync(join(blocksOut, f), mo === dong && conMoc ? ra : nguon);
+            }
+            continue;
+          }
+          // Đặt tên tệp theo `type` trong block.json, KHÔNG theo tên thư mục: máy chủ nạp tài nguyên theo `type`
+          // (`BlockRegistry::assets`), nên hai tên lệch nhau là khối không có CSS/JS mà không ai báo.
+          const mf = join(blocksSrc, dir.name, 'block.json');
+          if (!existsSync(mf)) continue;
+          const type: string = JSON.parse(readFileSync(mf, 'utf8')).type ?? dir.name;
+          for (const [src, ext] of [['style.css', 'css'], ['frontend.js', 'js']] as const) {
+            const f = join(blocksSrc, dir.name, src);
+            if (existsSync(f)) copyFileSync(f, join(blocksOut, `${type}.${ext}`));
+          }
+        }
+      },
+    },
+  ],
+  base: '/assets/studio/',
+  build: {
+    outDir: '../../apps/site/public/assets/studio',
+    emptyOutDir: true,
+    sourcemap: false,
+    rollupOptions: {
+      input: 'src/studio/main.tsx',
+      output: { entryFileNames: 'app.js', chunkFileNames: 'chunk-[name].js', assetFileNames: 'app.[ext]' },
+    },
+  },
+});
