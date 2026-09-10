@@ -31,3 +31,5 @@ Bài báo systematic literature review của user (Dinh Tuan Long, Le Ngoc An, D
 Build bằng python-docx (không có LibreOffice/pandoc trên máy → verify bằng introspection). Scratchpad session: `...\18f83c04-...\scratchpad\` (content.py, body*.py, build_docx.py, analyze.py, corpus_batch_[A-E].json).
 
 Liên quan: [[hou_cntt_app]] (cùng người dùng HOU CNTT).
+
+**Proof/production (2026-09-10):** bài đã được nhận, đang ở bản in JCTA_17476 (`D:\Downloads\JCTA_17476_proof.docx`; bản sửa `JCTA_17476_proof_corrected.docx`). **Supplementary công khai (reference):** https://github.com/dtlong1979/fake-news-review-supplement (8 file đã làm sạch dấu vết AI; corpus.csv/analyze.py/results.csv…, HTTP 200). URL này đã chèn vào Data Availability + Appendix A + §4.1. Tên tác giả GIỮ 'Dinh Tuan Long' (thứ tự Việt, family=Dinh/Le/Dinh). Query proof còn chờ user: ORCID 3 tác giả, mã bưu chính HOU. Đã đồng ý gỡ ref Kitchenham (bài không phải SLR kiểu Kitchenham).
