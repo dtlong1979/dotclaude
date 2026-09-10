@@ -40,5 +40,6 @@
   },
   "skipWorkflowUsageWarning": true,
   "theme": "auto",
-  "agentPushNotifEnabled": true
+  "agentPushNotifEnabled": true,
+  "tui": "fullscreen"
 }
