@@ -1,0 +1,198 @@
+# -*- coding: utf-8 -*-
+"""Sinh bảng chấm điểm Excel (vòng 3) kèm lý do chấm cho từng đề tài."""
+import json, sys
+from openpyxl import Workbook
+from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+from openpyxl.utils import get_column_letter
+
+sys.path.insert(0, '.')
+import diem
+
+EX = json.load(open('excel.json', encoding='utf-8'))
+LY = json.load(open('lydo.json', encoding='utf-8'))
+
+OUT = r'D:\HĐ NCKH\6. Bang cham diem - TS Dinh Tuan Long.xlsx'
+
+CT = ['STT', 'Mã đề tài', 'Tên đề tài', 'Phản biện',
+      'TQ (10)', 'ND (20)', 'PP (15)', 'KQ (40)', 'HT (5)', 'CB (10)',
+      'Tổng (100)', 'Xếp giải', 'Số trang', 'Số TLTK', 'Căn cứ chấm']
+
+MAU = {'Vào vòng chung khảo': 'C6E0B4', 'Giải Ba': 'DDEBF7',
+       'Giải Khuyến khích': 'FFF2CC', 'Không đạt giải': 'F2F2F2'}
+VIEN = Border(*[Side(style='thin', color='BFBFBF')] * 4)
+
+
+def sach(s):
+    """Rút gọn lý do chấm thành vài gạch đầu dòng, bỏ ký tự đánh dấu."""
+    out = []
+    for d in str(s).splitlines():
+        d = d.strip().lstrip('-').strip()
+        for k in ('⭐', '⚠', '**', '→'):
+            d = d.replace(k, '')
+        d = ' '.join(d.split())
+        if d and not d.startswith('TQ '):
+            out.append('• ' + d)
+    return '\n'.join(out)
+
+
+wb = Workbook()
+ws = wb.active
+ws.title = 'Bảng chấm HĐ 01'
+
+ws['A1'] = ('BẢNG CHẤM ĐIỂM SƠ KHẢO — Hội đồng số 01, lĩnh vực Khoa học tự nhiên\n'
+            'Thành viên Hội đồng: TS. Đinh Tuấn Long — Khoa Công nghệ Thông tin, '
+            'Trường Đại học Mở Hà Nội\n'
+            'Thang điểm theo Khoản 1 Điều 13 Thông tư 45/2020/TT-BGDĐT. '
+            'Xếp giải: ≥90 vào vòng chung khảo · 80-89 Giải Ba · 70-79 Giải Khuyến khích · '
+            '<70 không đạt.\n'
+            'Hồ sơ không đáp ứng điều kiện tại Khoản 2 Điều 4 Thông tư 45 '
+            '(không có công bố và không có xác nhận ứng dụng trước 6/2025) được chấm ở mức '
+            'tối thiểu và không xếp giải.')
+ws['A1'].font = Font(bold=True, size=11)
+ws['A1'].alignment = Alignment(wrap_text=True, vertical='center')
+ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=len(CT))
+ws.row_dimensions[1].height = 76
+
+for j, h in enumerate(CT, 1):
+    c = ws.cell(row=2, column=j, value=h)
+    c.font = Font(bold=True, color='FFFFFF')
+    c.fill = PatternFill('solid', fgColor='305496')
+    c.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+    c.border = VIEN
+ws.row_dimensions[2].height = 32
+
+rows = sorted(diem.D, key=lambda m: (-diem.tong(m), m))
+for i, ma in enumerate(rows, 3):
+    v = diem.D[ma]
+    t = diem.tong(ma)
+    xg = diem.xep(t, ma)
+    if ma in diem.KHONG_DU_DK:
+        xg = 'Không đạt giải (không đủ điều kiện dự giải)'
+    e = EX.get(ma, {})
+    vals = [e.get('stt'), ma, str(e.get('ten', '')).replace('\n', ' ').strip(),
+            'PB' if ma in diem.PB else '',
+            v[0], v[1], v[2], v[3], v[4], v[5], t, xg, v[6] or '', v[7],
+            sach(LY.get(ma, v[8]))]
+    for j, val in enumerate(vals, 1):
+        c = ws.cell(row=i, column=j, value=val)
+        c.border = VIEN
+        c.alignment = Alignment(vertical='top',
+                                wrap_text=j in (3, 12, 15),
+                                horizontal='center' if j in (1, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14) else 'left')
+        if j == 11:
+            c.font = Font(bold=True)
+    fill = PatternFill('solid', fgColor=MAU[diem.xep(t, ma)])
+    for j in (11, 12):
+        ws.cell(row=i, column=j).fill = fill
+    ws.row_dimensions[i].height = 100
+
+for col, w in zip(range(1, len(CT) + 1),
+                  [6, 11, 46, 8, 8, 8, 8, 8, 7, 8, 10, 20, 9, 9, 90]):
+    ws.column_dimensions[get_column_letter(col)].width = w
+ws.freeze_panes = 'C3'
+ws.auto_filter.ref = f'A2:{get_column_letter(len(CT))}{len(rows) + 2}'
+
+# --- trang tổng hợp ---
+w2 = wb.create_sheet('Tổng hợp')
+from collections import Counter
+c = Counter(diem.xep(diem.tong(m), m) for m in diem.D)
+xet = c['Vào vòng chung khảo'] + c['Giải Ba'] + c['Giải Khuyến khích']
+du = len(diem.D) - len(diem.KHONG_DU_DK)
+bang = [
+    ('Tổng số đề tài trong Hội đồng', len(diem.D), ''),
+    ('Số hồ sơ đủ điều kiện dự giải', du, 'Khoản 2 Điều 4 Thông tư 45'),
+    ('Số hồ sơ KHÔNG đủ điều kiện dự giải', len(diem.KHONG_DU_DK),
+     'không có công bố và không có xác nhận ứng dụng trước 6/2025'),
+    ('', '', ''),
+    ('Tổng số đề tài được đề nghị xét giải', xet,
+     f'{xet / du * 100:.1f}% số hồ sơ đủ điều kiện'),
+    ('Vào vòng chung khảo', c['Vào vòng chung khảo'],
+     f'{c["Vào vòng chung khảo"] / xet * 100:.1f}% số được xét giải (định hướng 30%)'),
+    ('Giải Ba', c['Giải Ba'],
+     f'{c["Giải Ba"] / xet * 100:.1f}% số được xét giải (định hướng 30%)'),
+    ('Giải Khuyến khích', c['Giải Khuyến khích'],
+     f'{c["Giải Khuyến khích"] / xet * 100:.1f}% số được xét giải (định hướng 40%)'),
+    ('Không đạt giải', c['Không đạt giải'], ''),
+    ('', '', ''),
+    ('Phổ điểm', f'{min(diem.tong(m) for m in diem.D)} - {max(diem.tong(m) for m in diem.D)}', ''),
+    ('Điểm trung bình', round(sum(diem.tong(m) for m in diem.D) / len(diem.D), 1), ''),
+]
+w2['A1'] = 'TỔNG HỢP KẾT QUẢ CHẤM'
+w2['A1'].font = Font(bold=True, size=12)
+for i, (a, b, d) in enumerate(bang, 3):
+    w2.cell(row=i, column=1, value=a).font = Font(bold=not a.startswith(('Vào', 'Giải', 'Không')))
+    w2.cell(row=i, column=2, value=b).alignment = Alignment(horizontal='center')
+    w2.cell(row=i, column=3, value=d)
+for col, w in zip('ABC', [40, 14, 60]):
+    w2.column_dimensions[col].width = w
+
+# --- trang thuyết minh căn cứ loại/trừ điểm ---
+w3 = wb.create_sheet('Điều kiện dự giải')
+w3['A1'] = ('CÁC HỒ SƠ KHÔNG ĐÁP ỨNG ĐIỀU KIỆN DỰ GIẢI\n'
+            'Khoản 2 Điều 4 Thông tư 45/2020/TT-BGDĐT: đề tài phải có công bố khoa học '
+            'HOẶC có xác nhận đã được ứng dụng ít nhất 01 năm trước thời điểm nộp hồ sơ '
+            '(tức bắt đầu ứng dụng trước tháng 6/2025).')
+w3['A1'].font = Font(bold=True, size=11)
+w3['A1'].alignment = Alignment(wrap_text=True, vertical='center')
+w3.merge_cells('A1:D1')
+w3.row_dimensions[1].height = 56
+
+DK = {
+ '174-103': ('Không có', 'Có văn bản, nhưng nội dung là "cho phép sử dụng kết quả nghiên cứu '
+             'thử nghiệm" của đơn vị cho sinh viên — chiều ngược lại của xác nhận ứng dụng; '
+             'ký ngày 20/5/2026.'),
+ '71-103':  ('Không có', 'Có văn bản theo mẫu nhưng BỎ TRỐNG mục "Thời gian ứng dụng"; '
+             'biểu Bộ ghi "Công bố hoặc ứng dụng trong năm 2025: Không có".'),
+ '267-103': ('Không có', 'Văn bản chỉ nêu đề tài "có tiềm năng ứng dụng cao" và dự kiến triển '
+             'khai "trong tương lai" — chưa phải xác nhận đã ứng dụng.'),
+ '369-102': ('Không có', 'Văn bản ghi "Thời gian ứng dụng: 20/05/2026" — sau mốc 6/2025.'),
+ '370-102': ('Không có', 'Văn bản ghi "Thời gian ứng dụng: 1/2026 – 4/2026" — sau mốc 6/2025.'),
+ '176-103': ('Không có', 'Không có văn bản xác nhận ứng dụng; minh chứng duy nhất là báo cáo '
+             'seminar cấp khoa.'),
+ '192-102': ('Không có', 'Không có văn bản xác nhận ứng dụng; minh chứng là biên bản xét giải '
+             'cấp trường.'),
+ '134-102': ('Không có', 'Không có văn bản xác nhận ứng dụng theo mẫu quy định.'),
+}
+for j, h in enumerate(['Mã đề tài', 'Công bố khoa học', 'Xác nhận ứng dụng — kết luận', 'Điểm'], 1):
+    c = w3.cell(row=3, column=j, value=h)
+    c.font = Font(bold=True, color='FFFFFF')
+    c.fill = PatternFill('solid', fgColor='C00000')
+    c.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+for i, (ma, (cb, lydo)) in enumerate(DK.items(), 4):
+    w3.cell(row=i, column=1, value=ma)
+    w3.cell(row=i, column=2, value=cb)
+    w3.cell(row=i, column=3, value=lydo).alignment = Alignment(wrap_text=True, vertical='top')
+    w3.cell(row=i, column=4, value=diem.tong(ma)).alignment = Alignment(horizontal='center')
+    w3.row_dimensions[i].height = 46
+
+r0 = 4 + len(DK) + 2
+w3.cell(row=r0, column=1, value=(
+    'TƯƠNG XỨNG GIỮA BÁO CÁO TỔNG KẾT VÀ SẢN PHẨM CÔNG BỐ\n'
+    'Báo cáo đạt yêu cầu khi từ 60 trang trở lên, trình bày phù hợp, và nội dung công bố '
+    'có liên hệ, được đề cập trong báo cáo. Các đề tài dưới đây bị trừ ở Nội dung và/hoặc '
+    'Hình thức vì báo cáo mỏng hơn hẳn sản phẩm công bố kèm theo.')).font = Font(bold=True, size=11)
+w3.cell(row=r0, column=1).alignment = Alignment(wrap_text=True, vertical='center')
+w3.merge_cells(start_row=r0, start_column=1, end_row=r0, end_column=4)
+w3.row_dimensions[r0].height = 56
+
+for j, h in enumerate(['Mã đề tài', 'Số trang', 'Số TLTK', 'Sản phẩm công bố / ghi chú'], 1):
+    c = w3.cell(row=r0 + 2, column=j, value=h)
+    c.font = Font(bold=True, color='FFFFFF')
+    c.fill = PatternFill('solid', fgColor='BF8F00')
+    c.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+
+TX = ['613-103', '467-102', '177-103', '626-103', '643-103', '77-101',
+      '67-102', '19-103', '68-103', '22-101']
+for i, ma in enumerate(sorted(TX, key=lambda m: diem.D[m][6]), r0 + 3):
+    v = diem.D[ma]
+    w3.cell(row=i, column=1, value=ma)
+    w3.cell(row=i, column=2, value=v[6]).alignment = Alignment(horizontal='center')
+    w3.cell(row=i, column=3, value=v[7]).alignment = Alignment(horizontal='center')
+    w3.cell(row=i, column=4, value=v[8]).alignment = Alignment(wrap_text=True, vertical='top')
+    w3.row_dimensions[i].height = 30
+
+for col, w in zip('ABCD', [12, 18, 92, 10]):
+    w3.column_dimensions[col].width = w
+
+wb.save(OUT)
+print('Đã lưu', OUT, '|', len(rows), 'đề tài')

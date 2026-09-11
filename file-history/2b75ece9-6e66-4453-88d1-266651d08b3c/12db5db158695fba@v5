@@ -1,0 +1,132 @@
+# -*- coding: utf-8 -*-
+"""Bảng điểm 59 đề tài — Hội đồng 01, Khoa học tự nhiên. VÒNG 3 (bản chốt).
+
+Ba nhóm tiêu chí bổ sung ở vòng 3:
+
+A. ĐIỀU KIỆN DỰ GIẢI (Khoản 2 Điều 4 Thông tư 45): phải CÓ công bố khoa học
+   HOẶC CÓ xác nhận đã được ứng dụng ít nhất 1 năm trước khi nộp (tức bắt đầu
+   ứng dụng trước tháng 6/2025). Hồ sơ không đáp ứng -> chấm mức tối thiểu 50,
+   không xếp giải, bất kể chất lượng chuyên môn.
+
+B. TƯƠNG XỨNG GIỮA BÁO CÁO VÀ CÔNG BỐ: báo cáo đạt yêu cầu khi từ 60 trang trở
+   lên, trình bày phù hợp, và nội dung công bố có liên hệ, được đề cập trong báo
+   cáo. Báo cáo mỏng hơn hẳn chính bài báo của nhóm, hoặc có nhiều công bố nhưng
+   báo cáo ngắn và ít liên hệ với các công bố đó -> trừ ở Nội dung và Hình thức.
+
+C. THỜI GIAN NGHIÊN CỨU phù hợp: từ 4/2025 đến 6/2026.
+"""
+
+# ma: (TQ, ND, PP, KQ, HT, CB, so_trang, so_tltk, ghi_chu)
+D = {
+ # ================= VÀO VÒNG CHUNG KHẢO (8) =================
+ '279-102':( 9,19,14,38,5,10, 67, 55, 'Applied Soft Computing Q1; 4 bo du lieu; 67tr/55TLTK tuong xung'),
+ '615-103':( 9,19,15,36,5,10, 76, 41, 'IEEE Access Q1 da xuat ban; 3 LLM nen + p-value; 76tr/41TLTK'),
+ '466-103':( 9,19,15,36,4,10, 98, 16, 'Statistics and Computing Q1; 98tr nhung chi 16 TLTK'),
+ '631-103':( 9,18,15,36,5,10, 66, 40, 'Neurocomputing Q1; 10 baseline; 66tr/40TLTK tuong xung'),
+ '1-103':  (10,19,15,39,5, 5,112, 48, 'ViR3QA; 5 bai hoi nghi quoc te; 112tr/48TLTK'),
+ '395-103':(10,19,14,38,5, 5,114,150, 'EMNLP + Findings ACL; 114tr/150TLTK - tuong xung nhat'),
+ '405-103':( 9,18,14,34,5,10, 66, 40, 'Intelligence-Based Medicine; t-test 30 lan chay; 66tr/40TLTK'),
+ '676-101':( 9,18,14,34,5,10, 73,  9, 'Optimization (T&F); 73tr dat nguong, ND bai bao chinh la Chuong 2; chi 9 TLTK'),
+
+ # ================= GIẢI BA (9) =================
+ '626-103':( 9,17,14,35,3,10, 41, 44, '4 cong bo (NCA, PRL, JVCIR) nhung bao cao chi 41tr - khong tuong xung'),
+ '19-103': ( 9,18,14,34,4, 5, 50, 60, 'ICASSP 2026; bao cao 50tr, duoi nguong 60tr, chu yeu dien dat lai bai bao'),
+ '645-101':( 9,17,14,34,4, 5, 58, 62, 'SA-IFB; FF48+FF100 cua so truot; 58tr/62TLTK'),
+ '150-103':( 8,17,13,35,5, 5, 80, 44, 'TameMini-GS; LPIPS hang 1 ca 3 bo; 80tr/44TLTK tuong xung'),
+ '205-102':( 9,18,15,37,4, 0,106, 27, 'Eco-Track; KHONG cong bo nhung CO xac nhan ung dung 2025-2026'),
+ '388-101':( 8,16,13,30,5,10, 60, 35, 'Facta Universitatis (WoS); 60tr/35TLTK vua du nguong'),
+ '425-102':( 8,16,14,32,5, 5, 62, 32, 'Thiet ke thuc nghiem giao duc chuan; 62tr/32TLTK'),
+ '495-103':( 8,16,12,34,5, 5,118, 76, 'CHI DINH san >= Giai Ba; 118tr/76TLTK'),
+ '593-103':( 8,16,14,32,5, 5, 76, 30, 'FTTA-KOA; 30 lan chay + Wilcoxon; 76tr/30TLTK'),
+
+ # ================= GIẢI KHUYẾN KHÍCH (12) =================
+ '310-102':( 7,16,12,29,5,10,105, 52, 'Applied Intelligence; 105tr/52TLTK tuong xung'),
+ '404-102':( 8,17,13,32,4, 5, 81, 18, 'AETA 2025 Scopus Q4; 81tr nhung chi 18 TLTK'),
+ '467-102':( 8,16,13,30,2,10, 38, 10, 'JNCA Q1 accepted nhung bao cao chi 38tr/10TLTK - chenh lech lon'),
+ '22-101': ( 8,15,13,30,3,10, 51, 23, 'Adv Comput Math Q1; bao cao 51tr, tu khai ke thua cong trinh da dang'),
+ '177-103':( 8,15,13,30,3,10, 42, 23, 'BSPC Q1 Accept nhung bao cao chi 42tr/23TLTK - khong tuong xung'),
+ '315-103':( 7,15,12,29,5,10, 61, 38, 'Applied Computer Systems; 61tr/38TLTK'),
+ '643-103':( 8,15,13,29,3,10, 46, 20, 'AIMS Energy nhung bao cao chi 46tr/20TLTK'),
+ '603-103':( 8,16,15,33,5, 0, 84, 34, 'KHONG cong bo; CO xac nhan ung dung tu 5/2025 - hop le'),
+ '68-103': ( 8,14,11,28,3,10, 49, 40, 'PeerJ CS; bao cao 49tr, duoi nguong'),
+ '261-103':( 7,15,12,29,3, 5, 49, 40, 'VNICT 2025; bao cao 49tr, duoi nguong'),
+ '592-103':( 7,15,12,28,3, 5, 57, 17, 'DASGRI 2026; 57tr/17TLTK'),
+ '39-102': ( 7,14,11,30,3, 5, 42, 45, 'HOU - ap san Khuyen khich; bao cao 42tr'),
+
+ # ================= KHÔNG ĐẠT GIẢI - đủ điều kiện (22) =================
+ '613-103':( 7,14,12,24,2,10, 35, 40, 'Bai Q1 nhung bao cao chi 35tr - chenh lech qua lon'),
+ '77-101': ( 7,13,11,26,2,10, 31, 16, 'J. Appl. Anal. nhung bao cao chi 31tr/16TLTK'),
+ '102-103':( 7,14,11,27,5, 5, 93, 62, 'Mau thuan Bang 16 va ket luan'),
+ '197-102':( 7,14,11,29,3, 5, 51, 17, 'Bao cao 51tr/17TLTK, thieu so lieu thuc nghiem'),
+ '591-103':( 7,14,12,26,5, 5, 94, 39, 'Trung thuc bao cao phuong phap minh thua ANOVA'),
+ '193-102':( 7,14,12,25,5, 5, 71, 32, 'Minh chung chi la giay chung nhan tham du'),
+ '454-103':( 6,14,12,28,3, 5, 76,  8, 'CITA 2026; 76tr nhung CHI 8 TLTK'),
+ '649-103':( 7,14,11,26,5, 5,106, 54, 'Khong co baseline doi chung; do tre 11-17s'),
+ '67-102': ( 7,12,10,26,3,10, 41, 43, 'PLoS One nhung bao cao 41tr; tinh moi thap so voi KGAT'),
+ '708-103':( 7,14,11,26,3, 5, 45, 22, 'ICIT 2025 Springer; 45tr; thieu kiem dinh thong ke'),
+ '151-103':( 6,13,10,26,3, 5, 57, 19, 'Du lieu Kaggle, khong phai lam sang'),
+ '157-103':( 6,12,10,26,4, 5, 59, 41, 'Chia du lieu ngau nhien cho chuoi thoi gian'),
+ '215-103':( 7,13,10,24,4, 5, 55, 33, 'Bao cao khong co bang so lieu nao'),
+ '219-102':( 6,13,10,25,4, 5, 76, 29, '4 con so thoi gian mau thuan nhau'),
+ '241-102':( 6,13,10,25,4, 5,100, 43, 'Lech giua 5 fold chi 0,005%; thieu danh gia 3D'),
+ '101-103':( 6,13,10,24,4, 5,117, 56, 'R2 Test am o hau het cau hinh'),
+ '387-101':( 6,12,10,24,2, 5, 45, 11, 'Bao cao 45tr/11TLTK; dong gop ly thuyet han che'),
+ '459-103':( 6,12,10,23,2, 5, 24, 25, 'Bao cao chi 24tr; so lieu tren RAVDESS khong phai lop hoc'),
+ '178-103':( 6,12, 9,22,2, 5, 17, 23, 'Bao cao chi 17tr; thieu do dong thuan gan nhan'),
+ '567-102':( 6,12, 9,22,2, 5, 24, 16, 'Bao cao chi 24tr; khong co nhom doi chung that'),
+ '456-103':( 6,11, 9,22,2, 5, 36, 19, 'Bao cao 36tr; mau thuan moc thoi gian va ATE=ATT=CATE'),
+ '607-103':( 5,11, 8,21,2, 5,  0, 11, 'Nop dang .docx; 11 TLTK; so sanh khong cong bang'),
+
+ # ===== KHÔNG ĐẠT - KHÔNG ĐỦ ĐIỀU KIỆN DỰ GIẢI (8) - mức tối thiểu 50 =====
+ '370-102':( 5,10, 7,24,4, 0, 43, 17, 'KHONG DU DK: khong cong bo; ung dung 1/2026-4/2026 (sau moc 6/2025)'),
+ '174-103':( 5,10, 7,24,4, 0, 74, 44, 'KHONG DU DK: khong cong bo; VB la cho phep SU DUNG ket qua, khong phai xac nhan da ung dung'),
+ '176-103':( 5,10, 7,24,4, 0, 49, 34, 'KHONG DU DK: khong cong bo; khong co xac nhan ung dung (chi seminar cap khoa)'),
+ '267-103':( 5,10, 7,24,4, 0, 97, 15, 'KHONG DU DK: khong cong bo; VB xac nhan noi ve TIEM NANG ung dung'),
+ '369-102':( 5,10, 7,24,4, 0, 51, 22, 'KHONG DU DK: khong cong bo; thoi gian ung dung ghi 20/05/2026'),
+ '71-103': ( 5,10, 7,24,4, 0, 59, 13, 'KHONG DU DK: khong cong bo; VB xac nhan BO TRONG thoi gian ung dung'),
+ '192-102':( 5,10, 7,24,4, 0, 27,  8, 'KHONG DU DK: khong cong bo; khong co xac nhan ung dung'),
+ '134-102':( 5,10, 7,24,4, 0, 77,  5, 'KHONG DU DK: khong cong bo; khong co VB xac nhan ung dung theo mau'),
+}
+
+# Hồ sơ không đáp ứng điều kiện dự giải tại Khoản 2 Điều 4 Thông tư 45
+KHONG_DU_DK = {'370-102', '174-103', '176-103', '267-103', '369-102', '71-103',
+               '192-102', '134-102'}
+
+PB = set('67-102 134-102 177-103 192-102 197-102 205-102 219-102 241-102 279-102 310-102 '
+         '370-102 405-103 456-103 459-103 467-102 567-102 615-103 626-103 708-103'.split())
+
+
+def tong(ma):
+    return sum(D[ma][:6])
+
+
+def xep(t, ma=None):
+    if ma in KHONG_DU_DK:
+        return 'Không đạt giải'
+    if t >= 90: return 'Vào vòng chung khảo'
+    if t >= 80: return 'Giải Ba'
+    if t >= 70: return 'Giải Khuyến khích'
+    return 'Không đạt giải'
+
+
+if __name__ == '__main__':
+    from collections import Counter
+    rows = sorted(((ma, tong(ma)) for ma in D), key=lambda r: -r[1])
+    c = Counter(xep(t, ma) for ma, t in rows)
+    n = len(rows)
+    du = n - len(KHONG_DU_DK)
+    xet = c['Vào vòng chung khảo'] + c['Giải Ba'] + c['Giải Khuyến khích']
+    ds = [t for _, t in rows]
+    print(f'Tổng {n} | Đủ điều kiện {du} | Xét giải {xet} '
+          f'({xet/du*100:.1f}% số hồ sơ đủ điều kiện, {xet/n*100:.1f}% tổng)')
+    print(f'Phổ điểm {min(ds)}-{max(ds)} | TB {sum(ds)/n:.1f}')
+    for k in ['Vào vòng chung khảo', 'Giải Ba', 'Giải Khuyến khích', 'Không đạt giải']:
+        pct = f'{c[k]/xet*100:.1f}% số xét giải' if k != 'Không đạt giải' else f'{c[k]/n*100:.1f}% tổng'
+        print(f'  {k}: {c[k]}  ({pct})')
+    print(f'  trong đó KHÔNG ĐỦ ĐIỀU KIỆN dự giải: {len(KHONG_DU_DK)}')
+    print()
+    print(f"{'Mã':<9}{'TQ':>3}{'ND':>4}{'PP':>4}{'KQ':>4}{'HT':>3}{'CB':>4}{'Tổng':>6} {'Tr':>4}{'TL':>4}  {'PB':<3}{'Xếp giải':<22}Ghi chú")
+    for ma, t in rows:
+        v = D[ma]
+        dk = '⚠' if ma in KHONG_DU_DK else ' '
+        print(f'{ma:<9}{v[0]:>3}{v[1]:>4}{v[2]:>4}{v[3]:>4}{v[4]:>3}{v[5]:>4}{t:>6} {v[6]:>4}{v[7]:>4} {dk}{"PB" if ma in PB else "  ":<3}{xep(t,ma):<22}{v[8]}')
