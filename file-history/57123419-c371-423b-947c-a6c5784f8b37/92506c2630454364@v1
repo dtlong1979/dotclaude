@@ -1,0 +1,119 @@
+# Ngữ cảnh hay phương thức: trục nào mang tín hiệu?
+
+Xuất phát từ một quan sát của người đọc: con người đọc *một câu* cũng thường không xác
+định nổi cảm xúc của nó, nên thứ mang tín hiệu có thể không phải thêm một kênh, mà là
+cuộc hội thoại xung quanh. Và sắc hơn: ngữ cảnh **cố định nghĩa** — một câu gằn giọng
+giữa cuộc trò chuyện vui thường là đùa; kênh âm thanh và hình ảnh đọc *bề mặt*, bỏ phiếu
+cho "giận dữ", và kéo hệ hợp nhất ra khỏi câu trả lời mà ngữ cảnh đã chốt.
+
+Đó là một giả thuyết dự đoán được **dấu**, nên đo được. Mã:
+`experiments/context_vs_modality.py`, `experiments/iemocap_context.py`.
+
+---
+
+## Phép đo
+
+Cùng một lưới 2×2 trên ba corpus: {chỉ text, ba kênh} × {có ngữ cảnh, không ngữ cảnh}.
+
+    H_phương thức = (ba kênh − chỉ text)   ở một mức ngữ cảnh cố định
+    H_ngữ cảnh    = (có ngữ cảnh − không)  ở một mức phương thức cố định
+
+**Phép cắt ngữ cảnh là chính xác, không xấp xỉ.** Bỏ ngữ cảnh không đổi mô hình, số tham
+số, optimizer hay lịch học: cùng một bi-LSTM, mỗi phát ngôn được nạp như một chuỗi dài 1.
+Thứ duy nhất bị lấy đi là quyền nhìn sang phát ngôn lân cận, nên chênh lệch giữa hai cột
+không thể là hiệu ứng kiến trúc.
+
+---
+
+## Kết quả: ba corpus, ba câu trả lời khác nhau
+
+3 seed, t-test ghép cặp, accuracy.
+
+| corpus | loại dữ liệu | H_ngữ cảnh (text) | H_phương thức (không ngữ cảnh) | H_phương thức (có ngữ cảnh) |
+|---|---|---|---|---|
+| **IEMOCAP** | đối thoại đôi, 47 lượt/hội thoại | **+8.81** (p=0.0002) | +2.85 (p=0.029) | **−2.30** (p=0.052) |
+| **MOSI** | độc thoại mạch lạc | **+4.83** (p=0.0006) | +1.02 (p=0.013) | −1.29 (p=0.20) |
+| **MOSEI** | clip ngắn rời rạc | −0.20 (p=0.0088) | +0.05 (p=0.70) | +0.72 (p=0.052) |
+
+Ba điều đọc ra được:
+
+**1. Ngữ cảnh đáng giá gấp 3–4 lần phương thức, ở nơi nó tồn tại.** Trên IEMOCAP +8.81
+so với +2.85; trên MOSI +4.83 so với +1.02.
+
+**2. Hai trục là thứ *thay thế* nhau, không bổ sung nhau — và đây chính là cơ chế người
+đọc mô tả.** Trên cả IEMOCAP lẫn MOSI, thêm kênh **giúp** khi mô hình mù ngữ cảnh
+(+2.85, +1.02) và **làm hại** khi mô hình đã có ngữ cảnh (−2.30, −1.29). Nếu kênh phụ chỉ
+đơn thuần là nhiễu, nó phải làm hại *như nhau* ở cả hai cột. Việc đổi dấu đúng theo sự có
+mặt của ngữ cảnh là hình dạng mà giả thuyết "tín hiệu bề mặt mâu thuẫn với ngữ cảnh" dự
+đoán, chứ không phải giả thuyết "kênh yếu".
+
+**3. Lượng tín hiệu ngữ cảnh là thuộc tính của *cách corpus được ghi*, không phải của bài
+toán.** MOSEI gom hàng nghìn clip YouTube ngắn không liên quan vào một "video"; cái gom
+đó không mang trạng thái nào, và H_ngữ cảnh ở đó là **âm**. Đây là song ánh chính xác của
+phát hiện về H_phương thức: cả hai đại lượng đều phụ thuộc corpus, và cả hai đều bị báo
+cáo như thể không.
+
+---
+
+## IEMOCAP: phần lớn bài toán do cấu trúc hội thoại gánh
+
+151 hội thoại đôi, 5.810/1.623 phát ngôn, 6 lớp, nhãn người nói từng lượt, đủ ba phương
+thức (text 100-d, audio 100-d, visual 512-d).
+
+**Các mốc chỉ dùng nhãn** — không đọc chữ, không nghe tiếng, không nhìn hình:
+
+| bộ dự đoán | acc | wF1 | macro F1 | κ |
+|---|---|---|---|---|
+| hằng số (lớp đa số huấn luyện) | 23.48 | 8.93 | 6.34 | 0.0000 |
+| lặp lại lượt ngay trước, ai nói cũng được | 56.07 | 56.18 | 58.07 | 0.4589 |
+| **lặp lại lượt trước của *chính người nói đó*** | **71.35** | **71.50** | **71.22** | **0.6465** |
+
+**Và các mô hình đã huấn luyện:**
+
+| cấu hình | acc | wF1 | macro F1 | κ |
+|---|---|---|---|---|
+| text, không ngữ cảnh | 50.73 | 50.50 | 49.53 | 0.395 |
+| text, có ngữ cảnh | **59.54** | 59.25 | 58.16 | 0.500 |
+| ba kênh, không ngữ cảnh | 53.58 | 53.75 | 53.32 | 0.432 |
+| ba kênh, có ngữ cảnh | 57.24 | 57.60 | 57.18 | 0.475 |
+
+**Mô hình tốt nhất đạt 59.54; mốc chỉ-dùng-nhãn đạt 71.35.** Chênh **11.81 điểm
+accuracy** và **0.15 κ**. Một bộ dự đoán bỏ qua toàn bộ ba phương thức, chỉ cần biết cảm
+xúc lượt trước của cùng người nói, vượt xa mọi hệ được huấn luyện ở đây.
+
+Khác biệt giữa hai dòng mốc cũng đáng chú ý: "ai vừa nói cũng được" chỉ 56.07, "chính
+người đó" 71.35. **Ngữ cảnh có điều kiện theo người nói** — trùng với MELD (cùng người
+0.5441 vs khác người 0.3583, trên sàn 0.4715).
+
+---
+
+## Năm dè dặt, và một trần không gỡ được
+
+1. **Mốc 71.35 là oracle.** Nó cần nhãn *thật* của lượt trước, nên không triển khai được
+   — cùng địa vị với sàn hằng số. Nó không phải "hệ thống tốt hơn"; nó là thước đo lượng
+   thông tin nằm trong cấu trúc hội thoại.
+2. **IEMOCAP cắt ngược lại.** Các cảnh được dàn dựng để *duy trì* một cảm xúc, nên tín
+   hiệu ngữ cảnh ở đó nhiều khả năng mạnh hơn hội thoại tự nhiên. Đó là ảnh gương của vấn
+   đề độc thoại: MOSI/MOSEI đo thiếu, IEMOCAP có thể đo thừa. Vì vậy ba corpus được báo
+   cáo **cạnh nhau, không gộp**.
+3. **Bi-LSTM đọc cả tương lai.** Đây là đánh giá offline. Muốn tuyên bố dùng thời gian
+   thực phải có đối chứng nhân quả chỉ đọc quá khứ.
+4. **Đặc trưng đời 2017.** Cùng giới hạn đã ghi ở §7.4 của bài chính.
+5. **3 seed.** Các hiệu ứng ngữ cảnh mạnh vì biên độ lớn so với phương sai, không vì n lớn.
+
+**Và trần không gỡ được.** Ví dụ mà người đọc đưa ra — "tối qua bị bồ đá, hôm sau làm sao
+nói gì vui được" — chỉ ra rằng với độc thoại, ngữ cảnh quyết định nghĩa thường nằm **ngoài
+mọi bản ghi**, trong lịch sử của người nói. Không corpus nào ở đây chứa nó. Điều đó đặt
+một trần cứng lên những gì bất kỳ hệ thống nào đạt được, và trần đó không phải vấn đề
+kiến trúc. Nó bao trùm **cả hai** trục: hợp nhất và ngữ cảnh chỉ khai thác được phần ngữ
+cảnh *có trong dữ liệu*.
+
+---
+
+## Điều này đổi gì cho bài báo
+
+Bài hiện đo một trục và kết luận "hợp nhất đáng ít". Số liệu ở đây nói mạnh hơn và cụ thể
+hơn: **hợp nhất đáng ít *vì* nó đang cạnh tranh với một trục khác rẻ hơn và giàu hơn**,
+và trên hai trong ba corpus nó còn *phá* trục kia. Kèm theo đó là một mốc mới cùng họ với
+sàn lớp đa số — mốc chỉ-dùng-nhãn-hội-thoại — mà lĩnh vực không báo cáo, và trên IEMOCAP
+mốc đó vượt mọi hệ được huấn luyện ở đây 11.8 điểm.
