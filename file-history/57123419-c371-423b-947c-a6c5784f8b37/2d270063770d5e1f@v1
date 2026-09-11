@@ -1,0 +1,248 @@
+# Tạo bản local cho phiên này — từng bước, đúng thứ tự
+
+Viết cho Windows + PowerShell + **Claude Desktop**. Không cần giữ cửa sổ CLI nào chạy nền;
+PowerShell chỉ dùng ở bước 1–2 rồi đóng được.
+
+Đường dẫn dùng trong tài liệu này:
+
+| thứ | đường dẫn |
+|---|---|
+| mã nguồn | `D:\Dev\ClaudeResearch` |
+| dữ liệu (**ngoài repo**) | `D:\Dev\_data\merc` |
+
+Đặt chỗ khác thì thay đều ở mọi lệnh.
+
+---
+
+## Bước 0 — Kiểm tra công cụ
+
+Mở **PowerShell**, chạy từng dòng:
+
+```powershell
+git --version
+python --version
+nvidia-smi
+```
+
+Cần: git bất kỳ, **Python 3.10 trở lên**, và `nvidia-smi` liệt kê card 3060 kèm VRAM.
+
+| thiếu | cách cài |
+|---|---|
+| git | https://git-scm.com/download/win |
+| python | https://www.python.org/downloads/ — **nhớ tick "Add python.exe to PATH"** |
+| nvidia-smi | cài driver NVIDIA mới nhất |
+
+Claude Code CLI **không cần** cho cách làm này.
+
+---
+
+## Bước 1 — Clone, và phải clone đúng nhánh
+
+**Nhánh `main` của repo này rỗng.** `git clone` trơn sẽ cho một thư mục trống và phiên
+Desktop mở lên sẽ không thấy gì. Bắt buộc chỉ định nhánh:
+
+```powershell
+cd D:\Dev
+git clone -b claude/research-skills-proposal-set3gw https://github.com/dtlong1979/ClaudeResearch
+cd D:\Dev\ClaudeResearch
+```
+
+Kiểm tra ngay:
+
+```powershell
+git branch --show-current
+git log --oneline -1
+dir
+```
+
+Phải thấy nhánh `claude/research-skills-proposal-set3gw` và các thư mục `docs`,
+`experiments`, `paper`, `src`, `tests`, cùng file `CLAUDE.md`.
+
+---
+
+## Bước 2 — Cài môi trường Python và GPU
+
+```powershell
+cd D:\Dev\ClaudeResearch
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+```
+
+PowerShell chặn script thì chạy một lần:
+`Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`
+
+Cài PyTorch **bản CUDA** trước — bản mặc định trên PyPI là CPU-only, sẽ không thấy 3060:
+
+```powershell
+pip install torch --index-url https://download.pytorch.org/whl/cu121
+pip install -r requirements.txt
+```
+
+Kiểm tra:
+
+```powershell
+python -c "import torch; print(torch.__version__, torch.cuda.is_available(), torch.cuda.get_device_name(0))"
+```
+
+Phải in `True` và tên card. Nếu `False` thì torch đang là bản CPU — gỡ và cài lại đúng
+dòng `--index-url`.
+
+---
+
+## Bước 3 — Tải dữ liệu đặc trưng, **để NGOÀI repo**
+
+```powershell
+python scripts\fetch_features.py D:\Dev\_data\merc
+```
+
+**Vì sao ngoài repo.** Mỗi phiên Claude Desktop chạy chế độ Local được cấp một **git
+worktree riêng** trong `.claude/worktrees/`. File không được git theo dõi **không đi theo
+vào worktree** — để `data-features/` bên trong repo thì chỉ phiên đầu tiên thấy nó, mọi
+phiên sau báo thiếu dữ liệu. Đặt ở `D:\Dev\_data\merc` thì mọi worktree trỏ chung một chỗ.
+
+Script clone repo công khai `declare-lab/multimodal-deep-learning`, giải nén, **kiểm ba
+digest md5**, rồi tự xoá bản clone tạm (~700 MB). Cần ~1.5 GB trống lúc chạy, còn lại ~430 MB.
+
+Xong thì `D:\Dev\_data\merc\` có:
+
+```
+  IEMOCAP_features_raw.pkl          74 MB   151 hội thoại đôi, 6 lớp
+  unimodal_mosei_3way.pickle       354 MB   MOSEI 3 lớp
+  text_2way.pickle                 4.7 MB   MOSI, kênh text
+  audio_2way.pickle                3.5 MB   MOSI, kênh audio
+  video_2way.pickle                4.7 MB   MOSI, kênh video
+```
+
+Phải thấy `ok` cho cả ba dòng digest. `MISMATCH` thì dừng — file không khớp thứ các thí
+nghiệm đã chạy trên đó.
+
+---
+
+## Bước 4 — Chạy thử để xác nhận môi trường đúng
+
+```powershell
+cd D:\Dev\ClaudeResearch
+$env:PYTHONPATH="src"
+python experiments\iemocap_context.py --pickle D:\Dev\_data\merc\IEMOCAP_features_raw.pkl --seeds 1
+```
+
+Chạy trên CPU, vài phút. **Con số phải đối chiếu:**
+
+| dòng | giá trị phải thấy |
+|---|---|
+| `copy this speaker's own previous turn` | acc **71.35**, κ **0.6465** |
+| `constant (training majority)` | acc **23.48** |
+| `text/context` | acc ≈ **59.5** (±1 do 1 seed) |
+
+Hai dòng đầu là tất định — phải trùng **chính xác**. Lệch thì dữ liệu hoặc mã không khớp,
+xử lý trước khi làm tiếp.
+
+Xong bước này thì **đóng PowerShell được**. Từ đây trở đi làm trong Claude Desktop.
+
+---
+
+## Bước 5 — Mở phiên Local trong Claude Desktop
+
+1. Mở **Claude Desktop**, sang tab **Code**, tạo phiên mới.
+2. **Trước khi gửi tin nhắn đầu tiên**, đặt bốn thứ ở khung nhập:
+   - **Environment**: **Local** — chạy trên máy anh, thấy CPU/GPU và filesystem local.
+     (Windows còn có **WSL** nếu muốn chạy trong WSL 2; thường mượt hơn cho PyTorch/CUDA.)
+   - **Project folder**: `D:\Dev\ClaudeResearch`
+   - **Model**: Opus 5
+   - **Permission mode**: tuỳ mức tự chủ anh muốn
+3. Gõ việc cần làm rồi Enter.
+
+`CLAUDE.md` ở gốc repo tự nạp — nó chỉ là bảng định tuyến ngắn, trỏ tới đúng một file bộ
+nhớ theo nhánh đang checkout (`docs/memory/topic-02.md` cho chủ đề này). Phiên của chủ đề
+khác nạp file khác, nên không lẫn nội dung.
+
+**Phiên mới không có lịch sử hội thoại của phiên cloud này** — nó có *trạng thái dự án*,
+không có *bản ghi chat*. Đó là điều `docs/memory/topic-02.md` sinh ra để thay thế. Tin
+nhắn đầu tiên nên là:
+
+> Đọc `docs/memory/topic-02.md` rồi tóm tắt lại trạng thái dự án và việc tiếp theo.
+
+Nếu tóm tắt đó khớp với những gì anh đang nhớ thì bản local đã tiếp nhận đủ.
+
+Terminal tích hợp có ở menu **Views** hoặc `Ctrl+\`` nếu cần gõ lệnh tay — nó mở đúng thư
+mục làm việc của phiên. Tuỳ chọn, không phải điều kiện.
+
+**Nhớ:** mỗi phiên một worktree. Dữ liệu để ngoài repo (bước 3) chính là để tránh chuyện
+đó. `.venv` cũng vậy — hoặc dùng chung một cái ngoài repo, hoặc tạo lại trong từng worktree.
+
+---
+
+## Bước 6 — Việc đầu tiên đáng chạy trên GPU
+
+Trích lại đặc trưng IEMOCAP bằng **encoder đóng băng**, rồi lặp lại phép đo phiên‑4‑so‑với‑phiên‑5.
+
+**Tại sao đóng băng:** đặc trưng 2017 bị nhiễm bẩn vì bộ trích được huấn luyện *trên nhãn
+của phiên 1–4*. Fine-tune encoder trên nhãn IEMOCAP rồi mới trích cho cả 5 phiên là tái
+tạo đúng lỗi đang điều tra. Đóng băng, chỉ suy luận — và đó cũng là lý do 3060 đủ (VRAM
+~2–4 GB, không backward pass, không optimizer state).
+
+**Dự đoán kiểm được:** nếu đặc trưng sạch, khoảng cách **32 điểm** giữa phiên 4 và phiên 5
+phải **co lại mạnh**, và co ở **text và video** — không ở audio, vốn đã sạch (chênh +3.69).
+
+Cần dữ liệu thô (audio/video IEMOCAP), phải xin quyền từ USC:
+https://sail.usc.edu/iemocap/ — bước này không tự động hoá được.
+
+---
+
+## Bản đồ thư mục sau khi xong
+
+```
+D:\Dev\_data\merc\               dữ liệu, NGOÀI repo để mọi worktree dùng chung
+
+D:\Dev\ClaudeResearch\
+├── .venv\                      môi trường Python (không commit)
+├── CLAUDE.md                   bảng định tuyến bộ nhớ, tự nạp mỗi phiên
+├── docs\
+│   ├── memory\topic-02.md          ⭐ bộ nhớ của chủ đề này
+│   ├── tong-hop-nghien-cuu.md      ⭐ tổng hợp cả dự án, đọc trước
+│   ├── ngu-canh-vs-phuong-thuc.md  ngữ cảnh so với phương thức
+│   ├── boi-canh.md                 bối cảnh, tiên nghiệm kịch bản
+│   ├── ro-ri-dac-trung-iemocap.md  ⭐ rò rỉ đặc trưng — lý do có bước 6
+│   ├── hieu-luc-do-luong.md        phép đo có đúng thứ cần đo không
+│   ├── cadence-review.md           thẩm định đề xuất CADENCE
+│   ├── huong-cai-tien.md           ba hướng cải tiến và phán quyết
+│   ├── theory.md                   4 mệnh đề + sổ ghi tuyên bố đã rút
+│   └── headroom-data.json          mọi giá trị H kèm xuất xứ
+├── experiments\                18 script thí nghiệm
+├── paper\
+│   ├── headroom.md                 ⭐ bài chính
+│   └── main.md                     bản thảo U-ACMD, nay là case study
+├── results\                    kết quả JSON của mọi lượt chạy
+├── scripts\                    fetch_features.py, các script kiểm tra
+├── src\uacmd\                  cài đặt U-ACMD (58 test)
+└── tests\                      bộ test
+```
+
+## Lệnh hay dùng
+
+```powershell
+# kích hoạt môi trường (mỗi lần mở PowerShell mới)
+cd D:\Dev\ClaudeResearch; .\.venv\Scripts\Activate.ps1; $env:PYTHONPATH="src"
+
+python -m pytest -q                      # toàn bộ test
+python experiments\theory_check.py       # kiểm mọi mệnh đề lý thuyết bằng máy
+python scripts\check_headroom_paper.py   # đối chiếu từng số trong bài với dữ liệu
+```
+
+---
+
+## Phụ lục — cách cũ bằng CLI `--teleport` (không khuyến nghị)
+
+Cách này kéo **cả lịch sử hội thoại** về terminal, nhưng phải cài Claude Code CLI, phải
+giữ cửa sổ terminal, và phiên **không hiện trong Claude Desktop**.
+
+```powershell
+npm install -g @anthropic-ai/claude-code
+claude auth login          # đúng tài khoản claude.ai đang mở phiên cloud
+cd D:\Dev\ClaudeResearch
+claude --teleport session_01GRdLGMH3mWMUELAbDxDXcJ
+```
+
+Điều kiện: working tree sạch, đứng trong checkout đúng repo (không phải fork), đăng nhập
+cùng tài khoản. Sau khi teleport, phiên terminal là bản sao riêng — việc làm ở local không
+hiện lại trên claude.ai hay app mobile, trừ khi gõ `/remote-control`.

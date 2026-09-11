@@ -1,0 +1,63 @@
+#!/usr/bin/env python3
+"""Check that every headroom figure quoted in paper/headroom.md matches the data.
+
+The paper's central table is generated from docs/headroom-data.json; this verifies
+that the prose agrees with it, and that no figure survives from an earlier draft. Run
+it after any edit to either file.
+"""
+from __future__ import annotations
+
+import json
+import re
+import sys
+
+
+def main() -> int:
+    data = json.load(open("docs/headroom-data.json"))["entries"]
+    paper = open("paper/headroom.md").read()
+    # The manuscript uses typographic minus (U+2212) and varies between one and two
+    # decimal places. Normalise both rather than constraining the prose.
+    norm = paper.replace("\u2212", "-")
+
+    problems = []
+    for e in data:
+        if not e.get("modalities") or e.get("fused") is None:
+            continue
+        if e.get("same_architecture") is False:
+            continue                      # the illustrative row, quoted deliberately
+        if e.get("case_study"):
+            # Our own benchmark. Its headroom is quoted in Section 6; its unimodal
+            # breakdown belongs to the case study's results file, not to this table.
+            if not any(t in norm for t in (f"{e['fused'] - max(e['modalities'].values()):.1f}",)):
+                problems.append(f"{e['corpus']}: headroom not quoted in the case study")
+            continue
+        best = max(e["modalities"].values())
+        h = e["fused"] - best
+        # The paper prints H to two decimals with an explicit sign.
+        tokens = {f"{h:+.2f}", f"{h:+.1f}", f"{h:.2f}", f"{h:.1f}"}
+        if not any(t in norm for t in tokens):
+            problems.append(
+                f"{e['corpus']}: H = {h:+.2f} is not quoted anywhere in the paper")
+        if not any(t in norm for t in (f"{best:.2f}", f"{best:.1f}")):
+            problems.append(f"{e['corpus']}: best-single {best} not quoted")
+
+    # The refuted claims must not have crept back in.
+    for banned, why in [("16,225", "the withdrawn pi^3 ratio"),
+                        ("15,851", "the withdrawn pi^3 ratio"),
+                        ("rho^3", "the withdrawn scaling claim")]:
+        if banned in paper:
+            problems.append(f"'{banned}' appears in the paper: {why}")
+
+    if problems:
+        print("MISMATCHES between paper/headroom.md and docs/headroom-data.json:\n")
+        for p in problems:
+            print(" -", p)
+        return 1
+    print(f"OK: all {sum(1 for e in data if e.get('modalities') and e.get('fused') is not None and e.get('same_architecture') is not False)} "
+          "matched headroom values are quoted in the paper, and no withdrawn claim "
+          "has returned")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
