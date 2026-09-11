@@ -1,0 +1,102 @@
+#!/usr/bin/env python3
+"""Figure 1 of the conference paper: fusion headroom H for every matched comparison.
+
+Reads the values from docs/headroom-data.json (the same file the paper checker uses) and
+the 95% intervals of the first-hand rows from results/mosi_mosei_summary.json, so the
+figure cannot drift from the table. Monochrome by design: the paper is printed, so "read
+from a published table" and "measured here" are told apart by marker fill, not colour.
+
+    python scripts/plot_headroom_fig.py --out paper/iceir/fig_headroom.pdf
+"""
+from __future__ import annotations
+
+import argparse
+import json
+from pathlib import Path
+
+import matplotlib
+
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt  # noqa: E402
+
+INK, MUTED, GRID = "#1f1f1f", "#6b6b6b", "#d9d9d9"
+# Word's theme accents 1 and 2; the only Office pair that passes the dataviz validator
+# (CVD dE 25, normal-vision dE 32). Orange's low contrast is relieved by direct labels.
+BLUE, ORANGE = "#4472C4", "#ED7D31"
+METRIC = {"accuracy": "acc.", "weighted F1": "wF1", "F1 x100": "F1",
+          "valence UAR": "UAR", "arousal UAR": "UAR"}
+# The names Table 1 of the paper uses; the data file carries longer descriptions.
+DISPLAY = {"SEED (EEG+eye)": "SEED", "SEED-IV (same arch, SVM)": "SEED-IV",
+           "KEMDy20 (valence)": "KEMDy20 valence", "KEMDy20 (arousal)": "KEMDy20 arousal",
+           "AMIGOS (valence)": "AMIGOS valence", "AMIGOS (arousal)": "AMIGOS arousal",
+           "MOSI": "CMU-MOSI", "MOSEI": "CMU-MOSEI"}
+
+
+def rows(data_path: Path, summary_path: Path) -> list[dict]:
+    entries = json.loads(data_path.read_text(encoding="utf-8"))["entries"]
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))["fixed"]
+    ci = {c["corpus"]: c["headroom"]["acc"]["ci95"] for c in summary}
+    out = []
+    for e in entries:
+        # Same filter as scripts/check_headroom_paper.py: matched rows only, no case study.
+        if not e.get("modalities") or e.get("fused") is None:
+            continue
+        if e.get("same_architecture") is False or e.get("case_study"):
+            continue
+        measured = bool(e.get("first_hand"))
+        name = e["corpus"].replace(" (measured here)", "")
+        metric = METRIC.get(e.get("metric", ""), e.get("metric", ""))
+        label = f"{DISPLAY.get(name, name)}, {metric}"
+        r = {"label": label, "H": e["fused"] - max(e["modalities"].values()),
+             "measured": measured}
+        if measured:
+            lo, hi = ci[name]
+            r["ci"] = (lo * 100, hi * 100)
+        out.append(r)
+    return sorted(out, key=lambda r: r["H"])
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--data", type=Path, default=Path("docs/headroom-data.json"))
+    ap.add_argument("--summary", type=Path, default=Path("results/mosi_mosei_summary.json"))
+    ap.add_argument("--out", type=Path, default=Path("paper/iceir/fig_headroom.pdf"))
+    args = ap.parse_args()
+    rs = rows(args.data, args.summary)
+
+    plt.rcParams.update({"font.size": 8, "font.family": "serif", "axes.linewidth": 0.6})
+    fig, ax = plt.subplots(figsize=(4.8, 2.7))
+    ax.axvline(0, color=MUTED, lw=1.0, zorder=1)
+    ax.grid(axis="x", color=GRID, lw=0.5, zorder=0)
+    for y, r in enumerate(rs):
+        if r["measured"]:
+            lo, hi = r["ci"]
+            ax.plot([lo, hi], [y, y], color=ORANGE, lw=1.4, zorder=2)
+            ax.plot(r["H"], y, "D", ms=6, color=ORANGE, mec="white", mew=0.8, zorder=3)
+        else:
+            ax.plot(r["H"], y, "o", ms=6, color=BLUE, mec="white", mew=0.8, zorder=3)
+        # Label past the whisker on measured rows, so the number never sits on the line.
+        x_text = r["ci"][1] if r["measured"] else r["H"]
+        ax.annotate(f"{r['H']:+.2f}", (x_text, y), xytext=(6, 0),
+                    textcoords="offset points", va="center", fontsize=7, color=MUTED)
+    ax.set_yticks(range(len(rs)), [r["label"] for r in rs])
+    ax.set_xlabel("Fusion headroom $H$ (points)")
+    ax.set_xlim(-3.6, 10.5)
+    for s in ("top", "right", "left"):
+        ax.spines[s].set_visible(False)
+    ax.tick_params(axis="y", length=0)
+    ax.plot([], [], "o", color=BLUE, ms=6, label="read from the published table")
+    ax.plot([], [], "D-", color=ORANGE, ms=6, lw=1.4, label="measured here, with 95% CI")
+    # The empty corner; an unframed white patch keeps the zero line from striking the text.
+    leg = ax.legend(loc="upper left", frameon=True, fontsize=7)
+    leg.get_frame().set(facecolor="white", edgecolor="none", alpha=1.0)
+    fig.tight_layout()
+    args.out.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(args.out)
+    fig.savefig(args.out.with_suffix(".png"), dpi=200)
+    print("\n".join(f"{r['label']:32s} {r['H']:+.2f}" for r in rs))
+    print(f"written {args.out} and {args.out.with_suffix('.png')}")
+
+
+if __name__ == "__main__":
+    main()

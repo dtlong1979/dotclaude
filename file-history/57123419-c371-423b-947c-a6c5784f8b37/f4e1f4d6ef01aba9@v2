@@ -1,0 +1,51 @@
+# Khảo sát: hệ MERC nào nạp kênh text nhiễm bẩn của IEMOCAP
+
+Bằng chứng cho mục "Who loads them" và bảng `tab:usage` của `paper/fjcai/main.tex`.
+Khảo sát ngày 2026-09-11, đọc **code** (đường dẫn `pickle.load`, số chiều đặc trưng, trường
+text mà `__getitem__` trả về) và, khi có, **bài báo** (câu mô tả giao thức). Code được ưu
+tiên hơn bài báo khi hai bên mâu thuẫn (trường hợp GS-MCC).
+
+Nền: file `IEMOCAP_features.pkl` của DialogueGCN trùng hoàn toàn bản bc-LSTM; file của
+MMGCN giữ nguyên kênh text 100-d, thay audio (1.582-d) và visual (342-d) — xem
+`results/iemocap_feature_provenance.json`. Kênh text học trên nhãn phiên 1–4; audio và
+visual của MMGCN sạch dưới LOSO (`results/iemocap_loso_mmgcn/`).
+
+## Dùng kênh text chung (5, cộng MMGCN là nguồn)
+
+| Hệ | Nơi đăng | Bằng chứng dùng file | Giao thức IEMOCAP |
+|---|---|---|---|
+| MMGCN (nguồn) | ACL-IJCNLP 2021 | `dataloader.py`: `./IEMOCAP_features/IEMOCAP_features.pkl` | phiên 1–4 train |
+| MM-DFN | ICASSP 2022 | `run_train_erc.py`: `../data/iemocap/IEMOCAP_features.pkl`, D_text=100, audio 1582, visual 342 | "first four sessions for training, … last session for testing" |
+| GraphCFC | IEEE TMM 2024 | `run.py`: textCNN 100 / IS10 1582 / denseface 342; README cảm ơn MMGCN vì chia sẻ dữ liệu | split của file, valid 10% |
+| GraphMFT | Neurocomputing 2023 | `run.py`: cùng số chiều MMGCN | split của file (120/31 hội thoại), valid 10% |
+| GA2MIF | IEEE TAC 2024 | `run.py`: 100/1582/342 | split của file, valid 10% (bài báo chưa đọc) |
+| DialogueCRN | ACL 2021 | `run_train_ie.py`: `IEMOCAP_features.pkl`, input_size=100; README: đặc trưng "có trong bc-LSTM" | split của file; **chưa kiểm checksum file** |
+
+## Chỉ dùng audio/visual của MMGCN, text riêng (7) — không bị ảnh hưởng
+
+M3Net (CVPR 2023, text = RoBERTa), CMERC (MM 2024, D_text=1024), PCGNet (SIGIR 2024, chỉ
+README), CFN-ESA (2023, RoBERTa 1024), SDT (IEEE TMM 2023, 1024), GS-MCC (AAAI 2025, code
+1024/1582/342 — bài báo lại ghi openSMILE + 3D-CNN), GraphSmile (TPAMI 2025, 1024).
+
+## Đặc trưng khác (6) — không bị ảnh hưởng
+
+COGMEN (NAACL 2022, SBERT 768), CORECT (EMNLP 2023), Joyful (EMNLP 2023), MultiEMO (ACL
+2023, file riêng), EmoCaps (Findings ACL 2022, BERT 512 theo bài báo), DER-GCN (TNNLS 2024,
+RoBERTa theo bài báo).
+
+## Không kiểm được (2)
+
+RL-EMO (ICASSP 2024, chỉ IEEE, không có code), AdaIGN (AAAI 2024, code chưa phát hành).
+
+## Kiểm định chéo
+
+Không tìm thấy bài nào chạy LOSO hoặc k-fold trên các file này. Bài LOSO duy nhất tìm được
+(EII-SCL, arXiv 2607.17366) tự trích đặc trưng RoBERTa/Wav2vec2/CLIP. "Leave-one-out" của
+GS-MCC là tinh chỉnh trên validation, test vẫn là split của file.
+
+## Giới hạn của khảo sát
+
+Tìm theo từ khoá nên không loại trừ được bài ở venue nhỏ hoặc bài speech-emotion dùng lại
+file bc-LSTM. Trích dẫn giao thức lấy qua công cụ fetch có thể diễn đạt lại nhẹ — kiểm lại
+nguyên văn trước khi đưa vào bài. Danh mục đã kiểm chứng của 5 hệ dùng text:
+`paper/fjcai/references.bib`.

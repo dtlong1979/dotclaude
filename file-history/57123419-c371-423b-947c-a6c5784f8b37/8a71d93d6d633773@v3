@@ -1,0 +1,103 @@
+# Đặc trưng IEMOCAP được phát hành đã nhìn thấy 4 trong 5 phiên
+
+Phát hiện ngoài dự kiến, khi cắt phiên 4 ra làm tập validation để chọn α cho phép thử
+tiên nghiệm bối cảnh.
+
+**Huấn luyện trên phiên 1–3, đánh giá trên phiên 4: 91.93% accuracy.**
+**Huấn luyện trên phiên 1–4, đánh giá trên phiên 5: 59.54%.**
+
+Chênh **32 điểm**, giữa hai tập đều là "phiên chưa từng thấy khi huấn luyện mô hình", và
+phiên 4 không hề lệch lớp (lớp đa số 0.318).
+
+## Nguyên nhân: tách theo kênh thì lộ ngay
+
+2 seed, cùng kiến trúc, chỉ khác kênh đầu vào:
+
+| kênh | giữ phiên 4 | giữ phiên 5 | chênh |
+|---|---|---|---|
+| **text** | 90.54% | 59.89% | **+30.65** |
+| **video** | 49.04% | 32.26% | **+16.79** |
+| audio | 51.65% | 47.97% | +3.69 |
+
+Đúng chữ ký của đặc trưng **học có giám sát**: text (CNN) và video (3D-CNN) được trích
+bằng mạng huấn luyện trên nhãn của **phiên 1–4**, nên phiên 1–4 nằm trong dữ liệu huấn
+luyện của bộ trích đặc trưng. Audio là mô tả âm học không giám sát và gần như không có
+khoảng cách.
+
+Đây là cùng một hiện tượng đã ghi ở §7.4 của bài chính cho MOSI/MOSEI (98.8% và 94% trên
+video giữ lại *trong tập train* so với 80.5% và 54% trên test, audio không có khoảng
+cách) — nhưng ở đây rõ hơn nhiều.
+
+## Hệ quả
+
+Split chuẩn "giữ phiên 5" **không** bị ảnh hưởng: phiên 5 nằm ngoài dữ liệu của bộ trích
+đặc trưng, nên mọi con số của chúng ta trên split đó vẫn đứng.
+
+Nhưng **kiểm định chéo leave-one-session-out 5 fold** — một giao thức rất phổ biến trên
+IEMOCAP — thì bị: **4 trên 5 fold có tập test nằm trong dữ liệu huấn luyện của bộ trích
+đặc trưng**. Với bộ đặc trưng này, các con số chéo đó bị thổi lên đáng kể, và phần thổi
+lên nằm ở kênh text và video chứ không ở audio.
+
+## Nó chặn phép thử mà nó được sinh ra để phục vụ
+
+Tôi cắt phiên 4 làm validation để chọn α cho read-out `logits + α·log P(y|kịch bản)`.
+Không dùng được: trên tập đó mô hình đạt 91.93%, nên mọi tiên nghiệm thêm vào đều chỉ làm
+hỏng, và α được chọn là 0 — một lựa chọn nói về sự nhiễm bẩn của phiên 4, không nói gì về
+giá trị của bối cảnh.
+
+Với bộ đặc trưng này **không có tập validation sạch nào** cắt được từ phiên 1–4. Nên phép
+thử tiên nghiệm bối cảnh cần đặc trưng không nhiễm bẩn, và tôi dừng nó ở đây thay vì báo
+một con số không bảo vệ được.
+
+## Kiểm chứng: thay text bằng encoder đóng băng
+
+Dự đoán kiểm được: nếu khoảng chênh là do bộ trích đặc trưng đã học trên nhãn phiên 1–4,
+thì thay text bằng một encoder **chưa từng thấy nhãn IEMOCAP** phải xoá được nó.
+
+Cùng kiến trúc, cùng giao thức, cùng 3 seed. Encoder đóng băng, chỉ suy luận, mean-pool
+lớp cuối, fp16 trên RTX 3050 6 GB (`experiments/iemocap_text_reextract.py`). Chỉ cần
+transcript, có sẵn trong pickle phát hành, nên không cần audio/video thô:
+
+| đặc trưng text | giữ phiên 4 | giữ phiên 5 | chênh |
+|---|---|---|---|
+| CNN phát hành (học trên nhãn phiên 1–4) | 90.45% | 59.36% | **+31.10** |
+| BERT-base đóng băng | 56.83% | 63.98% | **−7.14** |
+| RoBERTa-base đóng băng | 56.79% | 64.51% | **−7.72** |
+| DeBERTa-v3-base đóng băng | 54.56% | 61.63% | **−7.07** |
+| *audio (không giám sát, đối chiếu)* | 54.12% | 48.02% | +6.10 |
+
+1. **Khoảng chênh không chỉ co lại mà đảo chiều**, và ổn định qua ba encoder (−7.07 đến
+   −7.72). Trên đặc trưng sạch, phiên 4 là phiên *khó hơn* — không có gì bất thường khi
+   hai phiên do hai cặp diễn viên khác nhau thực hiện.
+2. **Đặc trưng phát hành không chỉ bẩn mà còn yếu.** Trên split chuẩn (giữ phiên 5), cả
+   ba encoder đóng băng đều thắng CNN, 2.3 đến 5.2 điểm. Kênh text trong các công trình
+   dùng bộ đặc trưng này bị đánh giá thấp.
+3. Audio với 3 seed cho chênh +6.10 (bảng 2 seed ở trên: +3.69): vẫn nhỏ so với text,
+   nhưng nhắc rằng một phần chênh lệch giữa hai phiên đến từ chính hai phiên, không phải
+   từ nhiễm bẩn.
+
+Giới hạn: một mô hình ngôn ngữ có thể đã gặp lời thoại các vở kịch trong nửa *scripted*
+của IEMOCAP khi tiền huấn luyện. Nhưng nó chưa từng thấy nhãn cảm xúc của chúng — và thứ
+đang được kiểm ở đây là rò rỉ **nhãn**.
+
+## Phạm vi: DialogueGCN và MMGCN dùng lại cùng kênh text
+
+Hai bản phát hành IEMOCAP được dùng lại nhiều nhất về sau đều có file
+`IEMOCAP_features.pkl` riêng: DialogueGCN (`declare-lab/conv-emotion`) và MMGCN
+(`hujingwen6666/MMGCN`, ACL-IJCNLP 2021). So từng phát ngôn với bản bc-LSTM
+(`experiments/iemocap_feature_provenance.py`, `results/iemocap_feature_provenance.json`):
+
+| so với bản bc-LSTM | text | audio | video | id, nhãn, split |
+|---|---|---|---|---|
+| DialogueGCN | **trùng 7.433/7.433** | trùng 7.433/7.433 | trùng 7.433/7.433 | trùng |
+| MMGCN | **trùng 7.433/7.433** | khác (1.582-d) | khác (342-d) | trùng |
+
+Nghĩa là **bộ DialogueGCN chính là bộ bc-LSTM**, và **bộ MMGCN mang nguyên kênh text đã
+học trên nhãn phiên 1–4**. Mọi công trình dùng các file này với kiểm định chéo theo phiên
+đều thừa hưởng phần nhiễm bẩn của kênh text; split chuẩn thì không. Audio và video riêng
+của MMGCN đang được kiểm bằng cùng giao thức leave-one-session-out.
+
+**Hệ quả.** Kênh video (3D-CNN, chênh +16.79) vẫn là đặc trưng phát hành, vẫn nhiễm bẩn,
+và chưa thay được khi chưa có video thô. Mọi phép đo ghép text sạch với video này phải
+tách riêng từng kênh trước khi kết luận gì về giá trị của việc thêm kênh — xem
+`docs/ngu-canh-vs-phuong-thuc.md`.

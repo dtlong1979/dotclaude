@@ -1,0 +1,586 @@
+% FJCAI 2027 submission (IEEE conference format, 6-8 pages, double-blind review,
+% deadline 2026-11-15). Every number is traceable to results/*.json in the repository.
+% Markers [[PENDING]] flag numbers still being measured; none may remain at submission.
+% The usage-survey entries (hu2022mmdfn, li2023graphcfc, li2023graphmft, li2023ga2mif,
+% hu2021dialoguecrn) are verified in references.bib; GraphCFC and GA2MIF appeared in 2024.
+\documentclass[conference]{IEEEtran}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{url}
+\usepackage{cite}
+
+\begin{document}
+
+\title{Pre-Extracted IEMOCAP Features Have Seen Four of Five Test Folds:\\
+A Leakage Audit of Widely Reused Multimodal Emotion Features}
+
+\author{\IEEEauthorblockN{Anonymous Authors}
+\IEEEauthorblockA{Affiliation withheld for double-blind review}}
+
+\maketitle
+
+\begin{abstract}
+Research on multimodal emotion recognition in conversation often reuses pre-extracted
+utterance features instead of raw recordings. We show that among the most widely reused
+IEMOCAP features, the text and visual blocks carry the labels of the sessions most evaluation protocols test on. Their text
+and visual extractors were trained on sessions 1--4, a fact the original authors
+disclosed but whose consequence has not, to our knowledge, been drawn: any protocol that
+tests on those sessions evaluates a model on data its features were fitted to. With one
+fixed model and three seeds, holding out session 4 instead of session 5 raises text-only
+accuracy by 31 points; replacing the text features with any of three frozen encoders that
+were never trained on IEMOCAP labels reverses the gap to about $-7$ points. Under five-fold
+leave-one-session-out cross-validation the released features report 83.6\% accuracy
+against 57.6\% on the standard split, while frozen features show no inflation. The same
+text features are shipped, value for value, in the DialogueGCN and MMGCN feature files;
+four published systems we verified load them, and a fifth loads a bc-LSTM-derived file.
+None of these has yet used a cross-validation protocol, so the leak is a latent hazard
+rather than an error in published results --- but fusing clean text with the
+contaminated visual block already yields a misleading finding on the standard split. We recommend a session-gap diagnostic and the
+standard split for anyone using these files.
+\end{abstract}
+
+\begin{IEEEkeywords}
+emotion recognition in conversation, data leakage, evaluation protocol, IEMOCAP,
+multimodal features, reproducibility
+\end{IEEEkeywords}
+
+%------------------------------------------------------------------------------------
+\section{Introduction}
+
+Multimodal emotion recognition in conversation (MERC) has converged on a small set of
+corpora and, for IEMOCAP~\cite{busso2008}, on a small set of pre-extracted feature files.
+Most systems load utterance-level vectors distributed with earlier
+work~\cite{poria2017,ghosal2019,hu2021mmgcn} instead of processing raw audio and video.
+The practice lowers the cost of entry and keeps systems comparable; it also makes the
+provenance of those files part of every result built on them.
+
+Among the most reused IEMOCAP features are those introduced with
+bc-LSTM~\cite{poria2017}. Their
+text and visual vectors are hidden activations of networks trained on the emotion labels
+of the training split, sessions 1--4; the audio vectors are unsupervised acoustic
+descriptors. The original authors state this openly, and for the standard split, which
+tests on session 5, it is harmless. IEMOCAP, however, has no agreed test set: papers also
+report leave-one-session-out and speaker-independent cross-validation, and a recent audit
+recommends cross-validation~\cite{antoniou2023}. Under those protocols four of five test
+folds are sessions the feature extractors were fitted to. We hypothesise that the released
+features therefore carry test labels into any protocol that tests on sessions 1--4, and
+that the effect is large enough to change conclusions. The hypothesis can fail, and it can
+be tested with the feature files alone: a clean feature block shows no advantage on
+session 4 over session 5.
+
+This matters because pre-extracted files are the entry point to MERC for groups without
+the resources to process raw recordings, so their validity bounds the validity of the
+comparisons built on them; five of the twenty recent systems we surveyed load the shared
+text block (Section~\ref{sec:prov}). A leak in them cannot be seen in any results table,
+surfaces whenever a protocol changes, and, as we show, can bias analyses even on the
+standard split when released and clean features are combined.
+
+In this paper, we audit these features. Our contributions are:
+\begin{itemize}
+\item a per-channel measurement and a control with label-free encoders: holding out
+  session 4 instead of session 5 favours the released text by 31 points, and the gap
+  reverses to about $-7$ points when three frozen encoders never trained on IEMOCAP labels
+  replace it (Section~\ref{sec:gap});
+\item a measurement of leave-one-session-out inflation: $+24$ to $+31$ points of accuracy
+  on the released features and none on clean ones, across a sequence model and a linear
+  probe (Section~\ref{sec:loso});
+\item a provenance and usage analysis: the DialogueGCN and MMGCN files ship the identical
+  text block, which five published systems load, none of them yet under
+  cross-validation (Section~\ref{sec:prov});
+\item two consequences outside cross-validation, on IEMOCAP's standard split and on
+  MOSI/MOSEI: a misleading fusion finding and saturated model selection
+  (Section~\ref{sec:conseq});
+\item a session-gap diagnostic that needs only the feature files
+  (Section~\ref{sec:rec}).
+\end{itemize}
+We do not claim that any published standard-split result is wrong.
+
+%------------------------------------------------------------------------------------
+\section{Related Work}
+
+\textbf{Data leakage.} Information from the evaluation data reaching the model during
+training is a recognised cause of irreproducible results across machine-learning-based
+science~\cite{kapoor2023}. In neuroimaging, leakage through feature selection has been
+shown to inflate prediction performance drastically~\cite{rosenblatt2024}, and in NLP the
+analogous concern is benchmark contamination of large language models~\cite{balloccu2024}. A common form is preprocessing fitted on the full dataset
+before splitting; pre-extracted features trained on a fixed split and later reused under
+a different split are a variant of it that is invisible to the user of the files.
+
+\textbf{IEMOCAP evaluation.} IEMOCAP lacks an agreed test set, and papers report
+speaker-dependent splits, session-based splits and five- or ten-fold cross-validation,
+often with different label sets~\cite{antoniou2023}. Recent toolkits ship fixed
+partitions to counter inconsistent splits~\cite{ma2024emobox}, and a recent critique of
+MERC evaluation identifies inconsistent feature sets, tuning on the test set and seed
+selection as sources of unreliable comparisons~\cite{tu2026}. None of these addresses how
+the shared features were produced.
+
+\textbf{Feature reuse in MERC.} Pre-extracted features have become the common substrate of
+conversational models: the bc-LSTM features~\cite{poria2017} are loaded by the DialogueRNN
+and DialogueGCN releases~\cite{majumder2019,ghosal2019}, and MMGCN~\cite{hu2021mmgcn}
+distributes a file that later models reuse in turn; a recent survey reviews the families of
+MERC models built this way and how they are evaluated~\cite{wu2025merc}. These releases
+document how the
+features were extracted but leave open which evaluation protocols the extraction makes
+unsafe; the one cross-validated evaluation we found with the same extraction
+pipeline~\cite{poria2018baselines} states neither whether it used these files nor whether
+the extractors were retrained per fold. We supply the missing link between provenance and protocol, and measure what it
+costs.
+
+%------------------------------------------------------------------------------------
+\section{Experimental Setup}\label{sec:setup}
+
+\textbf{Data.} IEMOCAP~\cite{busso2008} contains 151 dyadic dialogues in five sessions,
+each session performed by a different pair of actors. The released feature file covers
+7{,}433 utterances with six emotion labels (happy, sad, neutral, angry, excited,
+frustrated), split into 120 training dialogues (sessions 1--4) and 31 test dialogues
+(session 5). It provides 100-d text, 100-d audio and 512-d visual vectors per utterance.
+
+\textbf{How the released features were built.} Poria et al.~\cite{poria2017} describe a
+text network that applies convolutions to word2vec embeddings and a visual 3D
+convolutional network, each topped by a fully connected layer and a softmax over the
+emotion labels and trained on the training split; the activations of the fully connected
+layer serve as the utterance features. The audio vectors are openSMILE acoustic
+descriptors, computed without labels. We call a block \emph{label-fit} if its extractor
+was trained on IEMOCAP emotion labels. The released file differs in detail from that
+description --- its text and visual vectors have 100 and 512 dimensions, and it carries
+six emotion classes where the paper reports four --- so the exact configuration that
+produced it is not documented. What the diagnostic below tests does not depend on those
+details: whether a block behaves as if it had seen the labels of the sessions it is
+evaluated on.
+
+\textbf{Frozen encoders.} To obtain text features that were never trained on IEMOCAP
+labels, we encoded the transcripts shipped in the same file with BERT-base~\cite{devlin2019},
+RoBERTa-base~\cite{liu2019roberta} and DeBERTa-v3-base~\cite{he2023debertav3}, frozen and
+never fine-tuned, taking the mean of the last-layer states (half precision, one 6\,GB GPU).
+
+\textbf{Model.} All experiments use one model: a bidirectional LSTM
+(bi-LSTM)~\cite{hochreiter1997} over the utterances of a dialogue with a per-utterance linear read-out (hidden size 100,
+dropout 0.5, Adam with learning rate $10^{-3}$, up to 50 epochs with early stopping on a
+seeded 20\% of the training dialogues), trained with three seeds (five in
+Section~\ref{sec:conseq}). Features are
+standardised with training statistics. Only the input features change between runs.
+
+\textbf{Protocols.} \emph{Standard}: train on sessions 1--4, test on session 5.
+\emph{Session-4 hold-out}: train on sessions 1--3, test on session 4; both test sets are
+unseen by the model, but only session 5 is unseen by the feature extractors.
+\emph{Leave-one-session-out (LOSO)}: five folds, each session tested once by a model
+trained on the other four; fold 5 equals the standard split, and the LOSO mean is the
+unweighted mean over folds.
+
+%------------------------------------------------------------------------------------
+\section{The Session Gap}\label{sec:gap}
+
+Let $a_4$ be the accuracy of a model trained on sessions 1--3 and tested on session 4,
+and $a_5$ that of the same model trained on sessions 1--4 and tested on session 5; we call
+$g=a_4-a_5$ the \emph{session gap}. If a feature block was fitted to the labels of
+sessions 1--4, a model reading it will look far better on session 4 than on session 5,
+and a large positive $g$ will appear only in the label-fit blocks. Because $a_4$ comes
+from three training sessions and $a_5$ from four, $g$ is biased downward for every block,
+which works against this prediction. Table~\ref{tab:gap} shows the pattern.
+
+\begin{table}[t]
+\caption{Accuracy (\%) holding out session 4 vs.\ session 5, same model, three seeds;
+the gap $g$ is in points, computed from unrounded accuracies.}
+\label{tab:gap}
+\centering\footnotesize
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+Feature block & Ses.~4 & Ses.~5 & $g$ \\
+\midrule
+Released text (label-fit) & 90.45 & 59.36 & $+31.10$ \\
+Released visual (label-fit) & 48.79 & 31.40 & $+17.38$ \\
+Released audio (unsupervised) & 54.12 & 48.02 & $+6.10$ \\
+\midrule
+Frozen BERT-base & 56.83 & 63.98 & $-7.14$ \\
+Frozen RoBERTa-base & 56.79 & 64.51 & $-7.72$ \\
+Frozen DeBERTa-v3-base & 54.56 & 61.63 & $-7.07$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{fig_gap.pdf}
+\caption{Session gap of each feature block (Table~\ref{tab:gap}). Blue: blocks whose
+extractors were fitted to IEMOCAP labels; orange: blocks that never saw them.}
+\label{fig:gap}
+\end{figure}
+
+The released text features give 90.45\% on session 4 and 59.36\% on session 5, a gap of
+31 points. Unsupervised audio moves by six points. When the text block is replaced by any of
+three frozen encoders, the gap does not merely shrink; it reverses to between $-7.1$ and
+$-7.7$, consistently across encoders. On clean features session 4 is the harder session,
+which is unremarkable for two sessions performed by different actors. The frozen
+encoders also yield 2.3 to 5.2 points higher accuracy than the released text features on
+the standard split, so
+the released text features are both contaminated under other protocols and weaker under
+the one they were built for.
+
+\textbf{Is it label shift?} Sessions do differ in class balance (Table~\ref{tab:sessions}):
+the largest class covers 31.8\% of session 4 and 23.7\% of session 5. An 8-point
+difference in majority-class share is unlikely to explain a 31-point gap, and it points the
+wrong way for the clean features, which score \emph{lower} on session 4. The gap is
+consistent with what the features were fitted to, not with what the sessions contain.
+
+\begin{table}[t]
+\caption{Class balance per IEMOCAP session in the released file.}
+\label{tab:sessions}
+\centering\footnotesize
+\begin{tabular}{@{}crrl@{}}
+\toprule
+Session & Dialogues & Utterances & Largest class \\
+\midrule
+1 & 28 & 1{,}373 & neutral, 28.0\% \\
+2 & 30 & 1{,}356 & neutral, 26.7\% \\
+3 & 32 & 1{,}569 & frustrated, 24.3\% \\
+4 & 30 & 1{,}512 & frustrated, 31.8\% \\
+5 & 31 & 1{,}623 & neutral, 23.7\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+A pretrained language model may have encountered the scripted plays that part of
+IEMOCAP performs, but it has never seen their emotion labels; label leakage is what the
+test isolates.
+
+%------------------------------------------------------------------------------------
+\section{Leave-One-Session-Out Inflation}\label{sec:loso}
+
+Table~\ref{tab:loso} reports results under the protocol that the contamination affects.
+With the released
+text features, folds 1--4 score between 88.3\% and 90.2\%, fold 5 scores 59.36\%, and the
+five-fold mean is 83.52\% --- 24 points above the standard split. Fusing all three
+released blocks, the configuration most papers report, gives a five-fold mean of 83.58\%
+against 57.59\%. The visual block alone inflates by 18 points. Unsupervised audio moves
+by two points. With frozen text encoders the five-fold mean is \emph{below} the standard
+split by 3.8 to 4.8 points (1.5 with BERT text plus released audio), which is what an unbiased estimate would show if session 5 is
+the easier test set.
+
+\begin{table*}[t]
+\caption{Five-fold leave-one-session-out (LOSO) against the standard split (train sessions
+1--4, test session 5): one bi-LSTM, three seeds. $\Delta$ is the five-fold mean minus the
+standard split, in points for accuracy and weighted F1 (wF1) and on the 0--1 scale for
+Cohen's $\kappa$. The MMGCN text block is identical to the bc-LSTM one and gives identical
+numbers.}
+\label{tab:loso}
+\centering\footnotesize
+\begin{tabular}{@{}llrrrrrr@{}}
+\toprule
+ & & \multicolumn{4}{c}{Accuracy (\%)} & wF1 & $\kappa$ \\
+\cmidrule(lr){3-6}
+Source & Feature block & Folds 1--4 & LOSO mean & Standard & $\Delta$ & $\Delta$ & $\Delta$ \\
+\midrule
+bc-LSTM release & Text (label-fit CNN) & 89.56 & 83.52 & 59.36 & $+24.17$ & $+24.42$ & $+0.30$ \\
+bc-LSTM release & Visual (label-fit 3D-CNN) & 54.09 & 49.56 & 31.40 & $+18.15$ & $+16.53$ & $+0.21$ \\
+bc-LSTM release & Audio (unsupervised) & 50.67 & 50.14 & 48.02 & $+2.12$ & $+1.48$ & $+0.02$ \\
+bc-LSTM release & Text + audio + visual & 90.08 & 83.58 & 57.59 & $+25.99$ & $+25.76$ & $+0.32$ \\
+MMGCN release & Audio (1{,}582-d) & 49.02 & 49.45 & 51.14 & $-1.69$ & $-2.55$ & $-0.02$ \\
+MMGCN release & Visual (342-d) & 35.32 & 35.61 & 36.76 & $-1.16$ & $-1.69$ & $-0.02$ \\
+MMGCN release & Text + audio + visual & 86.26 & 81.53 & 62.62 & $+18.91$ & $+18.75$ & $+0.23$ \\
+\midrule
+Frozen encoder & BERT-base text & 58.97 & 59.97 & 63.98 & $-4.00$ & $-4.64$ & $-0.05$ \\
+Frozen encoder & RoBERTa-base text & 59.77 & 60.72 & 64.51 & $-3.79$ & $-4.20$ & $-0.05$ \\
+Frozen encoder & DeBERTa-v3-base text & 55.58 & 56.79 & 61.63 & $-4.84$ & $-5.53$ & $-0.06$ \\
+Frozen encoder & BERT text + released audio & 63.23 & 63.59 & 65.04 & $-1.45$ & $-2.21$ & $-0.02$ \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{fig_loso.pdf}
+\caption{Accuracy on each held-out session under leave-one-session-out. Left: released
+feature blocks, whose extractors were fitted to sessions 1--4, collapse on session 5, the
+only session they never saw. Right: frozen-encoder blocks show no such step. The shaded
+column is the standard split.}
+\label{fig:loso}
+\end{figure*}
+
+\textbf{The inflation belongs to the features.} One may suspect the bi-LSTM, which reads
+the whole dialogue. Replacing it with the simplest reader we could choose --- multinomial
+logistic regression on each utterance vector alone, with no context and no tuning ---
+changes the scale but not the pattern (Table~\ref{tab:linear}). Under LOSO the released
+text still gains 30.8 points and the released visual block 11.5, while the frozen
+text blocks move by between $-0.2$ and $+1.6$.
+
+\begin{table}[t]
+\caption{LOSO with a linear probe (logistic regression on single utterances, no
+context): accuracy (\%), $\Delta$ in points.}
+\label{tab:linear}
+\centering\footnotesize
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+Feature block & LOSO mean & Standard & $\Delta$ \\
+\midrule
+Released text (label-fit) & 80.44 & 49.66 & $+30.78$ \\
+Released visual (label-fit) & 36.35 & 24.83 & $+11.52$ \\
+Released audio (unsupervised) & 43.20 & 39.49 & $+3.71$ \\
+\midrule
+Frozen BERT-base & 44.69 & 43.07 & $+1.62$ \\
+Frozen RoBERTa-base & 45.41 & 45.66 & $-0.24$ \\
+Frozen DeBERTa-v3-base & 42.77 & 42.64 & $+0.14$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Every emotion is inflated.} Table~\ref{tab:perclass} breaks the text-only
+inflation down by emotion, as recall averaged over the three seeds. With the released text
+block every one of the six emotions gains between 17 and 43 points, most for
+\emph{happy}. With frozen BERT the changes differ in sign, from $-18.5$ points for
+\emph{neutral} to $+7.0$ for \emph{excited}, and average to a small loss; the swings are
+what one expects from sessions performed by different actors, and none approaches the
+uniform gain of the released block.
+
+\begin{table}[t]
+\caption{Per-emotion recall (\%) of the text-only bi-LSTM under LOSO, three seeds;
+$\Delta$ is the five-fold mean minus the standard split (session 5), in points.}
+\label{tab:perclass}
+\centering\footnotesize
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+ & \multicolumn{2}{c}{Released text} & \multicolumn{2}{c}{Frozen BERT-base} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}
+Emotion & Standard & $\Delta$ & Standard & $\Delta$ \\
+\midrule
+Happy & 31.94 & $+43.01$ & 31.02 & $+1.97$ \\
+Sad & 70.75 & $+17.00$ & 74.15 & $+3.14$ \\
+Neutral & 54.69 & $+24.38$ & 64.41 & $-18.45$ \\
+Angry & 63.14 & $+21.99$ & 60.59 & $-8.86$ \\
+Excited & 58.97 & $+28.94$ & 69.57 & $+6.95$ \\
+Frustrated & 65.70 & $+19.89$ & 66.58 & $+4.31$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Fig.~\ref{fig:loso} shows the shape of the effect fold by fold. For the models we
+tested, a result reported under this protocol on the released features overstates
+accuracy by 19 to 26 points. The inflation is not a property of the model: the same
+bi-LSTM, seeds and schedule give no inflation on clean features.
+
+%------------------------------------------------------------------------------------
+\section{Feature Provenance and Usage}\label{sec:prov}
+
+We compared, utterance by utterance, the bc-LSTM release with the
+\texttt{IEMOCAP\_features.pkl} files shipped by the DialogueGCN and MMGCN code releases
+(Table~\ref{tab:prov}, Fig.~\ref{fig:prov}). The DialogueGCN file is identical to the bc-LSTM file in every
+block. The MMGCN file keeps the identical text block and replaces the audio and visual
+blocks with a 1{,}582-d acoustic descriptor and a 342-d visual descriptor. Utterance ids,
+labels and the train/test split are the same in all three. The contaminated text block
+therefore reaches every model that reads the text block of any of the three files.
+MMGCN's own audio and visual blocks, by contrast, pass the test: under LOSO their five-fold
+means sit slightly \emph{below} the standard split (audio 49.45\% against 51.14\%, visual
+35.61\% against 36.76\%), and their session gaps are negative ($g=-2.6$ points for audio
+and $-6.7$ for visual) while the shared text block in the same file gives $+31.1$. Both
+tests thus agree: in the MMGCN file the contamination is confined to the text block.
+
+\begin{table}[t]
+\caption{Blocks identical to the bc-LSTM release (7{,}433 utterances compared).}
+\label{tab:prov}
+\centering\footnotesize
+\begin{tabular}{@{}lccc@{}}
+\toprule
+Feature file & Text & Audio & Visual \\
+\midrule
+DialogueGCN release & Identical & Identical & Identical \\
+MMGCN release & Identical & New, 1{,}582-d & New, 342-d \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{fig_provenance.pdf}
+\caption{Which blocks of the three IEMOCAP feature files are label-fit. Blue: fitted to
+IEMOCAP labels (session gap and LOSO inflation); orange: passes both tests.}
+\label{fig:prov}
+\end{figure}
+
+\textbf{Who loads them.} We inspected the code, and where available the paper, of twenty
+MERC systems published since MMGCN. Five load the shared text block: MM-DFN, GraphCFC,
+GraphMFT, GA2MIF and DialogueCRN~\cite{hu2022mmdfn,li2023graphcfc,li2023graphmft,li2023ga2mif,hu2021dialoguecrn}
+(the last through a bc-LSTM-derived file whose checksum we did not verify). Seven reuse only
+MMGCN's audio and visual blocks with their own text encoder, and are therefore unaffected;
+six use other features, and two could not be checked. All five text users test on the
+file's session-5 split; we found no published result that cross-validates on these files
+(the cross-validated study in~\cite{poria2018baselines} does not state whether it used
+them). The leak is therefore a latent hazard: it has not yet produced an inflated
+published number that we could find, and it would produce one for the first group that
+follows the recommendation to cross-validate~\cite{antoniou2023} on these files. Table~\ref{tab:usage} summarises the
+survey; the per-system evidence (code lines and protocol sentences) is recorded in the
+accompanying repository.
+
+\begin{table}[t]
+\caption{Twenty MERC systems published since MMGCN, by which IEMOCAP features their code
+or paper shows them using.}
+\label{tab:usage}
+\centering\footnotesize
+\begin{tabular}{@{}lrl@{}}
+\toprule
+Features used & Systems & Protocol \\
+\midrule
+Shared label-fit text block & 5 & All standard split \\
+MMGCN audio/visual only (own text) & 7 & Unaffected \\
+Other feature sets & 6 & Unaffected \\
+Could not be checked & 2 & -- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+%------------------------------------------------------------------------------------
+\section{Downstream Consequences}\label{sec:conseq}
+
+\textbf{A misleading fusion finding.} Contaminated features can mislead even under the
+standard split when they are combined with clean ones. With frozen BERT text, adding the
+released audio \emph{and} visual blocks \emph{lowers} accuracy by 3.4 points in a model
+without conversational context and by 6.5 points in one with context (five seeds, paired
+$t$-test, $p\le0.003$), which reads as evidence that extra modalities hurt once context is
+available. Separating the blocks dissolves that reading: adding audio alone
+\emph{raises} accuracy by 1.2 and 1.1 points, while adding the visual block alone lowers
+it by 6.2 and 8.6 (Table~\ref{tab:trap}). A plausible mechanism is that the model relies
+on a visual block fitted to sessions 1--4, which does not transfer to session 5. The
+fused numbers alone support the wrong conclusion.
+
+\begin{table}[t]
+\caption{Change in accuracy (points) from adding released blocks to frozen BERT text on
+the standard split, with and without conversational context; five seeds.}
+\label{tab:trap}
+\centering\footnotesize
+\begin{tabular}{@{}lrr@{}}
+\toprule
+Blocks added to clean text & No context & Context \\
+\midrule
+Released audio (unsupervised) & $+1.21$ & $+1.07$ \\
+Released visual (label-fit) & $-6.22$ & $-8.59$ \\
+Released audio + visual & $-3.40$ & $-6.51$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Saturated model selection.} The same release's CMU-MOSI~\cite{zadeh2016} and
+CMU-MOSEI~\cite{zadeh2018} features show the symptom a user can see without any extra
+experiment (Table~\ref{tab:sat}). Held-out \emph{training} videos reach 98.9\% text-only
+accuracy on MOSI and 99.2\% with fusion, against about 80\% on test, and the label-fit
+visual block shows the same pattern. On MOSEI the label-fit blocks do not saturate but
+still lose 3 to 12 points from held-out to test, while the unsupervised audio block shows
+neither pattern on either corpus. This is the signature of the session gap in a corpus
+without sessions. On MOSI, hyperparameter and fusion-style selection on such a held-out
+split is close to arbitrary: a practitioner choosing configurations on it is choosing
+among near-ties.
+
+\begin{table}[t]
+\caption{Held-out \emph{training} vs.\ test accuracy (\%) on the released MOSI and MOSEI
+features; one bi-LSTM, five seeds. Held-out = the early-stopping videos, at the best
+epoch. On MOSI the label-fit blocks saturate on held-out
+data; on MOSEI they lose 3--12 points from held-out to test; unsupervised audio does
+neither.}
+\label{tab:sat}
+\centering\footnotesize
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+ & \multicolumn{2}{c}{MOSI} & \multicolumn{2}{c}{MOSEI} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}
+Block & Held-out & Test & Held-out & Test \\
+\midrule
+Text (label-fit) & 98.88 & 80.53 & 70.95 & 59.09 \\
+Visual (label-fit) & 90.80 & 54.65 & 56.10 & 53.22 \\
+Audio (unsupervised) & 49.97 & 55.29 & 58.62 & 58.64 \\
+Early fusion & 99.18 & 79.47 & 71.19 & 59.95 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+%------------------------------------------------------------------------------------
+\section{Discussion}
+
+\textbf{How a disclosed choice became a hazard.} The original extraction was sound for its
+purpose: a fixed split, extractors fitted on its training part, features released so that
+others could replicate the model. The hazard came from two later drifts. The files were
+reused as generic features by releases that did not restate their provenance, and
+evaluation practice moved toward cross-validation, which the files were never built for.
+Neither drift is visible in a results table, and the one place the provenance is written,
+the original paper, is rarely read by the users of a downstream file. In the terms of
+Kapoor and Narayanan~\cite{kapoor2023}, it is leakage from preprocessing fitted on data
+that later serves as test data, distributed as a file rather than as code.
+
+\textbf{What the evidence licenses.} Standard-split results on these files remain valid,
+and our survey found no published cross-validated result on them. We therefore claim a
+hazard and its size, not a list of wrong papers. The size is what makes the hazard
+matter: under LOSO the released features inflated accuracy by 19 to 26 points for the
+models we tested, which would swamp the one- or two-point margins on which a
+new system is usually preferred.
+
+\textbf{Clean features are now cheap.} The frozen encoders we used run inference-only on a
+6\,GB consumer GPU, and on the standard split they yield 2.3 to 5.2 points higher
+accuracy than the released text features. The economic reason to reuse supervised 2017-era features has
+largely disappeared, while the validity reason against them has become measurable.
+
+\textbf{Provenance as metadata.} A feature release can state in one line which utterances
+its extractors were fitted to. That single field would have made the hazard visible to
+downstream users, and we recommend it for any shared feature file, in the spirit of
+datasheets for datasets~\cite{gebru2021datasheets}.
+
+%------------------------------------------------------------------------------------
+\section{Recommendations}\label{sec:rec}
+
+For anyone evaluating on these feature files we recommend four practices, complementing
+general checklists such as REFORMS~\cite{kapoor2024reforms}.
+\begin{enumerate}
+\item \textbf{State the protocol and use the standard split.} Results on these files are
+  valid only when the test data were unseen by the feature extractors: train on sessions
+  1--4, test on session 5.
+\item \textbf{Run the session-gap diagnostic} on any pre-extracted feature block before
+  cross-validating (Table~\ref{tab:diag}). A gap far above that of an unsupervised block
+  signals supervised extraction.
+\item \textbf{Report held-out beside test accuracy.} Near-perfect held-out accuracy with
+  ordinary test accuracy is the visible signature of contaminated features.
+\item \textbf{Re-extract with frozen encoders} when cross-validation is required. Frozen,
+  inference-only encoders were never trained on benchmark labels, run on a consumer GPU,
+  and in our measurements yield higher accuracy than the released text features.
+\end{enumerate}
+
+\begin{table}[t]
+\caption{Session-gap diagnostic for one feature block and one fixed model.}
+\label{tab:diag}
+\centering
+\fbox{\parbox{0.93\columnwidth}{\small
+1.\ Train on sessions 1--3 and test on session 4; record accuracy $a_4$.\\
+2.\ Train on sessions 1--4 and test on session 5; record accuracy $a_5$.\\
+3.\ Compute the session gap $g=a_4-a_5$, in points.\\
+4.\ Repeat steps 1--3 for a block known to be unsupervised, such as acoustic
+descriptors, giving the reference gap $g_{\mathrm{ref}}$.\\
+5.\ Report $g-g_{\mathrm{ref}}$; a large positive value flags the block as label-fit.
+On the released IEMOCAP file $g-g_{\mathrm{ref}}$ is $+25$ points for text and $+11$
+for the visual block; frozen text encoders give between $-13$ and $-14$.}}
+\end{table}
+
+%------------------------------------------------------------------------------------
+\section{Limitations}
+
+We re-extracted only the text channel of IEMOCAP; re-extracting video requires the raw
+recordings. The visual contamination is shown by its session gap and its effect on
+fusion, not by a clean replacement. We tested two readers, a bi-LSTM and a linear probe; a model
+that relies less on the text block would be affected less. Which label set trained the released extractors
+(four or six classes) is not documented, which does not change the diagnosis but limits
+how exactly the leak can be characterised. For MOSI and MOSEI we show saturation, not a
+per-session test, because their splits are not organised by session.
+
+%------------------------------------------------------------------------------------
+\section{Conclusion}
+
+The text and visual blocks of some of the most reused IEMOCAP features were fitted to the
+labels of four of its five sessions. That was a reasonable design for the protocol they
+were built for and a hazard for the protocols that came after. The hazard is invisible in
+a results table, inflated accuracy by 19 to 26 points under LOSO for the models we tested,
+and can produce misleading findings even on the standard split when contaminated and
+clean features are mixed. A session-gap check
+takes minutes and should precede any cross-validated claim on shared features.
+
+\section*{Data and Code Availability}
+Scripts, per-fold results and feature checksums are available in an anonymised
+repository [[PENDING: anonymous link]].
+
+\bibliographystyle{IEEEtran}
+\bibliography{references}
+
+\end{document}

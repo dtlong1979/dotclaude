@@ -1,0 +1,205 @@
+# Bộ nhớ — Chủ đề 02: biên độ hợp nhất đa phương thức (MERC)
+
+Nhánh: `claude/research-skills-proposal-set3gw`. **Chỉ nạp file này khi đang làm chủ đề 02.**
+Chủ đề khác trong repo có file bộ nhớ riêng; xem `CLAUDE.md` ở gốc.
+
+Nó thay cho bản ghi hội thoại của những phiên trước: **mọi kết luận ở đây đã được đo, và
+mọi con số đều truy được về một script.**
+
+Trả lời bằng **tiếng Việt** trừ khi được yêu cầu khác. Nội dung bài báo viết bằng tiếng Anh.
+
+**Bản ghi hội thoại đầy đủ: `docs/memory/topic-02-nhat-ky.md`** (~240 KB, 48 lượt hỏi đáp).
+File này là *kết luận*; file kia là *đường đi tới kết luận* — thứ đã thử rồi bỏ, lý do một
+con số được báo cáo thế này chứ không thế kia. **Đừng nạp cả file**; `grep` theo từ khoá khi
+cần truy nguyên một quyết định.
+
+---
+
+## 1. Dự án này thực ra là gì
+
+Khởi điểm là U-ACMD — một phương pháp chống thiếu phương thức trong nhận dạng cảm xúc đa
+phương thức (MERC). **Kết quả ban đầu của nó không sống sót được phép kiểm tra**, và dự án
+đã chuyển thành một công trình **đo lường**: lĩnh vực này báo cáo các biên cải tiến mà
+không báo cáo thang đo mà chúng được đo trên đó.
+
+Bài chính hiện nay là `paper/headroom.md`. `paper/main.md` (bản thảo U-ACMD) nay là case
+study của bài đó.
+
+**Nhánh làm việc: `claude/research-skills-proposal-set3gw`.** Commit và push sau mỗi việc
+hoàn tất; đừng để kết quả nằm trong thư mục tạm.
+
+---
+
+## 2. Kỷ luật của dự án — phần quan trọng nhất
+
+Dự án này đã **rút lại 11 tuyên bố**, trong đó 6 là của chính Claude. Sổ ghi đầy đủ ở
+`docs/theory.md` mục "Removed claims" và `docs/tong-hop-nghien-cuu.md` mục 9.
+
+Năm quy tắc rút ra, và phải giữ:
+
+1. **Không ghi số second-hand.** Ba lần lấy số từ tóm tắt tìm kiếm thay vì đọc bảng gốc,
+   cả ba đều sai, và cả ba đều sai theo hướng thổi phồng. Số chỉ vào
+   `docs/headroom-data.json` khi đã đọc tận bảng trong bài gốc, kèm xuất xứ.
+2. **Đo trước khi tin.** Một cơ chế nghe hợp lý không phải bằng chứng. Mỗi hướng cải tiến
+   phải bắt đầu bằng một phép đo có thể bác bỏ nó — hai trong ba hướng gần nhất đã bị đóng
+   lại đúng bằng cách đó.
+3. **Nêu rõ đại lượng.** `E[e_k]` và `E[e_k | Y=k]` khác nhau; tỉ số nhóm và tỉ số hai lớp
+   khác nhau; κ và 100×Δκ khác nhau. Một lần nhầm đại lượng đã thổi con số lên gần 3 lần.
+4. **Tự rút số của mình trước khi người khác làm.** Nếu một con số đã báo cáo hoá ra sai,
+   ghi nó vào sổ rút, sửa mọi nơi nó xuất hiện, và thêm assert để nó không quay lại.
+   `experiments/theory_check.py` có assert chống lại các tuyên bố đã rút.
+5. **Không chọn gì trên test, và đừng tin validation của đặc trưng nhiễm bẩn.** Chọn kiểu
+   hợp nhất bằng trung bình test đã báo H của MOSEI là +1.49, trong khi validation chỉ
+   ủng hộ +0.29 đến +0.86. Chuyển sang validation cũng chưa đủ: khi hai cấu hình hoà trên
+   validation (MOSEI 71.19/71.20; MOSI bão hoà ~99% vì đặc trưng đã thấy các video đó),
+   phải báo **khoảng**, không báo một con số. Và ghép kênh sạch với
+   kênh nhiễm bẩn có thể sinh phát hiện sai (đã xảy ra: "hai trục thay thế nhau").
+
+---
+
+## 3. Các phát hiện đang đứng vững
+
+**Biên độ hợp nhất H = f − max_m s_m**, đọc cùng bài, cùng bảng, cùng kiến trúc.
+Trên 10 so sánh / 7 corpus: **−1.8 đến +9.1 điểm**, benchmark chủ lưu ≤ 3.2, bốn trong
+mười là âm. Dữ liệu ở `docs/headroom-data.json`, kiểm bằng `scripts/check_headroom_paper.py`.
+Hai dòng tự đo, chọn trên validation: **MOSI −1.60 đến −1.06, MOSEI +0.29 đến +0.86** —
+early và mid hoà nhau trên validation ở cả hai corpus. +1.49 cũ (late, chọn trên test)
+đã rút: validation loại late rõ ràng.
+
+**Sàn lớp đa số.** `A(c)=π₀`, `W(c)=2π₀²/(1+π₀)`, `M(c)=(1/K)·2π₀/(1+π₀)`, `κ(c)=0`.
+π₀ phải là tỷ lệ **trong tập đánh giá** của lớp **thực sự được dự đoán**.
+
+**κ, MCC và balanced accuracy đều chống được sự sụp đổ về tiên nghiệm; weighted F1 thì
+không** (tăng trong 97.6% ma trận nhầm lẫn ngẫu nhiên). κ **không** đặc biệt — tuyên bố cũ
+rằng chỉ κ mới chống được đã bị rút.
+
+**Ngưỡng 9.33%.** Bayes risk chuẩn của EDL triệt tiêu bằng chứng của lớp dưới
+`ψ'(K)/ψ'(1)` — **nhưng chỉ ở vùng không phân biệt được**, không phải theo tần suất lớp.
+Lớp hiếm mà tách được vẫn học bình thường (`experiments/threshold_scope.py`).
+
+**Ngữ cảnh đáng giá hơn phương thức, ở nơi ngữ cảnh tồn tại.** Trên đặc trưng sạch
+(IEMOCAP, text BERT đóng băng + audio, 5 seed): ngữ cảnh **+10.84**, thêm audio **+1.07** —
+gần mười lần. MOSI +4.83 so với +1.02 (đặc trưng phát hành); MOSEI cả hai ≈ 0; **MELD** ngữ
+cảnh chỉ +0.67 accuracy, 0 macro F1, và lớp đa số (48.12) còn hơn "lặp lượt trước của
+chính người nói" (47.51). H MELD tự đo trên đặc trưng sạch (text BERT + audio WavLM, ba
+kiểu hợp nhất, chọn trên validation): **+0.41 weighted F1** (p = 0.28), so với +2.81 bài
+đọc từ Poria et al.; text đóng băng một mình (61.32) đã vượt hệ hợp nhất của họ (59.25)
+— không phải so sánh khớp. Video CLIP cả khung hình ở mức sàn (48.42 so với lớp đa số
+48.12); thêm nó, H còn +0.07 weighted F1. Giá trị ngữ cảnh là thuộc tính của cách
+corpus được dựng.
+~~Hai trục thay thế nhau~~ — **đã rút** trên IEMOCAP: dấu âm đến từ video nhiễm bẩn;
+audio sạch giúp như nhau dù có ngữ cảnh hay không. MOSI chưa kiểm được.
+
+**Đặc trưng IEMOCAP/MOSI/MOSEI được phát hành đã nhìn thấy tập huấn luyện.** Trên IEMOCAP:
+giữ phiên 4 cho 91.93%, giữ phiên 5 cho 59.54%. Tách theo kênh: text +30.65, video +16.79,
+audio +3.69 — chữ ký của đặc trưng học có giám sát. **Split chuẩn (giữ phiên 5) không bị
+ảnh hưởng; kiểm định chéo 5 fold thì bị ở 4/5 fold.** **Đã xác nhận** bằng ba encoder text
+đóng băng (3 seed): chênh +31.10 của CNN thành −7.14 (BERT), −7.72 (RoBERTa), −7.07
+(DeBERTa-v3); cả ba thắng CNN phát hành 2.3–5.2 điểm trên phiên 5. **Video phát hành là
+một cái bẫy:** ghép nó với text sạch làm hại 6–9 điểm (`docs/ngu-canh-vs-phuong-thuc.md`).
+
+**Gần một phần ba khó khăn của benchmark là quy ước gán nhãn.** 29.4% lỗi trên IEMOCAP
+6 lớp chỉ là hap↔exc hoặc ang↔fru; gộp hai cặp đó đưa accuracy từ 59.54 lên 71.45.
+
+---
+
+## 4. Việc tiếp theo, và tại sao
+
+**Hai bài hội nghị (chốt 2026-09-11).** Tách từ `paper/headroom.md`:
+
+| bài | thư mục | nơi nộp | hạn | trạng thái |
+|---|---|---|---|---|
+| B — biên độ hợp nhất | `paper/iceir/` (llncs) | ICEIR 2026, Springer LNNS, 12–15 tr., CMT | 2026-09-30 | 14 tr., đã qua review văn phong + kiểm số |
+| A — rò rỉ đặc trưng IEMOCAP | `paper/fjcai/` (IEEEtran, ẩn danh) | FJCAI 2027, 6–8 tr., double-blind | 2026-11-15 | 7 tr., đã qua review văn phong + kiểm số |
+
+Còn lại: link kho ẩn danh cho FJCAI (`[[PENDING: anonymous link]]`) — người dùng tự tạo;
+người dùng muốn FJCAI ~8–9 trang (giới hạn 8, hỏi ban tổ chức tài liệu tham khảo có tính
+không). Hình dùng đúng hai màu Word #4472C4/#ED7D31 (script `scripts/plot_*_fig.py`).
+Supplementary: `python scripts/make_supplementary.py` (chỉ code, không comment, không code
+vẽ hình, một README) — chạy lại sau mỗi lần sửa file trong danh sách của nó.
+
+Mối đe doạ còn lại vẫn là **đặc trưng đời 2017**: nếu H nhỏ chỉ vì chúng yếu thì dòng
+MOSI/MOSEI phải viết lại. Kênh text IEMOCAP đã thay xong (mục 3). Thứ tự còn lại:
+
+1. **MELD bằng encoder đóng băng** — text + audio **xong** (`experiments/meld_headroom.py`):
+   H +0.41 weighted F1, **đã vào bài ở §4.5** (cạnh dòng Poria, không thay; §7.1 dẫn tới
+   nó). Video: CLIP ViT-B/16 đóng băng, 8 khung hình mỗi clip, cả khung hình (`--blocks
+   video`) — **xong, ở mức sàn**. Muốn đi tiếp phải có encoder khuôn mặt; ưu tiên thấp.
+   Media thô ở
+   `D:\Dev\_data\merc\MELD\MELD.Raw` (sha256 archive khớp ETag của Hugging Face).
+2. **IEMOCAP video + audio thô** — ưu tiên thấp (người dùng, 2026-09-11: chờ; nếu lâu mà
+   không quá cần thiết thì bỏ). Đang xin quyền tại
+   https://sail.usc.edu/iemocap/. Dự đoán kiểm được: chênh phiên 4/5 của video (+16.79)
+   phải biến mất, và cái bẫy video (−6 đến −9 điểm khi ghép) phải biến mất theo.
+3. **MOSI/MOSEI sạch**: pickle phát hành không có transcript lẫn ID phát ngôn, nên phải
+   lấy thô qua CMU-MultimodalSDK và dựng lại split. Để cuối.
+
+**Đóng băng, chỉ suy luận, fp16.** Fine-tune encoder trên nhãn benchmark rồi trích đặc
+trưng cho cả tập là **chính xác cách bộ đặc trưng phát hành bị nhiễm bẩn**. Máy local là
+**RTX 3050 6 GB**: BERT/RoBERTa/DeBERTa-v3 base và WavLM base đều chạy được.
+
+---
+
+## 5. Chạy ở đâu, bằng lệnh gì
+
+Dữ liệu **không** nằm trong repo; trên máy local nó ở `D:\Dev\_data\merc` (đặc trưng phát
+hành, cache encoder đóng băng `iemocap_text_frozen_*.pkl`, và `MELD\`). Lấy lại bằng:
+
+```
+python scripts/fetch_features.py <thư-mục-đích>      # kiểm md5 cả 4 file
+python scripts/extract_meld_frozen.py --blocks text --annotations <...>/annotations --out <...>.pkl
+```
+
+Venv: `.venv` (CPU) và `.venv-gpu` (có `sentencepiece`, `av`, `soundfile` cho encoder và
+giải mã media). Chạy thí nghiệm (đặt `PYTHONPATH=src`):
+
+```
+python -m pytest -q                       # 60 test
+python experiments/theory_check.py        # kiểm máy mọi mệnh đề
+python scripts/check_headroom_paper.py    # đối chiếu số trong bài với dữ liệu
+```
+
+Ba lệnh trên **phải xanh** trước khi commit bất cứ thay đổi nào về lý thuyết hay số liệu.
+
+Hướng dẫn cài đặt đầy đủ cho Windows: `docs/huong-dan-chay-local.md`.
+
+---
+
+## 6. Bản đồ tài liệu
+
+| file | nội dung |
+|---|---|
+| `docs/tong-hop-nghien-cuu.md` | **đọc trước** — tổng hợp cả dự án, 11 mục |
+| `docs/ngu-canh-vs-phuong-thuc.md` | ngữ cảnh so với phương thức, bốn corpus, làm lại trên đặc trưng sạch |
+| `docs/boi-canh.md` | bối cảnh như trục thứ ba, tiên nghiệm kịch bản |
+| `docs/ro-ri-dac-trung-iemocap.md` | rò rỉ đặc trưng — lý do có mục 4 ở trên |
+| `docs/hieu-luc-do-luong.md` | phép đo có đúng thứ cần đo không |
+| `docs/cadence-review.md` | thẩm định một đề xuất kiến trúc từ bên ngoài |
+| `docs/huong-cai-tien.md` | ba hướng cải tiến và phán quyết sau khi đo |
+| `docs/theory.md` | 4 mệnh đề + sổ ghi tuyên bố đã rút |
+| `docs/headroom-data.json` | mọi giá trị H kèm xuất xứ và cờ khớp kiến trúc |
+| `paper/headroom.md` | bài chính (bản dài, nguồn của hai bài dưới) |
+| `paper/iceir/main.tex` | bài B, ICEIR 2026 |
+| `paper/fjcai/main.tex` | bài A, FJCAI 2027 |
+| `docs/fjcai-usage-survey.md` | khảo sát 20 hệ MERC dùng file đặc trưng nào |
+
+---
+
+## 7. Những chỗ dễ vấp
+
+- **`.gitignore` có `/data`** neo ở gốc — `src/uacmd/data/` là mã nguồn, không bị bỏ qua.
+- **Seed phải đặt ngay trước khi khởi tạo mô hình.** Một lần đặt sai làm kết quả phụ thuộc
+  thứ tự chạy; có test hồi quy chặn.
+- **`classification_metrics` phải nhận `num_classes`**, nếu không scikit-learn lấy trung
+  bình macro trên các lớp *quan sát được* và mẫu số đổi theo từng split.
+- **Bi-LSTM trong các thí nghiệm ngữ cảnh đọc cả tương lai.** Đánh giá offline. Muốn nói
+  về thời gian thực thì cần đối chứng nhân quả.
+- **Đừng chọn cấu hình tốt nhất bằng trung bình trên test.** Đã sửa: `headroom()` trong
+  `mosi_mosei_headroom.py` chọn trên validation và lưu kèm giá trị chọn-trên-test; có test.
+- **Lệnh chạy thử phải có `--out` ra ngoài `results/`.** Một lần chạy thử 1 seed đã ghi đè
+  kết quả 3 seed mà tài liệu trích (commit `375eef2`, đã khôi phục).
+- **Windows: mở file văn bản với `encoding="utf-8"`.** cp1252 mặc định làm hỏng dấu trừ
+  U+2212 và checker báo sai.
+- **Huấn luyện CPU tất định trong cùng môi trường** (hai venv, hai bản dữ liệu md5 trùng
+  đều cho cùng số). Lần chạy ở `375eef2` lệch tới 0.6 điểm — chưa rõ vì sao.
+- **DeBERTa-v3 cần `sentencepiece`**; fp16 của nó không tràn trên IEMOCAP (đã kiểm).

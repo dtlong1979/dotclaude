@@ -1,0 +1,106 @@
+#!/usr/bin/env python3
+"""Build the supplementary code folders of the two conference papers.
+
+Each folder mirrors the repository layout (so the scripts' relative imports still work),
+holds only the code a reader needs to reproduce the paper's numbers -- no plotting code --
+and is stripped of comments and docstrings, as the author requested. The single README
+lists what each file does and what to install. Re-run after changing any listed file.
+
+    python scripts/make_supplementary.py
+"""
+from __future__ import annotations
+
+import ast
+import shutil
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+REQUIREMENTS = ("python>=3.10", "torch>=2.0", "numpy", "scipy", "scikit-learn")
+
+PACKS = {
+    "paper/iceir/supplementary": {
+        "title": "Supplementary code: How Much Is Fusion Worth?",
+        "extra_requirements": ("transformers", "sentencepiece", "av", "pandas"),
+        "files": {
+            "scripts/fetch_features.py": "downloads the released MOSI/MOSEI/IEMOCAP feature files and checks their MD5 digests",
+            "scripts/extract_meld_frozen.py": "extracts frozen BERT text, WavLM audio and CLIP video features for MELD",
+            "experiments/headroom.py": "recomputes the fusion headroom of every published row from data/headroom-data.json",
+            "experiments/theory_check.py": "verifies the majority-class floors and the metric behaviour under collapse to the prior",
+            "experiments/mosi_mosei_headroom.py": "first-hand MOSI/MOSEI measurement: unimodal, early and late fusion, selection on held-out data",
+            "experiments/mosi_mosei_midfusion.py": "per-modality-encoder (mid) fusion for MOSI/MOSEI",
+            "experiments/mosi_mosei_report.py": "headroom, 95% intervals and paired tests for MOSI/MOSEI",
+            "experiments/iemocap_context.py": "shared bi-LSTM grid used by the MELD scripts",
+            "experiments/meld_context.py": "MELD loader for the frozen-encoder features",
+            "experiments/meld_headroom.py": "first-hand MELD measurement on frozen encoders",
+            "experiments/synth_kappa_report.py": "margins of the missing-modality case study (Sec. 6) from its result files",
+            "src/uacmd/__init__.py": "package marker",
+            "src/uacmd/metrics.py": "accuracy, weighted/macro F1, kappa, MCC and majority-class floors",
+            "src/uacmd/data/__init__.py": "package marker",
+            "src/uacmd/data/real.py": "MELD label order",
+        },
+        "data": {"docs/headroom-data.json": "data/headroom-data.json",
+                 "src/uacmd/data/meld_priors.json": "src/uacmd/data/meld_priors.json",
+                 **{f"experiments/results/{f}": f"experiments/results/{f}"
+                    for f in ("synth_kappa.json", "synth_main.json", "synth_main2.json")}},
+    },
+    "paper/fjcai/supplementary": {
+        "title": "Supplementary code: Pre-Extracted IEMOCAP Features Have Seen the Test Labels",
+        "extra_requirements": ("transformers", "sentencepiece"),
+        "files": {
+            "scripts/fetch_features.py": "downloads the released MOSI/MOSEI/IEMOCAP feature files and checks their MD5 digests",
+            "experiments/mosi_mosei_headroom.py": "bi-LSTM used throughout; also the MOSI/MOSEI held-out vs test accuracies",
+            "experiments/iemocap_text_reextract.py": "frozen-encoder text features and the session-4 vs session-5 gap",
+            "experiments/iemocap_session_stats.py": "class balance per IEMOCAP session",
+            "experiments/iemocap_loso.py": "five-fold leave-one-session-out with the bi-LSTM",
+            "experiments/iemocap_loso_linear.py": "five-fold leave-one-session-out with a linear probe",
+            "experiments/iemocap_feature_provenance.py": "compares the bc-LSTM, DialogueGCN and MMGCN feature files",
+            "experiments/iemocap_context.py": "fusion of clean text with released audio/video, with and without context",
+            "src/uacmd/__init__.py": "package marker",
+            "src/uacmd/metrics.py": "accuracy, weighted/macro F1, kappa, MCC and majority-class floors",
+        },
+        "data": {},
+    },
+}
+
+
+def strip(source: str) -> str:
+    """Drop every comment and every module, class and function docstring."""
+    tree = ast.parse(source)
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)):
+            body = node.body
+            if (body and isinstance(body[0], ast.Expr)
+                    and isinstance(body[0].value, ast.Constant)
+                    and isinstance(body[0].value.value, str)):
+                node.body = body[1:] or [ast.Pass()]
+    return ast.unparse(tree) + "\n"
+
+
+def build(dest: Path, spec: dict) -> None:
+    if dest.exists():
+        shutil.rmtree(dest)
+    for rel in spec["files"]:
+        target = dest / rel
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(strip((ROOT / rel).read_text(encoding="utf-8")), encoding="utf-8")
+    for src, rel in spec["data"].items():
+        (dest / rel).parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(ROOT / src, dest / rel)
+    lines = [f"# {spec['title']}", "", "## Files", ""]
+    lines += [f"- `{rel}`: {what}" for rel, what in spec["files"].items()]
+    lines += [f"- `{rel}`: data" for rel in spec["data"].values()]
+    lines += ["", "## Requirements", "",
+              ", ".join(REQUIREMENTS + tuple(spec["extra_requirements"])), "",
+              "Run every script from this folder with `PYTHONPATH=src`.", ""]
+    (dest / "README.md").write_text("\n".join(lines), encoding="utf-8")
+    print(f"{dest.relative_to(ROOT)}: {len(spec['files'])} code files, "
+          f"{len(spec['data'])} data files")
+
+
+def main() -> None:
+    for rel, spec in PACKS.items():
+        build(ROOT / rel, spec)
+
+
+if __name__ == "__main__":
+    main()

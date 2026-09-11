@@ -1,0 +1,79 @@
+#!/usr/bin/env python3
+"""Figure for the FJCAI paper: which blocks of the three IEMOCAP feature files are label-fit.
+
+A grid of files (rows) by modality (columns). Each cell is coloured by what the paper
+measured -- blue for blocks whose extractors were fitted to IEMOCAP labels (session gap and
+leave-one-session-out inflation), orange for blocks that pass both tests -- and says where
+the block comes from. Provenance is taken from results/iemocap_feature_provenance.json, so
+an "identical" label is only drawn where the comparison found every utterance identical.
+Word's theme accents 1 and 2, the only Office pair that passes the dataviz validator.
+
+    python scripts/plot_provenance_fig.py --out paper/fjcai/fig_provenance.pdf
+"""
+from __future__ import annotations
+
+import argparse
+import json
+from pathlib import Path
+
+import matplotlib
+
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt  # noqa: E402
+from matplotlib.patches import FancyBboxPatch  # noqa: E402
+
+BLUE, ORANGE, INK = "#4472C4", "#ED7D31", "#1f1f1f"
+FILES = ("bc-LSTM release", "DialogueGCN release", "MMGCN release")
+BLOCKS = ("text", "audio", "video")
+OWN = {"text": ("CNN\n100-d", True), "audio": ("openSMILE\n100-d", False),
+       "video": ("3D-CNN\n512-d", True)}
+MMGCN_NEW = {"audio": "new\n1,582-d", "video": "new\n342-d"}
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--provenance", type=Path, default=Path("results/iemocap_feature_provenance.json"))
+    ap.add_argument("--out", type=Path, default=Path("paper/fjcai/fig_provenance.pdf"))
+    args = ap.parse_args()
+    prov = json.loads(args.provenance.read_text())["blocks"]
+
+    cells = {}
+    for b in BLOCKS:
+        desc, fit = OWN[b]
+        cells[("bc-LSTM release", b)] = (desc, fit)
+        same = prov["DialogueGCN"][b]["identical"]
+        cells[("DialogueGCN release", b)] = (("identical" if same else "differs"), fit if same else None)
+        if prov["MMGCN"][b]["identical"]:
+            cells[("MMGCN release", b)] = ("identical", fit)
+        else:
+            cells[("MMGCN release", b)] = (MMGCN_NEW[b], False)
+
+    plt.rcParams.update({"font.size": 7, "font.family": "serif"})
+    fig, ax = plt.subplots(figsize=(3.4, 1.55))
+    for r, f in enumerate(FILES):
+        ax.text(-0.08, -r, f, ha="right", va="center", fontsize=7, color=INK)
+        for c, b in enumerate(BLOCKS):
+            label, fit = cells[(f, b)]
+            color = BLUE if fit else ORANGE
+            ax.add_patch(FancyBboxPatch((c + 0.04, -r - 0.38), 0.92, 0.76,
+                                        boxstyle="round,pad=0,rounding_size=0.08",
+                                        fc=color, ec="white", lw=1.5))
+            ax.text(c + 0.5, -r, label, ha="center", va="center", fontsize=6.5, color="white")
+    for c, b in enumerate(BLOCKS):
+        ax.text(c + 0.5, 0.62, b, ha="center", va="bottom", fontsize=7, color=INK)
+    ax.set_xlim(-1.35, 3.05)
+    ax.set_ylim(-3.0, 0.95)
+    ax.axis("off")
+    handles = [plt.Line2D([], [], marker="s", ls="", ms=6, color=BLUE, label="fitted to IEMOCAP labels"),
+               plt.Line2D([], [], marker="s", ls="", ms=6, color=ORANGE, label="passes both tests")]
+    ax.legend(handles=handles, loc="lower center", bbox_to_anchor=(0.62, -0.02), ncol=2,
+              frameon=False, fontsize=6.5, handletextpad=0.3, columnspacing=1.0)
+    fig.tight_layout(pad=0.2)
+    args.out.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(args.out)
+    fig.savefig(args.out.with_suffix(".png"), dpi=200)
+    print(f"written {args.out}")
+
+
+if __name__ == "__main__":
+    main()
