@@ -1,0 +1,189 @@
+{
+  "_comment": "Published unimodal and multimodal scores, for experiments/headroom.py. Every entry carries paper, venue, table, metric and protocol. Entries marked same_architecture=false are reported as unusable: comparing a deep fusion model against an SVM unimodal baseline inflates H. second_hand=true means the number came from a search summary rather than the source; all entries below were read at the source PDF. first_hand=true marks the two rows measured in this study rather than read from a paper: no MOSI/MOSEI source table with unimodal rows was reachable, and quoting remembered numbers was not an option after three second-hand entries turned out wrong.",
+  "entries": [
+    {
+      "corpus": "SEED (EEG+eye)",
+      "modalities": {
+        "EEG_DE_FLF": 78.51,
+        "eye_31dim_FLF": 77.8
+      },
+      "fused": 87.59,
+      "metric": "accuracy",
+      "protocol": "3-class positive/neutral/negative, subject-dependent, SVM base classifiers, fuzzy-integral fusion",
+      "source": "Lu, Zheng, Li, Lu, IJCAI 2015 pp.1170-1176; Table 2 (eye), Table 3 (EEG), Figure 2 (fusion)",
+      "same_architecture": true,
+      "second_hand": false,
+      "note": "other fusion rules in Fig.2: max 81.71, sum 82.99, feature-level 83.70. The largest verified headroom of any corpus here."
+    },
+    {
+      "corpus": "SEED-IV (same arch, SVM)",
+      "modalities": {
+        "EEG": 70.33,
+        "eye_movements": 67.82
+      },
+      "fused": 75.88,
+      "metric": "accuracy",
+      "protocol": "4-class, 62 electrodes, DE features, SVM throughout; feature-level fusion",
+      "source": "Zheng, Liu, Lu, Lu, Cichocki, IEEE T-Cybernetics 49(3) 2019 pp.1110-1122, Table III and surrounding text",
+      "same_architecture": true,
+      "second_hand": false,
+      "note": "the paper's headline 85.11 uses a bimodal deep autoencoder, i.e. a DNN against SVM unimodal baselines. That cross-architecture reading gives H=14.78 and is recorded separately as unusable."
+    },
+    {
+      "corpus": "SEED-IV (BDAE vs SVM)",
+      "modalities": {
+        "EEG_SVM": 70.33
+      },
+      "fused": 85.11,
+      "metric": "accuracy",
+      "protocol": "unimodal SVM against multimodal deep learning - DIFFERENT architectures",
+      "source": "same paper, Table III",
+      "same_architecture": false,
+      "second_hand": false,
+      "note": "kept only to show what the inflated reading looks like: 14.78 against 5.55 for the matched comparison"
+    },
+    {
+      "corpus": "MELD (DialogueRNN)",
+      "modalities": {
+        "text": 57.03,
+        "audio": 41.79
+      },
+      "fused": 60.25,
+      "metric": "weighted F1",
+      "protocol": "7-class emotion, test set, text+audio (no visual in the baselines)",
+      "source": "Poria, Hazarika, Majumder, Naik, Cambria, Mihalcea, ACL 2019 pp.527-536, Table 11",
+      "same_architecture": true,
+      "second_hand": false,
+      "note": "resolves the ambiguity that blocked this row earlier: 56.44 is bcLSTM TEXT-ONLY, not the bimodal cell"
+    },
+    {
+      "corpus": "MELD (bcLSTM)",
+      "modalities": {
+        "text": 56.44,
+        "audio": 39.08
+      },
+      "fused": 59.25,
+      "metric": "weighted F1",
+      "protocol": "7-class emotion, test set, text+audio",
+      "source": "same paper, Table 11",
+      "same_architecture": true,
+      "second_hand": false,
+      "note": "the paper notes the visual modality is absent from its baselines"
+    },
+    {
+      "corpus": "KEMDy20 (valence)",
+      "modalities": {
+        "audio_only": 49.0,
+        "bio_only": 52.0
+      },
+      "fused": 52.8,
+      "metric": "valence UAR",
+      "protocol": "single held-out pair (Pair 0), audio + biosignal",
+      "source": "SGMT with S-PACE, Mathematics 14(10):1743, 2026, Tables 8 and 10",
+      "same_architecture": true,
+      "second_hand": false,
+      "note": "CORRECTS an earlier second-hand entry of 3.8. The paper's '+3.8 points' is measured against the SPEECH-ONLY baseline (49.0), not against the best single modality, which for valence is bio-only at 52.0. On arousal UAR fusion is WORSE than audio alone: 69.6 against 71.4. Same for A-F1 (69.6 vs 70.2) and V-F1 (50.7 vs 51.2). The paper says so itself: 'acoustic features already capture a substantial portion of arousal-related information', and calls SGMT 'a robustness-oriented framework rather than a large absolute-performance leap'."
+    },
+    {
+      "corpus": "KEMDy20 (arousal)",
+      "modalities": {
+        "audio_only": 71.4,
+        "bio_only": 54.2
+      },
+      "fused": 69.6,
+      "metric": "arousal UAR",
+      "protocol": "single held-out pair (Pair 0)",
+      "source": "same paper, Table 10",
+      "same_architecture": true,
+      "second_hand": false,
+      "note": "fusion loses to the single audio channel"
+    },
+    {
+      "corpus": "AMIGOS (valence)",
+      "modalities": {
+        "EEG": 56.4,
+        "ECG": 54.5,
+        "GSR": 52.8
+      },
+      "fused": 56.0,
+      "metric": "F1 x100",
+      "protocol": "'All' scenario, Gaussian Naive Bayes per modality, decision-level fusion; random baseline 50.0",
+      "source": "Miranda-Correa, Abadi, Sebe, Patras, IEEE T-Affective Computing 2018 (arXiv:1702.02510), Table 7",
+      "same_architecture": true,
+      "second_hand": false,
+      "note": "the paper states plainly: 'Feature level fusion does not improve the results'. Note also that the best single modality is only 6.4 points above the random baseline of 50."
+    },
+    {
+      "corpus": "AMIGOS (arousal)",
+      "modalities": {
+        "EEG": 57.7,
+        "ECG": 55.1,
+        "GSR": 54.1
+      },
+      "fused": 56.4,
+      "metric": "F1 x100",
+      "protocol": "'All' scenario, decision-level fusion",
+      "source": "same paper, Table 7",
+      "same_architecture": true,
+      "second_hand": false,
+      "note": "fusion again below the best single modality"
+    },
+    {
+      "corpus": "MOSI (measured here)",
+      "modalities": {
+        "text": 80.53,
+        "audio": 54.28,
+        "video": 54.07
+      },
+      "fused": 79.71,
+      "protocol": "binary sentiment, speaker-independent split of Poria et al. (ACL 2017), 1447 train / 752 test utterances; one bc-LSTM architecture with sequence packing for every configuration, 5 seeds, hidden 100 / dropout 0.5; fused is the best of early concatenation, late posterior averaging and per-modality encoders",
+      "source": "measured in this study, experiments/mosi_mosei_headroom.py and experiments/mosi_mosei_midfusion.py; features and splits from declare-lab/multimodal-deep-learning at commit 111b401d, released with Poria et al., ACL 2017 / ICDM 2017",
+      "note": "H = -0.82 accuracy, 95% CI [-2.18, +0.53], p = 0.167 over 5 paired seeds: indistinguishable from zero rather than reliably negative. Selecting hyper-parameters per configuration gives -0.27 (p = 0.733). None of the three fusion styles beats text alone. Audio-only (54.28) and video-only (54.07) both fall below the best constant predictor, which scores 62.10.",
+      "metric": "accuracy",
+      "same_architecture": true,
+      "second_hand": false,
+      "first_hand": true
+    },
+    {
+      "corpus": "MOSEI (measured here)",
+      "modalities": {
+        "text": 59.08,
+        "audio": 58.63,
+        "video": 53.25
+      },
+      "fused": 60.57,
+      "protocol": "3-class sentiment, split of Poria et al. (ACL 2017), 16188 train / 4614 test utterances; same architecture, seeds and fusion styles as the MOSI row",
+      "source": "measured in this study, same scripts and data commit as the MOSI row",
+      "note": "H = +1.49 accuracy, 95% CI [+0.85, +2.12], p = 0.003; +0.65 weighted F1 (p = 0.012) and +0.011 kappa (p = 0.017). Small but statistically reliable, unlike MOSI. Best fusion style on accuracy is late averaging; on weighted F1 it is early concatenation. Best constant predictor scores 49.09.",
+      "metric": "accuracy",
+      "same_architecture": true,
+      "second_hand": false,
+      "first_hand": true
+    },
+    {
+      "corpus": "SynthMM (this study)",
+      "modalities": {
+        "text": 61.4,
+        "audio": 44.4,
+        "visual": 36.0
+      },
+      "fused": 68.7,
+      "metric": "weighted F1",
+      "protocol": "7-class, MELD priors, 10 seeds, U-ACMD",
+      "source": "this repository, experiments/results/tables.md",
+      "same_architecture": true,
+      "second_hand": false,
+      "note": "this study's own benchmark, reported in Section 6 as a case study rather than as a row of the published-corpora table; its unimodal breakdown is in the case study's own results file",
+      "case_study": true
+    },
+    {
+      "corpus": "DEAP",
+      "modalities": {},
+      "fused": null,
+      "metric": "",
+      "protocol": "",
+      "source": "Koelstra et al., IEEE T-Affective Computing 3(1) 2012, Tables 7 and 8 - both are raster images in the PDF, so the cells could not be extracted",
+      "note": "the text states: 'Though fusion generally outperforms the single modalities, it is only significant for the case of MCA, PER weighted'. Left unquantified rather than estimated."
+    }
+  ]
+}

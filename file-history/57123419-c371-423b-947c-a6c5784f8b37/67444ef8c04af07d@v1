@@ -1,0 +1,444 @@
+# Hợp nhất đa phương thức đáng giá bao nhiêu?
+
+Tổng hợp ý tưởng, phương pháp, cách triển khai và kết luận tạm thời — từ đề cương
+U-ACMD ban đầu, qua hai vòng bị phản bác, đến khung đo hiện tại: **biên độ hợp nhất
+H** và **sàn lớp đa số**.
+
+Bản trình bày (có biểu đồ): https://claude.ai/code/artifact/78e58bac-abfc-49d2-a1e8-aa518b6b0fa3
+
+Nhánh `claude/research-skills-proposal-set3gw`. Cập nhật 10.09.2026.
+
+---
+
+## 1. Nghiên cứu đã đi qua những đâu
+
+Một chuỗi thật, không phải mục lục: mỗi chặng bắt đầu từ chỗ chặng trước sụp đổ.
+
+| # | Chặng | Kết cục |
+|---|---|---|
+| 1 | **U-ACMD theo đề cương gốc.** Đầu bằng chứng cho từng kênh, cổng hợp nhất theo vacuity Dirichlet, chưng cất bất đối xứng từ teacher đủ phương thức. 10 seed, 7 mẫu khả dụng, kiểm định ghép cặp. Báo +5.06 weighted F1 ở điều kiện chỉ còn thị giác. | Chạy được — nhưng chưa ai hỏi 5.06 là bao nhiêu phần của cái gì |
+| 2 | **Phân tích lại: biên là hiện tượng của lớp đa số.** Hệ đạt 36.0 ở điều kiện thị giác, sàn hằng số là 31.0; bốn trong sáu hệ so sánh nằm *dưới* sàn. | Tuyên bố chính bị vô hiệu |
+| 3 | **Mọi cải tiến thuật toán theo lý thuyết đều thất bại.** Luật trọng số cổng (confidence / precision / MI), độ đo căn chỉnh, teacher có mask, phối hợp kết hợp, tái dựng kênh thiếu. | Ngõ cụt về phương pháp |
+| 4 | **Khung lý thuyết về sàn — vòng một.** Kèm tuyên bố Θ(π³) vs Θ(π²), tỉ số 16.000:1. Hai agent Fable độc lập chỉ ra mẫu số không độc lập với lớp. | Sai hơn hai bậc độ lớn — đã rút |
+| 5 | **Kiểm tra tiền lệ: Powers (2011) đã đi trước.** Hiệu chỉnh cơ hội, thiên lệch F-measure, yêu cầu nêu mức cơ hội — có đủ từ 2011. | Đóng góp khái niệm bị loại; chỉ còn đóng góp *đo lường* |
+| 6 | **Chuyển trục: đo H trên dữ liệu đã công bố.** Đọc tận bảng gốc trong PDF của 7 corpus, 8 so sánh khớp kiến trúc. | Có kết quả đo được, kiểm chứng được |
+| 7 | **MOSI/MOSEI: tự đo thay vì trích dẫn.** Không lấy được bảng gốc; dựng lại thí nghiệm trên đúng bộ đặc trưng Poria et al. (ACL 2017). | Xong: H ≈ 0 trên MOSI, +1.5 trên MOSEI |
+| 8 | **Đề xuất CADENCE từ bên ngoài:** thay U-ACMD bằng kiến trúc 5 thành phần, kèm hai định lý và một bảng mô phỏng cho κ = 0.3915 chỉ từ kênh hình ảnh. | Định lý 1 đúng; ba mâu thuẫn nội tại; bảng mô phỏng phải loại |
+| 9 | **Phép thử 1: đo bằng chứng theo từng lớp.** Cơ chế ngưỡng 9.33% có vận hành trên mạng đã huấn luyện không? | Có, tỉ số bằng chứng 19.8:1 ở `text_only`; bản vá đi kèm chỉ mua macro F1 |
+| 10 | **Phép thử 2: đói gradient.** Chạy 8 epoch cho thấy audio kém 5.18 điểm khi huấn luyện chung; tôi đã báo cáo con số đó. | Chạy đủ 30 epoch × 3 seed thì khoảng cách biến mất — **con số sơ bộ của tôi bị rút** |
+
+---
+
+## 2. Hai chỉ số
+
+### 2.1 Biên độ hợp nhất
+
+    H = f − max_m s_m
+
+với `f` là điểm của hệ đa phương thức và `s_m` điểm của riêng phương thức `m`,
+**đọc từ cùng một bảng, cùng kiến trúc, cùng giao thức**. H là toàn bộ giá trị mà
+hợp nhất mang lại theo đúng cách bài báo đó hiện thực hoá nó.
+
+Một biên Δ giữa hai hệ có **tỷ lệ sử dụng** Δ/H — phần của khoảng trống sẵn có mà
+nó chiếm. Đây là con số mà lĩnh vực đang không báo cáo.
+
+H không phải chặn trên lý thuyết. Nó là cái mà hợp nhất *đang* đáng giá đối với
+chính những hệ mà một bài báo mới đem ra so sánh.
+
+### 2.2 Sàn lớp đa số
+
+Cho `c` là bộ dự đoán hằng luôn phát ra lớp `k₀` có tỷ lệ π₀ **trong tập đánh giá**:
+
+    A(c) = π₀        W(c) = 2π₀² / (1+π₀)        M(c) = (1/K)·2π₀/(1+π₀)
+
+*Chứng minh.* Lớp `k₀` có TP = nπ₀, FP = n(1−π₀), FN = 0 ⇒ precision = π₀,
+recall = 1, F₁(k₀) = 2π₀/(1+π₀). Mọi lớp khác có F₁ = 0. Weighted F1 lấy trọng số
+theo support đánh giá; macro F1 chia cho K. ∎
+
+**Số cụ thể.** MELD test (K=7, π₀=0.481): W = 31.3, M = 9.3, A = 48.1.
+IEMOCAP 4 lớp (π₀=0.309): W = 14.6, M = 11.8, A = 30.9.
+
+**Giả thiết dễ mất nhất — đã bắt gặp trong thực tế.** π₀ phải là tỷ lệ, *trong tập
+đánh giá*, của lớp *thực sự được dự đoán*. MOSI là ví dụ sống: lớp đa số của train
+là negative, của test là positive. Bộ dự đoán hằng trung thực (chỉ biết train) đạt
+**37.90**; bộ hằng tốt nhất trên test đạt **62.10**. Chênh 24 điểm chỉ vì đọc π₀ ở
+chỗ khác nhau.
+
+---
+
+## 3. Kỷ luật đọc số
+
+1. **Cùng bài, cùng bảng.** Ghép số đơn kênh của bài này với số hợp nhất của bài
+   kia là so sánh hai chế độ huấn luyện, không phải hai phương thức.
+2. **Cùng giao thức.** Split, tập nhãn, độ đo phải trùng.
+3. **Cùng kiến trúc.** Cái bẫy. Nhiều bài báo cáo baseline đơn kênh bằng bộ phân
+   loại nông, hệ hợp nhất bằng mạng sâu.
+
+**Ví dụ đã kiểm chứng — SEED-IV, Zheng et al. 2019, cùng một bảng.** EEG đơn 70.33
+và eye-movement đơn 67.82 (đều SVM); hợp nhất mức đặc trưng cũng SVM: 75.88;
+bimodal deep autoencoder: 85.11. Đọc theo mô hình sâu: **H = 14.78**. Đọc trong
+cùng họ SVM: **H = 5.55**.
+
+**Ba số đã phải sửa sau khi đọc tận nguồn:**
+
+- **KEMDy20 ghi 3.8 → thật ra 0.8.** "+3.8 điểm" của bài là so với baseline *chỉ
+  tiếng nói* (49.0), không phải kênh đơn tốt nhất (bio-only 52.0).
+- **MELD chưa xác định được.** Bảng 11 của bài gốc chốt: 56.44 là bcLSTM
+  text-only, H = 2.81 chứ không phải ~6.
+- **SEED-IV ghi 14.78** — cách đọc chéo kiến trúc ở trên.
+
+Cả ba lần sửa đều kéo con số **xuống**.
+
+---
+
+## 4. H đo được trên dữ liệu đã công bố
+
+| Corpus | Nguồn | Độ đo | Kênh đơn tốt nhất | Hợp nhất | H |
+|---|---|---|---|---|---|
+| SEED | Lu et al., IJCAI 2015, Tab. 2–3, Fig. 2 | accuracy | EEG 78.51 | 87.59 | **+9.08** |
+| SEED-IV | Zheng et al., T-Cyb 2019, Tab. III | accuracy | EEG 70.33 | 75.88 | **+5.55** |
+| MELD (DialogueRNN) | Poria et al., ACL 2019, Tab. 11 | weighted F1 | text 57.03 | 60.25 | **+3.22** |
+| MELD (bcLSTM) | Poria et al., ACL 2019, Tab. 11 | weighted F1 | text 56.44 | 59.25 | **+2.81** |
+| MOSEI | *tự đo, mục 5* | accuracy | text 59.08 | 60.57 | **+1.49** |
+| KEMDy20 (valence) | SGMT, *Mathematics* 2026, Tab. 10 | UAR | bio 52.0 | 52.8 | **+0.80** |
+| AMIGOS (valence) | Miranda-Correa et al., TAC 2018, Tab. 7 | F1×100 | EEG 56.4 | 56.0 | **−0.40** |
+| MOSI | *tự đo, mục 5* | accuracy | text 80.53 | 79.71 | **−0.82** |
+| AMIGOS (arousal) | Miranda-Correa et al., TAC 2018, Tab. 7 | F1×100 | EEG 57.7 | 56.4 | **−1.30** |
+| KEMDy20 (arousal) | SGMT, *Mathematics* 2026, Tab. 10 | UAR | audio 71.4 | 69.6 | **−1.80** |
+
+Thứ tự này *không* phải thứ tự trực giác của lĩnh vực dự đoán. EEG + chuyển động
+mắt — hai kênh không kênh nào suy ra được từ kênh kia — cho H lớn nhất. EEG + sinh
+lý ngoại vi, vốn cũng có tính chất đó, cho H nhỏ nhất.
+
+**Bổ sung không phải là vắng mặt nội dung chung; nó là sự hiện diện của nội dung
+*khác* trên chiều *được gán nhãn*.** Đặc trưng âm học đã nắm gần hết thông tin
+arousal, còn hoạt động điện da và khoảng RR cũng chủ yếu bám arousal — hai kênh
+chồng lấn đúng ở chiều mang tín hiệu.
+
+---
+
+## 5. MOSI và MOSEI: đo lần đầu, không trích dẫn
+
+Không lấy được bảng ablation gốc: proxy egress của phiên chỉ cho phép GitHub —
+`aclanthology.org`, `arxiv.org`, ar5iv, Semantic Scholar, ACM đều trả 403. Mirror
+`thuiar/MMSA` tải được thì chỉ liệt kê mô hình đa phương thức, *không có dòng đơn
+kênh*. Theo kỷ luật ở mục 3 — và vì cả ba số second-hand trước đó đều sai — không
+ghi số nhớ được vào file dữ liệu.
+
+### Thiết kế
+
+- **Dữ liệu.** Đặc trưng mức phát ngôn và split độc lập người nói phát hành kèm
+  Poria et al. (ACL 2017 / ICDM 2017) — đúng bộ mà bc-LSTM dùng — commit công khai
+  trong `declare-lab/multimodal-deep-learning` tại `111b401d`, có ghi md5 từng file.
+- **MOSI** nhị phân: 1.447 phát ngôn train / 752 test; text 100-d, audio 73-d,
+  video 100-d. **MOSEI** 3 lớp: 16.188 / 4.614; cả ba kênh 100-d.
+- **Khớp ở mức mẫu.** Nhãn và mask trùng khít giữa ba file phương thức — được
+  assert trong code, không phải giả định.
+- **Một kiến trúc duy nhất.** bc-LSTM hai chiều có packing (để chiều lùi không chạy
+  vào vùng đệm), read-out tuyến tính theo từng phát ngôn. Thứ duy nhất thay đổi
+  giữa các cấu hình là *khối đặc trưng nào được đưa vào*.
+- **Cho hợp nhất ba cơ hội**: early (nối đặc trưng), late (trung bình hậu nghiệm),
+  mid (encoder riêng từng kênh rồi nối — đúng kiểu bc-LSTM gốc). H lấy so với cái tốt
+  nhất trong ba. Kết quả: kiểu mid *không* thắng ở corpus nào.
+- **Hai giao thức siêu tham số**: cố định (hidden 100 / dropout 0.5 cho mọi cấu
+  hình) và chọn riêng cho từng cấu hình trên tập held-out.
+
+### Kết quả (5 seed chung)
+
+Trung bình 5 seed. Các cột hợp nhất: early / late / mid.
+
+| Corpus | Độ đo | text | audio | video | early | late | mid | H cố định | KTC 95% | p | H chọn riêng |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| MOSI | accuracy | **80.53** | 54.28 | 54.07 | 79.71 | 77.13 | 79.28 | **−0.82** | [−2.18, +0.53] | 0.167 | −0.27 |
+| MOSI | weighted F1 | **80.36** | 54.30 | 54.61 | 79.64 | 77.12 | 79.25 | **−0.72** | [−1.97, +0.52] | 0.183 | −0.05 |
+| MOSI | macro F1 | **78.97** | 53.55 | 53.54 | 78.30 | 75.73 | 77.94 | **−0.67** | [−1.88, +0.54] | 0.200 | +0.14 |
+| MOSI | Cohen κ | **0.580** | 0.108 | 0.092 | 0.566 | 0.515 | 0.559 | **−0.014** | [−0.04, +0.01] | 0.196 | +0.002 |
+| MOSEI | accuracy | 59.08 | 58.63 | 53.25 | 59.85 | **60.57** | 59.41 | **+1.49** | [+0.85, +2.12] | 0.003 | +1.41 |
+| MOSEI | weighted F1 | 58.05 | 52.54 | 47.72 | **58.70** | 55.46 | 58.41 | **+0.65** | [+0.23, +1.07] | 0.012 | +0.13 |
+| MOSEI | macro F1 | 53.11 | 44.93 | 40.62 | **53.72** | 48.58 | 53.49 | **+0.61** | [+0.02, +1.20] | 0.044 | +0.30 |
+| MOSEI | Cohen κ | 0.334 | 0.271 | 0.174 | **0.346** | 0.309 | 0.341 | **+0.011** | [+0.00, +0.02] | 0.017 | −0.002 |
+
+Sàn hằng tốt nhất: MOSI accuracy 62.10 / weighted F1 47.58; MOSEI 49.09 / 32.33; κ = 0
+ở cả hai. Không ô H nào vượt quá ±1.5 điểm; đổi cách chọn siêu tham số làm H dịch chưa
+tới một điểm. **Đính chính:** câu "không đổi dấu trên MOSEI" ở bản trước chỉ đúng với
+ba độ đo đầu — κ đổi dấu từ +0.011 sang −0.002.
+
+**Cảnh báo phương pháp.** Kiểu hợp nhất "tốt nhất" ở đây được chọn bằng trung bình
+*trên test*; đó là cực đại hậu nghiệm, và khoảng tin cậy không tính đến bước chọn đó.
+Nó thổi phồng H, tức lệch *ngược* hướng kết luận "H nhỏ" — nhưng vẫn phải chọn trên
+validation rồi chạy lại.
+
+**Hai dòng này cho hai kết luận khác nhau — cần đọc đúng.**
+
+- **MOSI:** không kiểu hợp nhất nào trong ba vượt được text đơn thuần, ở bất kỳ độ đo
+  nào. Nhưng hiệu số ghép cặp theo seed *không phân biệt được với 0* (p = 0.167, KTC
+  chứa 0). Cách đọc trung thực: hợp nhất *không đáng giá gì đo được* trên MOSI — chứ
+  không phải nó gây hại.
+- **MOSEI:** lợi ích nhỏ nhưng *có ý nghĩa thống kê*: +1.49 accuracy (p = 0.003),
+  +0.65 weighted F1 (p = 0.012), +0.011 κ (p = 0.017). Kiểu hợp nhất thắng lại phụ
+  thuộc độ đo — late ở accuracy, early ở ba độ đo còn lại — bản thân điều đó đã là
+  thước đo cho việc chúng cách nhau ít đến mức nào.
+
+**Trên MOSI, audio-only (54.28) và video-only (54.07) đều nằm *dưới* bộ dự đoán
+hằng tốt nhất (62.10).**
+
+**Kiểm chứng thực nghiệm cho Mệnh đề 4.** Trên cả MOSI và MOSEI, *mọi* bộ dự đoán
+hằng đều cho κ = 0.000 chính xác — dạng đóng, trên dữ liệu thật.
+
+### Điểm yếu tự thấy
+
+Đặc trưng text và video của bộ này được trích bằng CNN/3D-CNN *huấn luyện trên
+chính tập train*. Bằng chứng trực tiếp: độ chính xác trên video held-out *trong tập
+train* đạt 98.8% (text) và 94% (video), trong khi trên test chỉ 80.5% và 54%; audio
+(openSMILE, không giám sát) không có khoảng cách đó. Hệ quả: tín hiệu validation bị
+bão hoà nên chọn siêu tham số yếu đi. Điều này *không* phá vỡ tính khớp của H (cả
+bốn cấu hình dùng chung bộ đặc trưng), nhưng là chỗ phản biện sẽ nhắm vào — xem câu
+hỏi 3 ở mục 8.
+
+---
+
+## 6. Độ đo nào sống sót gần sàn
+
+**Weighted F1 thưởng cho sự sụp đổ; κ thì không thể.** Cho `T_λ` phát ra đầu ra của
+bộ phân loại với xác suất λ, còn lại phát ra lớp đa số. Khi đó `T_a ∘ T_b = T_ab`,
+nên với λ₁ < λ₂ thì cái trước là một *garbling* của cái sau và, theo bất đẳng thức
+xử lý dữ liệu, mang thông tin không nhiều hơn.
+
+    κ(λ) = λ·[p_o(1) − p_e(1)] / [ (1−π₀) − λ·(p_e(1) − π₀) ]
+
+tăng nghiêm ngặt trên [0,1] mỗi khi κ(1) > 0. Weighted F1 không có tính chất đó:
+trên 9.261 ma trận nhầm lẫn ngẫu nhiên theo tiên nghiệm MELD với κ > 0, garbling
+xuống λ = 0.9 nâng κ trong **0** trường hợp và nâng weighted F1 trong **9.041** —
+97.6%.
+
+**κ chứ không phải MCC.** Tại bộ dự đoán hằng, κ = 0 chính xác (với π₀ < 1). MCC đa
+lớp là **0/0**: phân phối dự đoán suy biến nên `n² − Σ p_k²` triệt tiêu cùng tử số;
+giá trị 0.0 mà thư viện trả về là quy ước. Đó cũng là điểm gián đoạn: nhiễu một mẫu
+duy nhất làm MCC dịch +0.024 hoặc −0.009, trong khi κ dịch +0.0011 và −0.0004.
+
+---
+
+## 7. Ba chỉ số làm gì với một bài báo phương pháp
+
+U-ACMD được xây đúng chuẩn lĩnh vực đang dùng, đánh giá cẩn thận hơn mức thông
+thường, và vẫn cho ra một con số headline mà ba phép kiểm tra sơ đẳng làm tan.
+
+| Phép kiểm tra | Kết quả |
+|---|---|
+| **Headroom** | H = 7.3 trên chính benchmark đó. Biên 5.06 chiếm **69%** toàn bộ giá trị của hợp nhất. |
+| **Sàn** | Hệ đạt 36.0 ở điều kiện thị giác, sàn 31.0. **Bốn trong sáu hệ** so sánh nằm dưới sàn. |
+| **Hiệu chỉnh cơ hội** | So với baseline mạnh nhất: +1.04 weighted F1 (p = 0.10), +0.52 κ (p = 0.30). Biên 5.06 trở thành **+0.66 macro-F1** và **+2.47 κ**. |
+
+**Một kết quả sống sót cả ba.** So với cổng attention có dung lượng tương đương:
++2.19 weighted F1 (p = 0.0095), +1.97 κ (p = 0.0107), +1.84 MCC (p = 0.0077).
+
+---
+
+## 7b. Thẩm định đề xuất CADENCE, và cơ chế còn lại
+
+Chi tiết đầy đủ ở **`docs/cadence-review.md`**; đây là bản rút gọn.
+
+### Cơ chế ngưỡng 9.33% — đóng góp thật duy nhất còn lại
+
+Với Bayes risk chuẩn (Sensoy et al. 2018), `E[∂L/∂α_k] = ψ′(S) − π_k·ψ′(α_k)` (kiểm
+bằng sai phân hữu hạn, sai lệch 7.4e-11). Tại điểm suy biến bằng chứng, dấu đổi tại
+đúng một ngưỡng:
+
+    π_k = ψ′(K)/ψ′(1) = 0.153545 / 1.644934 = 9.33%
+
+Trên số đếm thật của MELD train, ngưỡng chỉ đích danh ba lớp: **sadness (6.84%),
+disgust (2.71%), fear (2.68%)**.
+
+**Đo được trên mạng thật** (`experiments/evidence_by_class.py`, 3 seed × 40 epoch).
+Bằng chứng trung bình theo lớp ở `text_only`, Bayes risk chuẩn:
+
+| neutral | joy | anger | surprise | sadness | disgust | fear |
+|---|---|---|---|---|---|---|
+| 13.576 | 1.420 | 0.658 | 0.433 | 0.190 | **0.012** | **0.013** |
+
+Giảm **đơn điệu theo tần suất lớp** ở cả bảy kịch bản; disgust/fear thấp hơn neutral
+hơn 1.000 lần. Sadness — lớp sát ngay dưới ngưỡng — nằm ở giữa.
+
+### Ba mâu thuẫn nội tại trong đề xuất
+
+- **Định lý 2 đúng nhưng mã nguồn của tài liệu không cài đặt nó.** Định lý cần
+  `w_k = 1/(K·π_k)`; code dùng Effective Number of Samples, khiến gradient kỳ vọng
+  không hằng số (tản mát 0.27) và hai lớp hiếm nhất vẫn bị triệt tiêu bằng chứng.
+- **Đột phá 4 phá vỡ Định lý 2.** `α = e + γ` mâu thuẫn với `α → 1`: tản mát 0.91 ở
+  τ=0.5, 7.93 ở τ=1.0.
+- **Tiên nghiệm khử thiên lệch đảo chiều suy biến.** Với mọi τ > 0, `argmax γ` là lớp
+  *hiếm nhất* → sụp về lớp thiểu số thay vì lớp đa số. Cả hai đều κ = 0.
+
+### Bản vá đã nằm sẵn trong mã của chúng ta
+
+`TrainConfig.class_weighted_loss` mặc định `True`, và `_class_weights` trả về
+`N/(K·n_k)` — chính xác là `1/(K·π_k)` mà Định lý 2 đòi hỏi (`π_k·w_k` hằng số tới
+1e-6). "Đột phá" được đề xuất để phá sàn **đã được bật** khi U-ACMD đạt 36.0 wF1 so với
+sàn 31.0. Bật/tắt nó (ghép cặp 3 seed):
+
+| kịch bản | Δ macro F1 | p | Δ κ | p | Δ % dự đoán lớp đa số |
+|---|---|---|---|---|---|
+| full | **+6.65** | 0.016 | −0.0202 | 0.237 | −17.0% |
+| no_audio | **+3.94** | 0.038 | **−0.0375** | 0.023 | −21.3% |
+| audio_only | **+3.22** | 0.006 | −0.0077 | 0.349 | −20.4% |
+| text_only | +2.83 | 0.195 | **−0.0431** | 0.045 | −22.5% |
+| visual_only | +1.60 | 0.393 | +0.0073 | 0.341 | **−44.8%** |
+
+Tỉ số bằng chứng ở `text_only` rơi từ 19.8 xuống 1.50; tỷ lệ dự đoán lớp đa số ở
+`visual_only` rơi từ 79.0% xuống 34.3%. Sự sụp đổ bị loại bỏ thật — **nhưng κ không
+tăng**, âm ở sáu trên bảy kịch bản. Trọng số cân bằng lớp **phân phối lại xác suất,
+không tạo ra đồng thuận**. Nên κ = 0.3915 từ kênh hình ảnh không thể đến từ đây.
+
+### Chẩn đoán "đói gradient" bị bác bỏ
+
+`experiments/gradient_starvation.py`, 3 seed × 30 epoch. Joint trừ solo:
+
+| kênh | Δ weighted F1 | KTC 95% | p | Δ κ | p |
+|---|---|---|---|---|---|
+| text | −0.25 | [−3.73, +3.22] | 0.782 | −0.0010 | 0.904 |
+| **audio** | **+0.29** | [−2.77, +3.35] | 0.722 | +0.0034 | 0.520 |
+| **visual** | **+1.96** | [−5.06, +8.98] | 0.353 | +0.0065 | 0.429 |
+
+Mọi hiệu số nằm trong nhiễu, hai trên ba kênh *có lợi* khi huấn luyện chung. Điều hòa
+gradient không có gì để thu hồi. Chuẩn gradient của cả ba nhánh **tăng đều** suốt 30
+epoch với tỉ số ổn định (T/A → 1.60, T/V → 2.98) — chi phối về độ lớn, không phải đói
+gradient.
+
+**Trần thật của từng kênh** (solo, không cạnh tranh gì cả): text 59.53 ± 2.26 wF1
+(κ 0.4387), audio 40.97 ± 1.11 (κ 0.2210), visual 31.07 ± 1.44 (κ 0.1145). Đó không
+phải vấn đề tối ưu hóa — đó là lượng thông tin trong kênh.
+
+### Tổng kết bốn phán quyết
+
+| Đề xuất | Phán quyết sau khi đo |
+|---|---|
+| Định lý 1 — cơ chế sụp về sàn | **Nhận.** Đúng, xác nhận trên mạng thật ở dạng ngưỡng 9.33%. |
+| Định lý 2 / Đột phá 4 — cân bằng lớp | Trọng số **đã bật sẵn**; mua macro F1, **không** mua κ. Đột phá 4 phải bỏ. |
+| Đột phá 2 — điều hòa gradient | **Loại.** Chẩn đoán nền tảng không đúng với mô hình này. |
+| Đột phá 1, 3, 5 | Hợp lý, không mới, **chưa cái nào được kiểm**. |
+
+---
+
+## 8. Sáu quyết định đang chờ
+
+1. **Xây bài "cơ chế ngưỡng 9.33%", hay quay lại kiến trúc?** Sau khi đo, thứ duy
+   nhất trong CADENCE đứng vững là *cơ chế*, không phải kiến trúc — và cơ chế đó đã đủ
+   cho một bài: một định lý ngưỡng, một phép đo chứng minh nó vận hành trên mạng thật
+   (tỉ số 19.8:1), một bản vá tối giản, và tuyên bố trung thực rằng bản vá mua macro F1
+   chứ không mua κ. → *Đề xuất: xây bài cơ chế; chạy được trên CPU và không phụ thuộc
+   vào tuyên bố nào chưa kiểm được.*
+2. **Định vị bài ở đâu?** Bài hiện tại là một *audit đánh giá*, không phải bài
+   phương pháp. KBS và Information Fusion (đích ban đầu) chuộng đóng góp phương
+   pháp; một audit có thể bị desk-reject vì "không có mô hình mới". Cửa hợp hơn:
+   IEEE T-AFFC (Comments/Correspondence), Behavior Research Methods, hoặc track
+   *ACL về đánh giá. → *Đề xuất: nhắm IEEE T-AFFC, giữ U-ACMD làm mục 6.*
+3. **Có tách U-ACMD thành bài riêng không?** Chỉ một kết quả sống sót cả ba phép
+   kiểm tra. Đủ cho một bài phương pháp ngắn, nhưng tách ra thì bài audit mất ví dụ
+   tự phê bình mạnh nhất. → *Đề xuất: không tách.*
+4. **Có chạy lại MOSI/MOSEI với đặc trưng hiện đại không?** Đây là **phản biện mạnh
+   nhất**: "audio 54.28 và video 54.07 thấp thế là vì đặc trưng 2017 quá yếu". Chạy
+   lại với BERT + wav2vec2 + backbone thị giác hiện đại trả lời trực diện, nhưng cần
+   GPU và dữ liệu thô. → *Đề xuất: có, và đây là việc đáng đưa sang Colab nhất.*
+5. **Có theo đuổi hướng "corpus nào làm H lớn" không?** Câu hỏi về cách cảm xúc
+   được biểu đạt qua các kênh, không phải về kiến trúc. Tiếng Việt (thanh điệu ⇒
+   prosody mang tải ngữ nghĩa, có thể làm audio *ít* bổ sung hơn) và tiếng Hàn đã
+   phân tích trong `docs/chon-du-lieu-VI.md`. → *Đề xuất: Future Work.*
+6. **Khuyến nghị Δ/H nên là ngưỡng hay chỉ là yêu cầu báo cáo?** Ngưỡng cứng dễ bị
+   lạm dụng; không đặt gì thì khuyến nghị mất răng. → *Đề xuất: giữ heuristic có nêu
+   lý do, không đặt ngưỡng cứng.*
+
+---
+
+## 9. Sổ ghi các tuyên bố đã rút
+
+Ghi lại để không vô tình suy ra lần nữa. Chi tiết đầy đủ ở `docs/theory.md`.
+
+- ~~"Độ nhạy weighted F1 là Θ(π³), macro là Θ(π²), tỉ số 16.000:1."~~ **Sai** — mẫu
+  số không độc lập với lớp. Tỉ số thật ≈ 36 so với ≈ 1.4.
+- ~~"MCC bằng đúng 0 tại sàn."~~ **Sai** — là 0/0, và gián đoạn tại đó.
+- ~~"Weighted F1 không đơn điệu, nhưng không phải trong vùng hệ thực tế hoạt
+  động."~~ **Nửa sau không có căn cứ** — trên ma trận ngẫu nhiên, weighted F1 tăng
+  dưới garbling 97.6% số lần.
+- ~~"Khoảng thông tin R(δ) = W*(δ) − W(c)" và biên chuẩn hoá ρ(f, δ).~~ **Cắt** —
+  W*(δ) không được tính ở đâu cả, và không bằng 1.
+- ~~"Suy giảm tương đối so với sàn thì dốc hơn" (Định lý 4 cũ).~~ **Cắt** — đòi hỏi
+  W > W(c), trong khi nhiều hệ đo được nằm *dưới* sàn.
+- ~~"Huấn luyện chung làm kênh audio kém 5.18 điểm weighted F1."~~ **Sai, và là của
+  chính tôi.** Con số đến từ một lần chạy 8 epoch / 1 seed; đó là hiện tượng thiếu
+  huấn luyện. Ở 30 epoch × 3 seed khoảng cách biến mất (mục 7b).
+- ~~"MCC gián đoạn tại bộ dự đoán hằng, nên chỉ κ mang bảo đảm."~~ **Sai, và là của
+  chính tôi.** `MCC(λ) = D√λ/√(V(2b−aλ))` tăng nghiêm ngặt và tiến về 0, nên điểm chưa
+  xác định là *khử được*; balanced accuracy cũng affine theo λ. κ, MCC và BA đều chống
+  được sự sụp đổ — weighted F1 mới là ngoại lệ. Thứ còn lại là khoảng cách **độ nhạy**,
+  Θ(ε) so với Θ(√ε).
+- ~~"Ngưỡng 9.33% chỉ đích danh sadness/disgust/fear trên MELD."~~ **Nói quá.** Kỳ vọng
+  theo `y~π` chỉ hợp lệ ở vùng không phân biệt được; giữ nguyên tần suất và làm `fear`
+  tách biệt thì bằng chứng của nó đi từ 0.0495 lên 18.164 và recall từ 0.004 lên 0.987.
+  Ngưỡng là mệnh đề về vùng thiếu thông tin, không phải tiêu chí tần suất lớp.
+- ~~"Tỉ số bằng chứng 56:1; disgust/fear thấp hơn neutral 1.000 lần."~~ **Sai đại
+  lượng.** Đó là `E[e_k]` trên mọi mẫu, nhỏ một phần chỉ vì lớp hiếm. Theo đại lượng
+  đúng `E[e_k | Y=k]`: tỉ số **19.8:1**, và neutral/disgust **225×**. Kết luận định
+  tính giữ nguyên; mọi con số phải đọc lại.
+
+**Lỗi cài đặt tự bắt được trước khi công bố kết quả:** baseline softmax bị đọc qua
+liên kết Dirichlet và chưng cất dùng kỳ vọng Dirichlet cho student softmax (cả hai
+thiên vị cho phương pháp của tôi); khởi tạo mô hình nằm ngoài phạm vi seed;
+`aggregate.py` không trích macro-F1 dù §4.5 tuyên bố có; scikit-learn lấy trung bình
+macro-F1 trên lớp *quan sát được* thay vì tập nhãn.
+
+---
+
+## 10. Cách triển khai
+
+```
+paper/headroom.md                   bài chính — 9 mục, đang cập nhật §4.4 và §7.4
+paper/main.md                       bản thảo U-ACMD, nay là case study của bài trên
+docs/theory.md                      4 mệnh đề + sổ ghi các tuyên bố đã rút
+docs/headroom-data.json             mọi H kèm bài, bảng, độ đo, giao thức, cờ kiến trúc
+docs/prior-art-verdict.md           kết luận: Powers 2011 đi trước khung khái niệm
+docs/chon-du-lieu-VI.md             phân tích chọn dữ liệu, giả thuyết ngôn ngữ thanh điệu
+experiments/headroom.py             tính H, chặn entry thiếu xuất xứ / lệch kiến trúc
+experiments/theory_check.py         kiểm máy từng mệnh đề; assert chặn tuyên bố đã rút
+experiments/mosi_mosei_headroom.py  đo H first-hand: 4 cấu hình, 2 giao thức, 5 seed
+experiments/mosi_mosei_midfusion.py kiểu hợp nhất thứ ba (encoder riêng từng kênh)
+experiments/mosi_mosei_report.py    t-test ghép cặp theo seed + khoảng tin cậy 95%
+scripts/check_headroom_paper.py     đối chiếu từng số trong bài với file dữ liệu
+src/uacmd/                          cài đặt U-ACMD, metrics, gate, evidential (58 test)
+```
+
+Ba cơ chế giữ cho công trình không tự lừa mình:
+
+- `headroom.py` **từ chối** entry thiếu xuất xứ, và đánh dấu *không dùng được* mọi
+  entry có `same_architecture: false` hoặc `second_hand: true`.
+- `theory_check.py` chứa assert *chống lại* tỉ số 16.225 đã bị bác — nếu tuyên bố đó
+  quay lại, build đỏ.
+- `check_headroom_paper.py` fail nếu một H trong file dữ liệu không được trích trong
+  bài, hoặc nếu một chuỗi đã rút xuất hiện lại.
+
+---
+
+## 11. Kết luận tạm thời và việc còn dang dở
+
+**Kết luận tạm thời.** Lĩnh vực báo cáo các biên mà không báo cáo thang đo mà chúng
+được đo trên đó. Thang đo đó, trên các corpus lĩnh vực dùng và trong tay những hệ
+lĩnh vực đem ra so sánh, là *nhỏ*: từ −1.8 đến +9.1 điểm, benchmark chủ lưu ≤ 3.2, bốn
+trong mười so sánh âm. MOSI/MOSEI — hai corpus thống trị dòng nghiên cứu thiếu phương
+thức — rơi đúng vào đầu thấp của dải đó khi tự đo. Điều này *không* nói rằng hợp
+nhất đa phương thức không hiệu quả; nó nói rằng một độ đo thưởng cho việc sụp về
+tiên nghiệm là dụng cụ sai để đo những thứ nhỏ.
+
+**Và nay có thêm một cơ chế, không chỉ một phép đo.** Hàm mất mát bằng chứng chuẩn
+triệt tiêu bằng chứng của mọi lớp dưới ngưỡng 9.33% — trên MELD là đúng sadness,
+disgust, fear — đo được trên mạng thật với tỉ số 56:1. Đây là lời giải thích *tại sao*
+các hệ trong điều kiện khuyết kênh trượt về sàn, chứ không chỉ là quan sát rằng chúng
+trượt. Nhưng bản vá đi kèm chỉ phân phối lại xác suất: nó mua macro F1, không mua κ.
+**Không có phép đặt lại trọng số nào mở rộng được H.**
+
+**Đã hoàn tất.** Đo H trên 10 so sánh / 9 corpus, hai trong đó tự đo với ba kiểu hợp
+nhất và hai giao thức siêu tham số. Bốn mệnh đề lý thuyết kiểm bằng máy. Thẩm định đầy
+đủ đề xuất CADENCE kèm hai phép thử quyết định. 58 test xanh; `theory_check.py` và
+`check_headroom_paper.py` đều pass.
+
+**Còn đúng một mối đe doạ chưa loại trừ được.** Chạy lại mục 5 với encoder hiện đại
+(DeBERTa / wav2vec2 / backbone thị giác). Nếu H vẫn nhỏ, kết luận vững chắc; nếu H lớn
+lên đáng kể, hai dòng MOSI/MOSEI phải viết lại. Cần GPU. Xem câu hỏi 4 ở mục 8.

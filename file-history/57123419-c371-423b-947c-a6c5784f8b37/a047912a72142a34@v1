@@ -1,0 +1,575 @@
+# How Much Is Fusion Worth? Headroom, Floors, and the Reading of Multimodal Emotion Recognition Results
+
+---
+
+## Highlights
+
+- Across **seven corpora and ten matched-architecture comparisons** — eight read from
+  the published tables of five corpora, two measured here on two more — the gain of
+  multimodal fusion over the best single modality ranges from **−1.8 to +9.1 points**.
+  On four of the ten, fusion is *worse* than the best single channel. The ten rows are
+  not ten independent experiments: MELD, AMIGOS and KEMDy20 each contribute two.
+- The mainstream affective-computing benchmarks sit at the bottom of that range:
+  MELD at 2.8–3.2, KEMDy20 at 0.8 on valence and −1.8 on arousal, AMIGOS negative on
+  both dimensions.
+- **CMU-MOSI and CMU-MOSEI, which dominate the missing-modality literature, sit there
+  too.** Measured under one architecture with three fusion styles and five seeds,
+  MOSI gives −0.82 accuracy (95% CI [−2.18, +0.53]) and MOSEI +1.49 (95% CI
+  [+0.85, +2.12]). On MOSI, audio-only and video-only both score below a constant
+  classifier.
+- A margin should be read as a fraction of the room available for it. A widely
+  reported style of result — five points of weighted F1 under severe missingness —
+  can be 70% of everything fusion is worth on that task.
+- Comparing a deep fusion model against a shallow unimodal baseline inflates the
+  apparent gain: on SEED-IV the same table yields 14.8 points read across
+  architectures and 5.6 points read within one.
+- Under a 48%-majority prior, a constant classifier scores 31.3 weighted F1 on MELD.
+  We give the closed form, and show that the chance-corrected metrics — Cohen's kappa,
+  multiclass MCC and balanced accuracy alike — provably cannot be raised by collapsing
+  onto the prior, while weighted F1 rises under it in 97.6% of sampled cases.
+
+---
+
+## Abstract
+
+Multimodal emotion recognition reports margins without reporting how much room those
+margins occupy. We introduce two elementary diagnostics and measure them. The first is
+the **fusion headroom** $H$, the gain of a paper's multimodal system over its own best
+single modality, read from the same table under the same architecture. The second is
+the **majority-class floor**, the score of a classifier that ignores its input, for
+which we give closed forms. Reading eight matched comparisons from five corpora at
+their source tables, and measuring two more ourselves on CMU-MOSI and CMU-MOSEI under
+a single architecture — ten comparisons over seven corpora in all — we find $H$ between $-1.8$ and $+9.1$ points, with the
+mainstream conversational, physiological and sentiment benchmarks at or below $3.2$
+and four of the ten comparisons negative — fusing modalities makes those systems worse
+than their best single channel. We show that mismatching architectures between the unimodal
+and fused rows inflates $H$ by a factor of nearly three on one corpus, and that under
+MELD's 48% neutral prior a constant classifier reaches 31.3 weighted F1, so that in
+severely degraded conditions reported systems operate a few points above a model that
+has learned nothing. We prove that kappa, MCC and balanced accuracy all fall under the
+information-destroying operation that weighted F1 rewards in 97.6% of sampled
+confusion matrices, and correct our own earlier claim that kappa was alone in this. A case study on a missing-modality framework we built to the
+field's own standard shows the consequence: a 5.1-point advantage, 70% of that task's
+entire headroom, that macro-F1 and kappa reduce to 0.6 and 2.5 points. We do not claim
+published results are wrong; we claim the field reports a quantity whose scale it does
+not report, and we give the three numbers that fix it.
+
+**Keywords:** evaluation methodology; multimodal fusion; emotion recognition; missing
+modalities; class imbalance; chance-corrected metrics
+
+---
+
+## 1. Introduction
+
+A multimodal emotion recognition paper reports that its system reaches 60.2 weighted
+F1 where the previous best reached 59.2. The reader is invited to conclude that the
+new fusion mechanism is better. What the reader is not told is that on that corpus,
+under that paper's own architecture, using *all* the modalities instead of the single
+best one is worth 3.2 points in total. The reported improvement is therefore not one
+point out of forty; it is one point out of three.
+
+This is not a criticism of any particular result. It is an observation about what is
+missing from the table. Two quantities that bound the interpretation of every margin
+in this literature are almost never reported:
+
+**The floor.** MELD's test split is 48.1% neutral. A classifier that ignores its input
+entirely and always answers *neutral* scores 31.3 weighted F1. Any cell below that
+number describes a system that has not learned; any cell a few points above it
+describes a system that has barely learned. In the single-modality and
+severe-missingness conditions that robustness papers emphasise, reported scores are in
+exactly that region.
+
+**The headroom.** If a paper's own best single modality scores $s^\star$ and its full
+multimodal system scores $f$, then $H = f - s^\star$ is everything that fusion is worth
+in that paper's hands. A margin $\Delta$ over a competing system consumes $\Delta / H$
+of it. When $H$ is three points, a claimed five-point margin is not a strong result; it
+is an implausible one, and the first hypothesis should be that something other than
+fusion produced it.
+
+Neither quantity is difficult. The floor has a closed form; the headroom is a
+subtraction within a table the paper already prints. Our contribution is to compute
+them, at scale and at the source, and to show what they imply.
+
+**What we do.**
+
+1. We define $H$ and the reading discipline it requires — same paper, same table, same
+   architecture — and show that violating the last of these inflates $H$ by nearly
+   threefold on a corpus where the temptation is strongest (Section 3.2).
+2. We read eight matched comparisons from five corpora at their source tables, measure
+   two more ourselves on two further corpora, and report the range (Sections 4.2, 4.4).
+3. We give closed forms for the majority-class floor and prove that the chance-corrected
+   metrics — kappa, MCC and balanced accuracy — cannot be raised by collapse onto the
+   prior, unlike weighted F1 (Section 5).
+4. We audit our own missing-modality framework against these diagnostics, and report
+   what they dissolve (Section 6).
+
+**What we do not claim.** We do not re-run any published system, and we do not claim
+any published number is incorrect. $H$ as we measure it is a property of a
+*paper's systems*, not of the corpus in the abstract: a better fusion method could in
+principle enlarge it. That objection is the substance of Section 7.1, and it is the
+reason the paper is framed as a measurement rather than a bound.
+
+---
+
+## 2. Related work
+
+**Chance correction is old, and unapplied here.** Powers (2011) established that
+recall, precision, F-measure and accuracy are biased, that a system worse in
+Informedness can score higher under any of them, and that chance or base-case levels
+must be identified. Chicco and Jurman (2020) argue for MCC over F1; Delgado and Tibau
+(2019) argue against kappa in favour of MCC, a position Section 5.3 engages with
+directly. None of this is new, and we claim none of it. What is new here is the
+measurement: fifteen years after Powers, no missing-modality emotion-recognition paper
+we examined reports a chance level for any degradation condition.
+
+**Missing-modality emotion recognition.** The line divides into reconstruction —
+imagining the absent channel (Zhao et al., 2021; Lian et al., 2023) — and reweighting,
+which leaves it absent and adjusts the fusion (Zhang et al., 2024). Distillation from
+a complete-modality teacher spans both (Li et al., 2024). Every one of these reports
+margins under severe missingness; none reports the headroom those margins occupy.
+
+**Evaluation audits in NLP.** Gorman and Bedrick (2019) showed that standard splits
+change system rankings; Card et al. (2020) showed that much of the field is
+statistically underpowered. This paper is of that genus: it measures a property of how
+results are reported rather than proposing a method.
+
+---
+
+## 3. Two diagnostics
+
+### 3.1 Fusion headroom
+
+For a paper reporting a multimodal system and unimodal ablations,
+
+$$H \;=\; f \;-\; \max_{m} s_m ,$$
+
+where $f$ is the score of the full multimodal system and $s_m$ the score of modality
+$m$ alone, **all read from the same table, under the same architecture and protocol**.
+$H$ is the total value of fusion as that paper realises it. A margin $\Delta$ between
+two systems on that corpus has *utilisation* $\Delta/H$: the fraction of the available
+room it claims.
+
+$H$ is not a bound on what fusion could ever be worth. It is what fusion *is* worth to
+the systems whose numbers the field compares against.
+
+### 3.2 The reading discipline, and what breaks it
+
+Three requirements, of which the third is the one that fails silently.
+
+*Same paper and table.* Combining a unimodal score from one paper with a fused score
+from another compares training regimes, not modalities.
+
+*Same protocol.* Splits, label sets and metrics must match; $H$ computed across a
+4-class and a 7-class protocol is meaningless.
+
+*Same architecture.* This is the trap. Papers commonly report unimodal baselines with
+a simple classifier and the fused system with a deep one. The difference then contains
+both the fusion and the architecture, and attributing all of it to fusion inflates $H$.
+
+**A worked instance.** Zheng et al. (2019) report, in one table on SEED-IV: EEG alone
+70.33% and eye movements alone 67.82%, both with linear SVMs; feature-level fusion,
+also with SVMs, 75.88%; and a bimodal deep autoencoder, 85.11%. Read against the deep
+model, $H = 14.78$. Read within the SVM family, $H = 5.55$. The same table supports a
+number nearly three times larger if the architectures are allowed to differ. We report
+the matched value and record the other only as an illustration.
+
+### 3.3 The floor
+
+Let $c$ be a constant predictor emitting class $k_0$, whose share of the *evaluation*
+set is $\pi_0$. Then
+
+$$A(c) = \pi_0, \qquad
+W(c) = \frac{2\pi_0^{2}}{1+\pi_0}, \qquad
+M(c) = \frac{1}{K}\cdot\frac{2\pi_0}{1+\pi_0} .$$
+
+*Proof.* Class $k_0$ has $\mathrm{TP} = n\pi_0$, $\mathrm{FP} = n(1-\pi_0)$ and
+$\mathrm{FN} = 0$, so its precision is $\pi_0$, its recall is 1, and
+$F_1(k_0) = 2\pi_0/(1+\pi_0)$. All other classes have $F_1 = 0$. Weighted F1 weights by
+evaluation support, macro F1 averages over the label set. $\square$
+
+Three hypotheses matter and are easy to lose. $\pi_0$ is the share of the class
+*actually predicted* in the *evaluation* split, which is not the training prior's
+maximum when the splits disagree — with training 60/40 and evaluation 70/30, predicting
+the training majority scores 13.9 while the formula at the evaluation maximum would say
+57.6. Macro F1's denominator is the label set, not the classes observed in the split;
+`scikit-learn` uses the latter unless the label set is passed explicitly. And ties in
+the prior leave the argmax non-unique, with the formula holding for whichever class is
+emitted.
+
+**Numerically.** MELD test ($K=7$, $\pi_0 = 0.481$): $W = 31.3$, $M = 9.3$,
+$A = 48.1$. IEMOCAP four-class ($\pi_0 = 0.309$): $W = 14.6$, $M = 11.8$, $A = 30.9$.
+
+---
+
+## 4. How much is fusion worth?
+
+### 4.1 Method
+
+We selected corpora spanning the modality combinations the field uses: conversational
+text–audio–video (MELD), speech with peripheral physiology (KEMDy20), EEG with eye
+movements (SEED, SEED-IV), and EEG with peripheral physiology (AMIGOS, DEAP). For each
+we located a paper reporting unimodal ablations alongside the fused system, obtained
+the PDF, and read the cells from the table. Numbers obtained from search summaries were
+discarded and re-read; three of them were wrong, one by three points (Section 4.3).
+
+Two corpora resisted that procedure. CMU-MOSI and CMU-MOSEI dominate the
+missing-modality literature, but no source table pairing unimodal with fused rows under
+one architecture was reachable to us, and after three second-hand entries had turned out
+wrong we were not willing to record remembered numbers. Section 4.4 measures those two
+directly instead.
+
+### 4.2 Results
+
+<!-- BEGIN HEADROOM TABLE -->
+| Corpus | Source | Metric | Best single | Fused | **H** |
+|---|---|---|---|---|---|
+| SEED | Lu et al., IJCAI 2015, Tab. 2–3, Fig. 2 | accuracy | EEG 78.51 | 87.59 | **+9.08** |
+| SEED-IV | Zheng et al., T-Cyb 2019, Tab. III | accuracy | EEG 70.33 | 75.88 | **+5.55** |
+| MELD (DialogueRNN) | Poria et al., ACL 2019, Tab. 11 | weighted F1 | text 57.03 | 60.25 | **+3.22** |
+| MELD (bcLSTM) | Poria et al., ACL 2019, Tab. 11 | weighted F1 | text 56.44 | 59.25 | **+2.81** |
+| CMU-MOSEI | measured here, Sec. 4.4 | accuracy | text 59.08 | 60.57 | **+1.49** |
+| KEMDy20 (valence) | SGMT, *Mathematics* 2026, Tab. 10 | valence UAR | bio 52.0 | 52.8 | **+0.80** |
+| AMIGOS (valence) | Miranda-Correa et al., TAC 2018, Tab. 7 | F1 ×100 | EEG 56.4 | 56.0 | **−0.40** |
+| CMU-MOSI | measured here, Sec. 4.4 | accuracy | text 80.53 | 79.71 | **−0.82** |
+| AMIGOS (arousal) | Miranda-Correa et al., TAC 2018, Tab. 7 | F1 ×100 | EEG 57.7 | 56.4 | **−1.30** |
+| KEMDy20 (arousal) | SGMT, *Mathematics* 2026, Tab. 10 | arousal UAR | audio 71.4 | 69.6 | **−1.80** |
+
+*All rows are matched on paper, table, protocol and architecture. DEAP is omitted:
+its Tables 7–8 are raster images in the published PDF and the cells could not be read;
+the text states that fusion "generally outperforms the single modalities" but is
+significant in only one configuration.*
+<!-- END HEADROOM TABLE -->
+
+The range is $-1.8$ to $+9.1$ points. **Four of the ten comparisons are negative**:
+fusing the modalities produces a system worse than its own best single channel. The two
+rows we measured ourselves carry confidence intervals, and MOSI's contains zero — read
+strictly, that row says fusion is worth nothing measurable there rather than that it
+hurts.
+
+The ordering is not the one the field's intuitions predict. EEG with eye movements —
+two channels neither of which is derivable from the other — gives the largest headroom.
+EEG with peripheral physiology, which shares that property, gives the smallest. Speech
+with wearable biosignals, which we expected to be strongly complementary because
+electrodermal activity is not a function of what is said, is negative on arousal.
+
+The SGMT authors explain their own case, and the explanation generalises: acoustic
+features already capture most of the arousal information in KEMDy20, and electrodermal
+activity and inter-beat interval principally track arousal. The two channels overlap on
+the dimension that carries the signal. Complementarity is not the absence of shared
+content; it is the presence of *different* content on the *labelled* dimension.
+
+### 4.3 What reading at the source changed
+
+We first assembled this table from search summaries. Three entries were wrong.
+
+**KEMDy20 was recorded at $H = 3.8$; it is $0.8$.** The paper's "+3.8 points" is
+measured against its *speech-only* baseline at 49.0, not against the best single
+modality, which for valence is bio-only at 52.0. On four of the six metrics in that
+table, the fused system is below the best single channel.
+
+**MELD was unresolved.** Search attributed the figure 56.44 to text-only in one place
+and to the text+audio bimodal cell in another. Table 11 of the source settles it: 56.44
+is bcLSTM text-only, and $H$ is 2.81 rather than the 6 we had estimated.
+
+**SEED-IV was recorded at $H = 14.78$**, which is the cross-architecture reading of
+Section 3.2.
+
+Every correction moved the estimate downward. We report this because it is a fact about
+how these numbers propagate: the summaries, the abstracts and the citing literature all
+carry the larger figure.
+
+### 4.4 A first-hand measurement: CMU-MOSI and CMU-MOSEI
+
+**Why measured rather than read.** These two corpora carry most of the
+missing-modality literature, so leaving them out would leave out the case the reader
+cares about most. No table pairing unimodal with fused rows under one architecture was
+reachable to us, and the community results file that was reachable lists multimodal
+systems only. Rather than record numbers from memory or from a summary — the practice
+Section 4.3 shows failing three times out of three — we ran the comparison.
+
+**Data.** Utterance-level features and speaker-independent splits from the bc-LSTM line
+of work (Poria et al., 2017; Poria et al., 2017b) are committed in a public repository at
+a fixed commit; we record the commit and the per-file checksums. The MOSI features are
+the ones released with that ACL 2017 paper. CMU-MOSEI itself is later — Zadeh et al.
+(2018) — so its features in that repository postdate the 2017 work and we could not
+verify the provenance of each pickle independently; the MOSEI row is therefore a
+measurement on a specific published feature distribution, not a reproduction of any
+paper's pipeline.
+MOSI is binary sentiment, 1,447 training and 752 test utterances, with text at 100
+dimensions, audio at 73 and video at 100. MOSEI is three-class sentiment, 16,188 and
+4,614 utterances, all three channels at 100 dimensions. Labels and validity masks are
+identical across the three modality files, which is what makes the unimodal and fused
+rows matched at the sample level rather than only in aggregate; the loader asserts it.
+
+**Protocol.** One architecture throughout: a masked bidirectional LSTM over the
+utterances of a video with a per-utterance linear read-out, sequences packed so that
+the backward pass never runs over padding. Optimiser, schedule, early stopping, seeds
+and read-out are held fixed. The only thing that varies between configurations is which
+feature blocks are fed in.
+
+Two decisions guard against handicapping fusion, which would manufacture our own
+conclusion. First, fusion is given **three** chances, not one: early concatenation, late
+averaging of the unimodal posteriors, and per-modality encoders concatenated before the
+read-out; $H$ is taken against the best of the three. Second, hyper-parameters are
+selected per configuration on held-out data over one shared grid, because handing the
+fused model the unimodal models' width would penalise an input three times as wide. We
+report the fixed-hyper-parameter protocol as primary and the selected one as a
+robustness check.
+
+<!-- BEGIN MOSI MOSEI TABLE -->
+| | text | audio | video | early | late | mid | **H** |
+|---|---|---|---|---|---|---|---|
+| **MOSI** accuracy | **80.53** | 54.28 | 54.07 | 79.71 | 77.13 | 79.28 | **−0.82** |
+| **MOSI** weighted F1 | **80.36** | 54.30 | 54.61 | 79.64 | 77.12 | 79.25 | **−0.72** |
+| **MOSI** kappa | **0.580** | 0.108 | 0.092 | 0.566 | 0.515 | 0.559 | **−0.014** |
+| **MOSEI** accuracy | 59.08 | 58.63 | 53.25 | 59.85 | **60.57** | 59.41 | **+1.49** |
+| **MOSEI** weighted F1 | 58.05 | 52.54 | 47.72 | **58.70** | 55.46 | 58.41 | **+0.65** |
+| **MOSEI** kappa | 0.334 | 0.271 | 0.174 | **0.346** | 0.309 | 0.341 | **+0.011** |
+
+*Means over five seeds; bold marks the best single modality and the best fusion style.
+$H$ is their difference.*
+<!-- END MOSI MOSEI TABLE -->
+
+**What the numbers say.** On MOSI, no fusion style beats text alone on any metric, and
+the paired difference over seeds is not distinguishable from zero: $-0.82$ accuracy with
+a 95% interval of $[-2.18, +0.53]$, $p = 0.167$. Selecting hyper-parameters per
+configuration moves it to $-0.27$ ($p = 0.733$). The honest reading is that fusion is
+worth nothing measurable on MOSI under this architecture, not that it is harmful.
+
+On MOSEI the gain is small but statistically reliable: $+1.49$ accuracy
+($[+0.85, +2.12]$, $p = 0.003$), $+0.65$ weighted F1 ($p = 0.012$), $+0.61$ macro F1
+($p = 0.044$), $+0.011$ kappa ($p = 0.017$). Which fusion style wins depends on the
+metric — late averaging on accuracy, early concatenation on the other three — which is
+itself a sign of how little separates them.
+
+**The floor, on these two corpora.** The best constant predictor scores **62.10**
+accuracy on MOSI and **49.09** on MOSEI. On MOSI that puts audio-only (54.28) and
+video-only (54.07) *below a model that ignores its input*, and it leaves text-only 18.4
+points of signal in total, inside which $H$ is $-0.8$. MOSI also supplies a clean
+instance of the hypothesis Section 3.3 warns about: its training majority is negative
+and its test majority is positive, so a constant predictor that can only see the
+training split scores 37.90 while the best constant predictor scores 62.10 — the same
+formula, 24 points apart, depending on which $\pi_0$ is used. Finally, every constant
+predictor on both corpora scores $\kappa = 0.000$ exactly, which is Proposition 4 of
+Section 5.3 confirmed on real data rather than on sampled confusion matrices.
+
+---
+
+## 5. The floor, and which metric survives it
+
+### 5.1 Systems near the floor
+
+The floor matters where it is close. On MELD's severe-missingness conditions,
+single-modality systems report weighted F1 in the low thirties against a floor of 31.3.
+On AMIGOS, the best single modality reaches F1 56.4 against a random baseline of 50.0
+that the paper prints in its own table — 6.4 points of signal in total, inside which the
+fusion comparison of Section 4.2 takes place.
+
+### 5.2 Weighted F1 rewards collapse; kappa cannot
+
+Let $T_\lambda$ emit the classifier's output with probability $\lambda$ and the majority
+class otherwise. Then $T_a \circ T_b = T_{ab}$, so for $\lambda_1 < \lambda_2$ the
+former is a garbling of the latter and, by the data-processing inequality, carries
+weakly less information. $T_\lambda$ is a provably information-destroying operation.
+
+Writing $p_o$ and $p_e$ for observed and expected agreement, both affine in $\lambda$
+with $p_o(0) = p_e(0) = \pi_0$,
+
+$$\kappa(\lambda) = \frac{\lambda\,[p_o(1)-p_e(1)]}{(1-\pi_0) - \lambda\,[p_e(1)-\pi_0]},$$
+
+strictly increasing on $[0,1]$ whenever $\kappa(1) > 0$. **Kappa cannot be raised by
+collapse toward the prior.** Weighted F1 has no such property: on 9,261 random
+confusion matrices over the MELD prior with $\kappa > 0$, garbling to $\lambda = 0.9$
+raised kappa in **0** cases and raised weighted F1 in **9,041** — 97.6%.
+
+### 5.3 Kappa, MCC and balanced accuracy near the floor
+
+An earlier version of this section argued that kappa is the only one of the
+chance-corrected metrics that survives at the constant predictor, on the grounds that
+multiclass MCC is $0/0$ there and therefore discontinuous. **That argument was wrong,
+and an external review supplied the correction.** Along the same garbling family, with
+$D = p_o - p_e$, $V = 1 - \lVert\pi\rVert^2$, $b = 1 - q_0$ and
+$a = \lVert q - e_0\rVert^2$,
+
+$$\mathrm{MCC}(\lambda) \;=\; \frac{D\sqrt{\lambda}}{\sqrt{V\,(2b - a\lambda)}},$$
+
+which we verified against direct computation to $10^{-17}$. It is strictly increasing in
+$\lambda$ and tends to $0$ as $\lambda \to 0$, so $0$ is the *continuous extension*, not
+a library convention papering over a discontinuity. Balanced accuracy is even simpler:
+$\mathrm{BA}(\lambda) = \lambda\,\mathrm{BA}(1) + (1-\lambda)/K$ exactly. All three
+chance-corrected metrics resist collapse; weighted F1 is the outlier, not kappa the
+hero.
+
+What does separate them is *sensitivity* near the degenerate point. The numerator of
+both kappa and MCC is $\lambda D$, but MCC's denominator vanishes like $\sqrt{\lambda}$,
+so kappa moves as $\Theta(\varepsilon)$ where MCC moves as $\Theta(\sqrt{\varepsilon})$
+in the mass $\varepsilon$ predicted away from the constant class. Perturbing the constant
+predictor on MELD's test prior by a *single* sample moves MCC by $+0.024$ or $-0.009$
+against kappa's $+0.0011$ and $-0.0004$: the same two-orders-of-magnitude gap, now
+correctly attributed to sensitivity rather than to a discontinuity. Near the floor MCC is
+the more responsive instrument and kappa the more stable one, which is a reason to report
+both — the position Delgado and Tibau (2019) argue for on other grounds — not a reason to
+choose between them.
+
+The recommendation in Section 8 is therefore for *a* chance-corrected metric rather than
+for kappa specifically. The empirical result of Section 5.2 is unaffected: it is about
+weighted F1, and weighted F1 rises under garbling where all three of these fall.
+
+---
+
+## 6. Case study: what the diagnostics do to a method paper
+
+We built a missing-modality framework to the standard the field uses: per-channel
+evidential heads, a fusion gate weighted by Dirichlet vacuity, and asymmetric
+distillation from a complete-modality teacher, evaluated on a controlled benchmark with
+MELD's class priors and split sizes, over ten seeds and seven availability patterns,
+with paired significance tests. It reported an advantage of **+5.06 weighted F1** over
+the strongest baseline in the visual-only condition.
+
+The diagnostics of this paper, applied afterwards:
+
+- **Headroom.** $H = 7.3$ on that benchmark. The claimed margin is **69% of everything
+  fusion is worth** on the task. That should have stopped the experiment at design time.
+- **Floor.** The system scores 36.0 in the visual-only condition, against a floor of
+  31.0. Four of the six systems compared score *below* the floor in that condition; the
+  margin measures which system collapses onto the prior less completely.
+- **Chance correction.** Against the strongest baseline: $+1.04$ weighted F1
+  ($p = 0.10$), $+0.52$ kappa ($p = 0.30$). The 5.06-point visual-only margin becomes
+  $+0.66$ macro-F1 and $+2.47$ kappa. *All kappa differences in this section are
+  reported as $100 \times \Delta\kappa$, on the same scale as the F1 differences beside
+  them; $+2.47$ means $\Delta\kappa = 0.0247$. Kappa itself lies in $[-1, 1]$.*
+
+One result survives all three: against a matched-capacity attention gate, the advantage
+is $+2.19$ weighted F1 ($p = 0.0095$), $+1.97$ kappa ($p = 0.0107$) and $+1.84$ MCC
+($p = 0.0077$). That is what a margin looks like when it is not an artifact of the
+metric — smaller, and consistent across metrics that disagree about what to reward.
+
+We report this case study on our own work rather than on someone else's deliberately.
+The framework was built competently, evaluated more carefully than is typical, and
+still produced a headline number that three elementary checks dissolve.
+
+---
+
+## 7. Limitations
+
+### 7.1 $H$ is a property of systems, not of corpora
+
+This is the substantive objection. What we measure is the headroom *realised by the
+systems in the papers we read*, not an information-theoretic bound. A better fusion
+method could enlarge it, and a paper reporting weak unimodal baselines will appear to
+have more of it.
+
+Three things temper this without removing it. The corpora we read span eleven years and
+very different architectures — SVMs with fuzzy integrals, contextual LSTMs, gated
+transformers — and the range does not widen with model capacity. The direction of the
+error from weak unimodal baselines inflates $H$, so the small values we report are, if
+anything, upper estimates. And the quantity is the right one for the purpose: a margin
+is claimed against the systems the field actually compares, so the room available is the
+room those systems leave.
+
+Still, a genuinely stronger fusion method on MELD would falsify the reading of that row,
+and we would welcome it.
+
+### 7.2 One paper per corpus, and metric heterogeneity
+
+MELD supplies two rows that differ by 0.4 points, which is reassuring but is a sample of
+two. The other corpora supply one each. The metrics differ — accuracy, weighted F1,
+UAR, F1 — and $H$ values are not comparable in absolute terms across them; the claim is
+about the range within each, not about ranking corpora against one another.
+
+### 7.3 DEAP is missing, and it is not missing at random
+
+Its tables are images in the published PDF. A corpus we could not read is a corpus we
+could not include, and we cannot rule out that unreadable tables differ systematically
+from readable ones.
+
+### 7.4 Eight rows are read, two are reproduced
+
+The eight published rows are read, not reproduced. Reading resolves attribution errors,
+as Section 4.3 shows, but it inherits every error in the source.
+
+The two rows we measured have the opposite exposure, and one specific weakness worth
+stating plainly. The released text and video features were extracted by networks trained
+on the training split: held-out *training* videos reach 98.8% and 94% accuracy where the
+test split reaches 80.5% and 54%, while the audio features, which are unsupervised
+acoustic descriptors, show no such gap. The consequence is that the validation signal is
+saturated, so per-configuration hyper-parameter selection is weaker than it looks — which
+is why we report the fixed-hyper-parameter protocol as primary and why both protocols
+appear. It does not break the match between rows, since all configurations share one
+feature set, but it does mean our MOSI and MOSEI numbers describe fusion *over these
+features*. A stronger claim would need modern text, speech and vision encoders, and we
+do not make it.
+
+---
+
+## 8. Recommendations
+
+For each degradation or ablation condition, three numbers alongside the metric the
+field expects:
+
+1. **The floor** for that split, $2\pi_0^2/(1+\pi_0)$, from the label counts.
+2. **The headroom** $H$, matched on paper, table, protocol and architecture — and, when
+   comparing against prior work, the utilisation $\Delta/H$ of the claimed margin.
+3. **A chance-corrected metric** — Cohen's kappa, multiclass MCC or balanced accuracy —
+   none of which a collapse onto the prior can raise. Report kappa and MCC together
+   near the floor: kappa is the stabler estimate, MCC the more sensitive one
+   (Section 5.3).
+
+A margin that exists in the field's metric and vanishes in the third has not been shown
+to be a robustness gain. A margin whose utilisation exceeds half the available headroom
+deserves the author's suspicion before the reviewer's.
+
+---
+
+## 9. Conclusion
+
+The field reports margins without reporting the scale they are measured on. We measured
+that scale. Across seven corpora and ten matched comparisons, using every modality a
+paper's own table reports — which on the MELD rows means text and audio, not video —
+instead of the best single one is worth between $-1.8$ and $+9.1$ points, the
+mainstream benchmarks sit at or below $3.2$, and on four comparisons fusion makes the
+system worse than its own best channel. The two corpora that carry the
+missing-modality literature are among the smallest: measured under one architecture
+with three fusion styles, MOSEI yields $+1.49$ accuracy and MOSI yields a difference
+indistinguishable from zero. Under a 48%-majority prior a model that ignores
+its input scores 31.3 weighted F1, and in the severely degraded conditions this
+literature emphasises, systems operate a few points above it.
+
+None of this says that multimodal fusion does not work. It says that what it is worth,
+on the corpora the field uses and in the hands of the systems the field compares, is
+small — and that a metric which rewards collapse onto the class prior is the wrong
+instrument for measuring small things. Our own framework produced a five-point headline
+inside seven points of headroom; three checks that cost nothing reduced it to
+six-tenths of a point of macro-F1. We expect the same arithmetic applies more widely
+than to us, and the three numbers in Section 8 are enough for any author to find out.
+
+**Future work.** Two directions, neither requiring a new architecture. Repeat the
+measurement of Section 4.4 with modern text, speech and vision encoders, which is the
+one reading of our MOSI and MOSEI rows we cannot currently rule out — that the small
+headroom is a property of 2017-era features rather than of the corpora. And ask the
+question the headroom range raises: if the value of fusion is a few points on these corpora, what corpus design
+would make it large — which is a question about how emotion is expressed across
+channels, not about architectures.
+
+---
+
+## Data and code availability
+
+Every figure in Section 4 is recorded in `docs/headroom-data.json` with its paper,
+table, metric, protocol and architecture-match flag, and is recomputed by
+`experiments/headroom.py`; a checker fails the build if any of them is not quoted in
+this manuscript. The Section 4.4 measurement is `experiments/mosi_mosei_headroom.py`
+and `experiments/mosi_mosei_midfusion.py`, with the paired tests in
+`experiments/mosi_mosei_report.py`; the data commit and per-file checksums are recorded
+in the first script's docstring. The closed forms and the kappa monotonicity result of
+Section 5 are machine-checked by `experiments/theory_check.py`, which fails the build if
+any of them is wrong. The case study of Section 6, its implementation and its raw
+per-seed results are in the same repository.
+
+## Declaration of generative AI use
+
+This manuscript, the analysis and the accompanying implementation were produced with an
+AI coding assistant operating from a human-authored research brief. The AI performed the
+literature retrieval, implementation, measurement and drafting; the human author is
+responsible for the scientific content and the decision to submit. The AI is not listed
+as an author.

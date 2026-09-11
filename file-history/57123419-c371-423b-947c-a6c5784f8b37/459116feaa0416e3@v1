@@ -1,0 +1,222 @@
+# A theory of degradation-conditional evaluation
+
+Notation. A classification problem over $K$ classes with label prior
+$\pi = (\pi_1,\dots,\pi_K)$, $\pi_{\max} = \max_k \pi_k$ attained at $k^\star$. A
+*predictor* is a conditional distribution $q(\hat y \mid x)$; its *confusion*
+$C_{ij} = P(\hat Y = j \mid Y = i)$ is all that the metrics below depend on. Write
+$W$ for weighted F1, $M$ for macro F1, $A$ for accuracy, $\kappa$ for Cohen's kappa,
+and $I(Y;\hat Y)$ for the mutual information between label and prediction.
+
+A *degradation operator* $D_\delta$ maps an input to a degraded input; in the
+missing-modality setting $\delta$ is an availability mask and $D_\delta$ deletes the
+absent channels. $f \circ D_\delta$ is the system evaluated at degradation $\delta$.
+
+Every statement below is machine-checked by `experiments/theory_check.py`, which
+recomputes each closed form against scikit-learn (tolerance $10^{-6}$) and each
+derivative against a finite difference (tolerance $10^{-4}$). **Every number quoted in
+this document is a number that script prints.**
+
+**This document has been revised after adversarial review.** An earlier version
+claimed a $\pi_j^{3}$ versus $\pi_j^{2}$ sensitivity scaling and a headline ratio of
+16,000 to 1. That claim was wrong by more than two orders of magnitude — it treated
+the denominator $(P_j+\pi_j)^2$ as class-independent when $P_j$ scales with $\pi_j$ —
+and it has been removed rather than weakened. A second claim, that Cohen's kappa and
+MCC are both zero at the floor, was half wrong: MCC is $0/0$ there. What replaced
+them, Theorem 3, is stronger than either and is what the reporting rule now rests on.
+Section "Removed claims" at the end records what was cut and why.
+
+---
+
+## Proposition 1 (the floor, in closed form)
+
+Let $c(x) \equiv k_0$ be a constant predictor, and let $\pi_0$ be the share of class
+$k_0$ **in the evaluation set**. Then
+
+$$A(c) = \pi_0, \qquad
+W(c) = \frac{2\pi_0^{2}}{1+\pi_0}, \qquad
+M(c) = \frac{1}{K}\cdot\frac{2\pi_0}{1+\pi_0} .$$
+
+*Proof.* For class $k_0$ the constant predictor has $\mathrm{TP} = n\pi_0$,
+$\mathrm{FP} = n(1-\pi_0)$ and $\mathrm{FN}=0$, so precision is $\pi_0$, recall is
+$1$, and $F_1(k_0) = 2\pi_0/(1+\pi_0)$. Every other class has $\mathrm{TP}=0$, hence
+$F_1(k)=0$ under the convention $0/0 := 0$ that scikit-learn's `zero_division=0`
+implements. Weighted F1 weights each class by its evaluation support, giving
+$W(c) = \pi_0 F_1(k_0)$; macro F1 averages over all $K$ classes, giving
+$F_1(k_0)/K$. $\square$
+
+**Three hypotheses that are easy to lose, and that matter.**
+
+1. **$\pi_0$ is the evaluation-set share of the class actually predicted**, not the
+   training prior's maximum. The floor is largest when $k_0$ is the evaluation
+   majority, so the *worst-case* floor a reader should compare against uses
+   $\pi_0 = \pi_{\max}^{\mathrm{eval}}$. Where train and evaluation majorities differ
+   the two readings come apart badly: on a two-class evaluation set that is 70/30
+   while training was 60/40, predicting the training majority scores $W = 13.9$,
+   while the formula evaluated at $\pi_{\max}^{\mathrm{eval}} = 0.70$ would say
+   $57.6$. `majority_class_floor` in `src/uacmd/metrics.py` takes the training
+   majority, which is the operationally honest choice — a deployed constant
+   predictor cannot know the test prior — and the closed form is applied at that
+   class's *evaluation* share.
+2. **Ties.** If several classes attain the maximum prior the argmax is not unique;
+   the formula holds for whichever class the predictor emits, with $\pi_0$ its own
+   share.
+3. **Macro F1's denominator is $K$, the number of classes in the label set**, not the
+   number present in the evaluation split. A class absent from the split contributes
+   $0$ to the numerator and still $1$ to the count under scikit-learn's default
+   behaviour only if it appears in `labels`; otherwise macro F1 is computed over the
+   observed classes and the closed form must use that smaller $K$.
+
+**Numerically.** MELD test ($K=7$, $\pi_0=0.481$): $W=31.3$, $M=9.3$, $A=48.1$.
+IEMOCAP four-class ($\pi_0=0.309$): $W=14.6$, $M=11.8$, $A=30.9$. These are the
+scores of a system that ignores its input.
+
+## Proposition 2 (how much of the metric is free)
+
+$W(c)$ is strictly increasing in $\pi_0$, with
+$\mathrm{d}W/\mathrm{d}\pi = 2\pi(2+\pi)/(1+\pi)^{2} > 0$, and $W(c)\to 1$ as
+$\pi_0 \to 1$. The *free fraction* of the metric's range is $W(c)$ itself: on MELD,
+31.3 of the 100 points of weighted F1 are available without looking at the input; on
+a corpus with $\pi_0 = 0.7$, 57.6 of them.
+
+This is a remark about a one-variable function, not a deep fact. It is stated because
+the consequence is easy to miss: the same weighted F1 means different things on
+corpora with different priors, so a floor must be reported *per corpus and per split*.
+
+## Theorem 3 (collapse toward the prior cannot raise kappa, but usually raises weighted F1)
+
+Let $T_\lambda$ be the *abstain-to-prior* channel: emit $f(x)$ with probability
+$\lambda$, and $k_0$ otherwise. Then
+
+**(a) $T$ is a semigroup:** $T_a \circ T_b = T_{ab}$, since
+$a\big(bC + (1-b)E\big) + (1-a)E = abC + (1-ab)E$ where $E$ is the all-$k_0$ channel.
+Hence for $\lambda_1 < \lambda_2$, $T_{\lambda_1}$ is a garbling of $T_{\lambda_2}$,
+and by the data-processing inequality
+$I(Y; T_{\lambda_1}\hat Y) \le I(Y; T_{\lambda_2}\hat Y)$: **smaller $\lambda$ means
+weakly less information, always.**
+
+**(b) Kappa is non-decreasing in $\lambda$.** Writing $p_o(\lambda)$ and
+$p_e(\lambda)$ for observed and expected agreement under $T_\lambda$, both are affine
+in $\lambda$ with $p_o(0)=p_e(0)=\pi_0$, so
+
+$$\kappa(\lambda) = \frac{\lambda\,[p_o(1)-p_e(1)]}
+{(1-\pi_0) - \lambda\,[p_e(1)-\pi_0]},$$
+
+which for $\kappa(1) > 0$ is strictly increasing on $[0,1]$. Degrading a system
+toward the prior therefore *cannot* improve its kappa.
+
+**(c) Weighted F1 has no such property, and fails often.** On 9,258 random confusion
+matrices over the MELD prior with $\kappa>0$, garbling to $\lambda=0.9$ raised kappa
+in **0** cases and raised weighted F1 in **9,038** — 97.6%.
+
+*Together, (a)–(c) are what justifies the reporting rule.* A number that a strictly
+information-destroying operation can raise is not, on its own, evidence of retained
+capability; a number that such an operation provably cannot raise is.
+
+### The derivative identities
+
+For completeness, and because they are what the sensitivity discussion needs:
+
+$$\left.\frac{\partial W}{\partial \lambda}\right|_{\lambda=1}
+= \sum_{j \neq k_0} \frac{2\,\pi_j^{3}\,C_{jj}}{(P_j+\pi_j)^{2}}
+\;+\; \frac{2\pi_{k_0}^{2}\big[C_{k_0k_0}(1+\pi_{k_0}) - (P_{k_0}+\pi_{k_0})\big]}{(P_{k_0}+\pi_{k_0})^{2}},$$
+
+with the macro form identical except for one fewer power of $\pi_j$ and a factor
+$1/K$. Both require $\pi_j > 0$ for all $j$ (otherwise $C_{jj}$ conditions on a null
+event) and are verified against finite differences on random confusion matrices.
+
+**How to read them, correctly this time.** Rewrite the minority term as
+$2\pi_j C_{jj}\big(\pi_j/(P_j+\pi_j)\big)^{2}$. For any classifier whose predicted
+mass tracks the prior, $P_j = \Theta(\pi_j)$, so the bracket is $\Theta(1)$ and the
+term is $\Theta(\pi_j)$ — **linear**, not cubic. The macro term is then $\Theta(1/K)$,
+independent of $\pi_j$, which is what macro F1 is designed to be. Measured on a
+calibrated classifier over the MELD prior, the neutral-to-fear sensitivity ratio is
+**36 for weighted F1 and 1.4 for macro F1**, against an imbalance ratio
+$\rho = \pi_{\max}/\pi_{\min} = 25$.
+
+So weighted F1 *is* biased toward the majority class, by roughly $\rho$, and macro F1
+is roughly unbiased. That is the true and much more modest statement. The exponents
+$3$ and $2$ in the formulas belong to a classifier that assigns every class the same
+absolute predicted mass, which no real classifier does.
+
+## Proposition 4 (kappa is zero at the floor; MCC is undefined there but continuous to it)
+
+Let $c$ emit $k_0$, with evaluation share $\pi_0$.
+
+**(a)** If $\pi_0 < 1$ then $\kappa(c) = 0$ exactly: $p_o = p_e = \pi_0$ and
+$1-p_e = 1-\pi_0 > 0$. If $\pi_0 = 1$ the expression is $0/0$.
+
+**(b)** MCC$(c)$ is $0/0$ for *every* constant predictor and every prior. With
+$p_k$ the predicted counts, $p_{k_0}=n$ and $p_k=0$ otherwise, so
+$n^{2}-\sum_k p_k^{2} = 0$; the numerator
+$n\sum_k C_{kk} - \sum_k t_k p_k = n^{2}\pi_0 - n^{2}\pi_0$ vanishes as well. MCC is
+the Pearson correlation between the one-hot prediction and the label, and a constant
+prediction has zero variance.
+
+**(c) The undefined point is removable, and MCC is monotone under garbling.** An
+earlier version of this proposition called the floor a *discontinuity* for MCC and
+concluded that only kappa carries the guarantee. That was wrong; the correction came
+from an external review and is verified numerically in `theory_check.py`. Writing
+$D = p_o - p_e$, $V = 1 - \lVert\pi\rVert^{2}$, $b = 1 - q_0$ and
+$a = \lVert q - e_0\rVert^{2}$, the garbling family $T_\lambda$ of Theorem 3 gives
+numerator $\lambda D$ and $1 - \lVert q(\lambda)\rVert^{2} = \lambda(2b - a\lambda)$,
+hence
+
+$$\mathrm{MCC}(\lambda) \;=\; \frac{D\sqrt{\lambda}}{\sqrt{V\,(2b - a\lambda)}} .$$
+
+This is strictly increasing in $\lambda$ whenever $D>0$ and $2b > a\lambda$, and tends
+to $0$ as $\lambda \to 0$. More generally, if the mass predicted away from $k_0$ is
+$\varepsilon$ then the numerator is $O(\varepsilon)$ while
+$1-\lVert q\rVert^{2} = 2\varepsilon + O(\varepsilon^{2})$, so
+$\mathrm{MCC} = O(\sqrt{\varepsilon}) \to 0$ along every approach with the *label*
+distribution held non-degenerate. The $0.0$ that `scikit-learn` returns is therefore
+the continuous extension in this regime, not a convention masking a jump. (If the label
+distribution also degenerates, $V \to 0$ and the analysis has to be redone.)
+
+**(d) Balanced accuracy too.** $\mathrm{BA}(\lambda) = \lambda\,\mathrm{BA}(1) +
+(1-\lambda)/K$ exactly, for $K$ classes with positive support — affine in $\lambda$ and
+increasing whenever $\mathrm{BA}(1) > 1/K$.
+
+**Consequence.** Kappa is not privileged: kappa, MCC and balanced accuracy all fall
+under collapse toward the prior, and weighted F1 is the outlier. What separates kappa
+from MCC is *sensitivity* near the degenerate point, not definedness: kappa moves as
+$\Theta(\varepsilon)$ and MCC as $\Theta(\sqrt{\varepsilon})$. Perturbing the constant
+predictor on MELD's test prior by a single sample moves MCC by $+0.024$ or $-0.009$
+against kappa's $+0.0011$ and $-0.0004$. Near the floor, report both: kappa as the
+stable estimate, MCC as the sensitive one.
+
+## The reporting rule this implies
+
+For each degradation level, report: (i) the metric the field expects, (ii) the floor
+$W(c)$ for that split, and (iii) Cohen's kappa. Theorem 3 is what makes (iii)
+load-bearing: kappa cannot be raised by the one operation that provably destroys
+information, and weighted F1 can, in 97.6% of the confusion matrices tested.
+
+A system whose advantage exists in (i) and vanishes in (iii) has not been shown to
+retain capability under degradation.
+
+## Removed claims
+
+Recorded so that they are not re-derived by accident.
+
+- **"MCC is exactly zero at the floor."** Wrong: $0/0$. (Recorded earlier.)
+- **"The floor is a discontinuity for MCC, so only kappa carries the guarantee."** Wrong, and withdrawn after an external review. $\mathrm{MCC}(\lambda) = D\sqrt{\lambda}/\sqrt{V(2b-a\lambda)}$ is strictly increasing and tends to $0$, so the undefined point is removable and MCC resists collapse exactly as kappa does; balanced accuracy is affine in $\lambda$ and resists too. What survives is the sensitivity gap, $\Theta(\varepsilon)$ against $\Theta(\sqrt{\varepsilon})$. The single-sample figures quoted in an earlier draft of Proposition 4(c), $+0.046$ and $-0.017$, were also wrong and inconsistent with the manuscript's own $+0.024$ and $-0.009$.
+- **"Weighted F1 sensitivity is $\Theta(\pi_j^3)$, macro is $\Theta(\pi_j^2)$, ratio 16,000 to 1."** Wrong: the denominator is not class-independent. True ratio $\approx 36$ against $\approx 1.4$. The identities themselves were correct; only the reading was not.
+- **"MCC is exactly zero at the floor."** Wrong: $0/0$, and discontinuous there.
+- **"Weighted F1 is non-monotone in informativeness, but not in the regime real systems occupy."** The first half is true (a witness exists, differing by 0.165 nats and 5.8 points in opposite directions). The second half was asserted from a hand-built family of four confusion matrices; on random confusion matrices weighted F1 rises under garbling 97.6% of the time. The hedge was not supported and has been replaced by Theorem 3(c), which measures rather than assumes.
+- **"Informative range $R(\delta) = W^{*}(\delta) - W(c)$" and the normalised margin $\rho(f,\delta)$.** Cut entirely: $W^{*}(\delta)$, the Bayes-optimal weighted F1 under degradation, is computed nowhere and is not $1$. Every sentence that depended on it is gone.
+- **"Floor-relative degradation is steeper" (former Theorem 4).** Cut. In integrated form it is the arithmetic fact that $(b-c)/(a-c) < b/a$ for $a>b>c>0$; it requires both $W>W(c)$ and $W$ decreasing, and several systems measured in this repository fall *below* the floor, where the statement is vacuous. Its degradation path — uniform minority-recall shrinkage with errors routed to the majority at a fixed rate — was also never validated against a measured per-mask confusion matrix.
+
+## What this framework does not claim
+
+It does not claim that published missing-modality results are wrong. It claims that
+the reported quantity has a floor that is not zero, that no table this study examined
+reports where that floor lies, and that a chance-corrected number is the one that
+cannot be inflated by collapsing onto the prior. Whether any particular published
+margin survives is an empirical question this study answers only for the systems it
+re-implemented.
+
+It also does not claim that the abstain-to-prior channel *is* what a missing modality
+does. $T_\lambda$ is a stylised operation chosen because it is provably
+information-destroying; establishing that deleting a channel moves a real system along
+that path would require per-mask confusion matrices, which this repository does not
+yet record.
