@@ -1,0 +1,43 @@
+# -*- coding: utf-8 -*-
+"""Ghi hiện trạng: trang chi tiết SV nay hiện số điện thoại."""
+import io
+
+P = r"D:\dev\FithouOne\.project\ARCHITECTURE.md"
+s = io.open(P, encoding="utf-8").read()
+n = 0
+
+
+def va(cu, moi, nhan):
+    global s, n
+    assert s.count(cu) == 1, "[%s] tim thay %d cho" % (nhan, s.count(cu))
+    s = s.replace(cu, moi, 1)
+    n += 1
+    print("  ok  %s" % nhan)
+
+
+MOC = "**ĐẶT LẠI MẬT KHẨU TÀI KHOẢN HOU CHO SINH VIÊN** (27/08/2026):"
+
+THEM = """**LIÊN HỆ CỦA SINH VIÊN TRÊN MÀN CHI TIẾT** (10/09/2026):
+- Số điện thoại + email cá nhân hiện ngay dưới tên, số bấm gọi được (`tel:`), kèm nhãn
+  *"sinh viên tự khai"*. Nguồn **DUY NHẤT** là `sv_ho_so_mo_rong` — bảng `sinh_vien` **KHÔNG có
+  cột điện thoại**, và cột `email` của nó **rỗng toàn bộ** 1.732 em, đừng tìm ở đó.
+- Đặt ở `hoc_tap.chi_tiet` = nguồn CHUNG của cả ba màn chi tiết phía cán bộ:
+  `/admin/students/{mssv}` (web-admin) · `/gv/co-van/sv/{mssv}` (CVHT web + app
+  `gv_student_detail`) · `/api/internal/sv-chi-tiet` (workload "Lớp của tôi"). Sửa một chỗ,
+  cả ba màn có; **app cần phát hành lại mới hiện** (trường API đã sẵn).
+- **RANH GIỚI RIÊNG TƯ — đừng vượt:** ba cổng trên đều là cổng CÁN BỘ (router `admin` có
+  `require_admin_access`; `/gv/co-van/*` có `GV_ROLE` + kiểm SV thuộc lớp mình cố vấn). **KHÔNG
+  đưa số thật sang màn của SINH VIÊN**: `sv_ghi_chu_ban` (ghi chú riêng SV tự khai về bạn cùng
+  lớp) tồn tại chính là vì SV không được phát số của nhau — xem màn "Lớp quản lý" ở `web-sv`.
+- **Độ phủ (10/09/2026):** `sdt` **437/1.725** SV đang học · `email_ca_nhan` 146 · `ph_sdt`
+  (điện thoại phụ huynh) 303 — chưa đưa lên màn, hỏi trước khi thêm. Hồ sơ tập trung ở **K25
+  (307)** và K26 (72) vì 306 hồ sơ đến từ `nguon='form_k25'` (Google Form); khóa cũ gần như
+  trống. Màn CVHT vốn đã có `giam_ho.sdt_gh` (310 dòng) — đó là số NGƯỜI GIÁM HỘ, khác số của SV.
+- Khối `lien_he` bọc `try/except`: hồ sơ mở rộng là phần PHỤ, hỏng thì mất dòng liên hệ chứ
+  không được làm trắng cả trang chi tiết.
+
+"""
+
+va(MOC, THEM + MOC, "them muc LIEN HE SV")
+io.open(P, "w", encoding="utf-8", newline="\n").write(s)
+print("\nDa cap nhat %d cho" % n)

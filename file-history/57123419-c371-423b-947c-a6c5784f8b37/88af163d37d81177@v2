@@ -1,0 +1,37 @@
+"""H must be chosen on held-out data. Picking the best unimodal and the best fusion by
+their test means is a post-hoc maximum, and experiments/mosi_mosei_headroom.py once
+did exactly that."""
+import importlib.util
+from pathlib import Path
+
+import pytest
+
+_path = Path(__file__).resolve().parents[1] / "experiments" / "mosi_mosei_headroom.py"
+_spec = importlib.util.spec_from_file_location("headroom_main", _path)
+H = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(H)
+
+FUSION = ["fused-early (T+A+V)", "fused-late (T+A+V)"]
+
+
+def _cell(test, val):
+    return {"acc": {"mean": test}, "validation": {"acc": {"mean": val}}}
+
+
+def test_both_sides_are_chosen_on_validation_not_test():
+    runs = {"text": _cell(0.80, 0.70), "audio": _cell(0.60, 0.75),
+            "video": _cell(0.55, 0.50),
+            "fused-early (T+A+V)": _cell(0.78, 0.72),
+            "fused-late (T+A+V)": _cell(0.82, 0.65)}
+    rec = H.headroom(runs, FUSION, "acc")
+    assert rec["best_unimodal"] == "audio"
+    assert rec["best_fusion"] == "fused-early (T+A+V)"
+    assert rec["H"] == pytest.approx(0.78 - 0.60)
+    # The test-selected value is the post-hoc maximum, kept only for the record.
+    assert rec["H_if_selected_on_test"] == pytest.approx(0.82 - 0.80)
+
+
+def test_a_run_without_validation_scores_is_refused():
+    runs = {k: {"acc": {"mean": 0.5}} for k in ("text", "audio", "video", *FUSION)}
+    with pytest.raises(KeyError):
+        H.headroom(runs, FUSION, "acc")

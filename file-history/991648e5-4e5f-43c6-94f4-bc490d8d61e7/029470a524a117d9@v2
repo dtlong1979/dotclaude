@@ -1,0 +1,69 @@
+# -*- coding: utf-8 -*-
+"""Hiện SỐ ĐIỆN THOẠI của sinh viên trên trang chi tiết SV (phía cán bộ).
+
+Nguồn: `sv_ho_so_mo_rong.sdt` — hồ sơ mở rộng do SV tự khai (K25 nhập từ Google Form).
+Có 447 hồ sơ, trong đó **437 SV đang học có số**; `sinh_vien` KHÔNG có cột điện thoại và cột
+`email` của nó rỗng toàn bộ 1.732 em, nên đừng tìm ở đó.
+
+Đặt vào `hoc_tap.chi_tiet` — nguồn CHUNG của cả ba màn chi tiết phía cán bộ:
+  · `/admin/students/{mssv}`   (web-admin; router có `require_admin_access`)
+  · `/gv/co-van/sv/{mssv}`     (CVHT web + app `gv_student_detail`; GV_ROLE + kiểm SV thuộc lớp mình)
+  · `/api/internal/sv-chi-tiet` (workload "Lớp của tôi"; service token + phạm vi CVHT)
+Cả ba đều là cổng CÁN BỘ — đã kiểm: không cổng nào sinh viên với tới được. Quan trọng, vì
+`sv_ghi_chu_ban` (ghi chú riêng SV tự khai về bạn) tồn tại chính là do SV **không** được phát
+số của nhau; đừng để số thật rò sang màn của sinh viên.
+
+Bọc try/except: hồ sơ mở rộng là phần PHỤ, hỏng ở đây không được làm trắng cả trang chi tiết.
+"""
+import io
+
+n = 0
+
+
+def va(path, cu, moi, nhan):
+    global n
+    s = io.open(path, encoding="utf-8").read()
+    c = s.count(cu)
+    assert c == 1, "%s [%s]: tim thay %d cho" % (path.split("/")[-1], nhan, c)
+    io.open(path, "w", encoding="utf-8", newline="\n").write(s.replace(cu, moi, 1))
+    n += 1
+    print("  ok  %-16s %s" % (path.split("/")[-1], nhan))
+
+
+# ------------------------------------------------------------------ backend
+va("backend/app/services/hoc_tap.py",
+   '''    _ch = _chot.ho_so(db, mssv)          # trạng thái CHỐT của hệ & chuyên ngành
+    return {''',
+   '''    _ch = _chot.ho_so(db, mssv)          # trạng thái CHỐT của hệ & chuyên ngành
+
+    # LIÊN HỆ của chính SV — để cố vấn / giáo vụ gọi được khi cần. Nguồn duy nhất là hồ sơ mở
+    # rộng SV tự khai (`sv_ho_so_mo_rong`); `sinh_vien` không có cột điện thoại. Phần PHỤ nên
+    # bọc try: hồ sơ hỏng thì mất dòng liên hệ, KHÔNG được làm trắng cả trang chi tiết.
+    _lh = None
+    try:
+        _r = db.execute(text("SELECT sdt, email_ca_nhan FROM sv_ho_so_mo_rong WHERE mssv=:m"),
+                        {"m": mssv}).mappings().first()
+        if _r:
+            _sdt = (_r["sdt"] or "").strip()
+            _mail = (_r["email_ca_nhan"] or "").strip()
+            _lh = {"sdt": _sdt or None, "email": _mail or None} if (_sdt or _mail) else None
+    except Exception:
+        db.rollback()
+    return {
+        "lien_he": _lh,''',
+   "them lien_he vao chi_tiet")
+
+# ----------------------------------------------------------------- web-admin
+va("web-admin/app.js",
+   """    <p>Lớp ${esc(d.lop) || '—'} · Khóa ${d.khoa || '—'} · ${esc(d.ten_ctdt) || ''}""",
+   """    ${d.lien_he ? `<p style="margin:2px 0 6px">${d.lien_he.sdt
+        ? `📞 <a href="tel:${esc(d.lien_he.sdt.replace(/[^0-9+]/g, ''))}"><b>${esc(d.lien_he.sdt)}</b></a>` : ''}${
+        d.lien_he.sdt && d.lien_he.email ? ' · ' : ''}${d.lien_he.email
+        ? `✉ <a href="mailto:${esc(d.lien_he.email)}">${esc(d.lien_he.email)}</a>` : ''}
+      <span class="muted" style="font-size:12px">· sinh viên tự khai</span></p>` : ''}
+    <p>Lớp ${esc(d.lop) || '—'} · Khóa ${d.khoa || '—'} · ${esc(d.ten_ctdt) || ''}""",
+   "hien dong lien he tren man chi tiet")
+
+va("web-admin/index.html", 'app.js?v=213', 'app.js?v=214', "bump phien ban app.js")
+
+print("\nDa va %d cho." % n)

@@ -1,0 +1,75 @@
+#!/usr/bin/env python3
+"""Check that every figure quoted in the paper's Results section appears in the
+generated tables.
+
+The most common copy error in an empirical paper is a number in the prose that no
+longer matches the table it came from. This script extracts the numeric tokens from
+Section 5 of ``paper/main.md`` and verifies each one occurs in
+``experiments/results/tables.md`` (or in the whitelist of numbers that are legitimately
+prose-only, such as seed counts and p-value thresholds).
+
+    python3 scripts/check_paper_numbers.py
+
+Exits non-zero and lists the offenders if any number cannot be accounted for.
+"""
+from __future__ import annotations
+
+import argparse
+import re
+import sys
+
+# Numbers that legitimately appear in prose without being a table cell.
+WHITELIST = {
+    "0.05", "0.01", "0.5", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "12",
+    "0.5", "1.0", "15", "95",
+}
+
+
+def numbers(text: str) -> list[str]:
+    return re.findall(r"(?<![\w.])\d+\.\d+(?![\w.])", text)
+
+
+def section(md: str, start: str, end: str) -> str:
+    i = md.find(start)
+    if i < 0:
+        raise SystemExit(f"section start {start!r} not found")
+    j = md.find(end, i + len(start))
+    return md[i : j if j > 0 else len(md)]
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--paper", default="paper/main.md")
+    ap.add_argument("--tables", nargs="*",
+                    default=["experiments/results/tables.md",
+                             "experiments/results/tables_dropsweep.md"])
+    ap.add_argument("--start", default="## 5. Results")
+    ap.add_argument("--end", default="## 6. Discussion")
+    args = ap.parse_args()
+
+    with open(args.paper, encoding="utf-8") as fh:
+        paper = fh.read()
+    tables = ""
+    for path in args.tables:
+        with open(path, encoding="utf-8") as fh:
+            tables += fh.read() + "\n"
+
+    body = section(paper, args.start, args.end)
+    table_numbers = set(numbers(tables))
+
+    missing = sorted({
+        n for n in numbers(body)
+        if n not in table_numbers and n not in WHITELIST
+    })
+    if missing:
+        print("Numbers in Section 5 that do not appear in the generated tables:")
+        for n in missing:
+            print(f"  {n}")
+        return 1
+    print(f"OK: every figure in {args.start!r} appears in "
+          + ", ".join(args.tables))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
