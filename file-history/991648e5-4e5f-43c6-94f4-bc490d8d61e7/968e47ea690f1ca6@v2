@@ -1,0 +1,230 @@
+# -*- coding: utf-8 -*-
+"""Bộ nhập TKB tổng hợp (`schedule_tonghop`) gán NHẦM giảng viên — hai khuyết tật:
+
+1. TÊN TRÙNG -> "kế thừa" GV lớp đang có, tức là lấy MỘT NGƯỜI KHÁC TÊN. Danh bạ có hai "Trần
+   Tiến Dũng" THẬT (CH0170 Phòng TC-HC, CH0411 TT Công nghệ KTS — đối chiếu danh bạ CAS), nên buổi
+   lý thuyết thứ 7 lớp Lập trình Web .1/.2 ghi "Trần Tiến Dũng" bị gán cho Nguyễn Đình Dũng — GV
+   đang đứng ở ô cấp lớp. Báo cáo nhập không một lời cảnh báo. Toàn danh bạ có 8 tên trùng, 4
+   người đang dạy.
+2. GV CẤP LỚP lấy theo DÒNG ĐẦU TIÊN của file, bất kể lý thuyết hay thực hành -> GV thực hành
+   bị đẩy lên ô lý thuyết (cùng loại lỗi đã nắn tay 5 lớp hôm 27/08).
+
+Sửa:
+- Tên trùng: (1) giữ mã đang gắn với CHÍNH buổi/lớp đó NẾU mang đúng tên ấy (giáo vụ đã chọn
+  đúng người thì không đè); (2) chọn người ĐANG HOẠT ĐỘNG nếu lọc ra đúng một; (3) còn lại để
+  trống + CẢNH BÁO. KHÔNG BAO GIỜ trả về một mã mang tên khác với tên trong file.
+- Tên không có trong danh mục: để trống + cảnh báo (trước đây cũng lặng lẽ kế thừa).
+- GV cấp lớp: lý thuyết lấy từ buổi KHÔNG phải P3x, thực hành lấy từ buổi P3x (quy tắc chung
+  `lop_sua.la_thuc_hanh`).
+- Cảnh báo `gv_canh_bao` có ngay ở bước XEM TRƯỚC (cùng một bộ tra với lúc ghi thật).
+- Tiêu chí "đang hoạt động" tách thành `lop_sua.gv_dang_hoat_dong` — dùng chung với
+  `resolve_gv` (giáo vụ gõ tên), đừng chép lại.
+"""
+import io
+
+n = 0
+LS = "backend/app/services/lop_sua.py"
+ST = "backend/app/services/importer/schedule_tonghop.py"
+
+
+def doc(p):
+    return io.open(p, encoding="utf-8").read()
+
+
+def ghi(p, s):
+    io.open(p, "w", encoding="utf-8", newline="\n").write(s)
+
+
+def va(p, cu, moi, nhan):
+    global n
+    s = doc(p)
+    assert s.count(cu) == 1, "%s [%s]: tim thay %d cho" % (p.split("/")[-1], nhan, s.count(cu))
+    ghi(p, s.replace(cu, moi, 1))
+    n += 1
+    print("  ok  %-20s %s" % (p.split("/")[-1], nhan))
+
+
+# ================================================================ lop_sua.py
+va(LS, "def resolve_gv(db: Session, gia_tri: str | None) -> str | None:",
+   '''def gv_dang_hoat_dong(db: Session, cac_ma) -> list[str]:
+    """Trong các mã cán bộ CÙNG TÊN, người nào ĐANG HOẠT ĐỘNG: tài khoản còn hiệu lực, hoặc đang
+    đứng lớp (lý thuyết / thực hành), hoặc đang có buổi. Dùng chung cho `resolve_gv` (giáo vụ gõ
+    tên) và bộ nhập TKB — đừng chép tiêu chí này chỗ khác.
+
+    Trùng tên KHÔNG chỉ do cán bộ đổi mã: danh bạ có hai "Trần Tiến Dũng" là HAI NGƯỜI THẬT
+    (CH0170 Phòng TC-HC · CH0411 TT Công nghệ KTS, đối chiếu danh bạ CAS 11/09/2026)."""
+    return [m for m in cac_ma if db.execute(text("""
+        SELECT 1 WHERE EXISTS (SELECT 1 FROM tai_khoan WHERE ma_cb = :m AND is_active)
+                   OR EXISTS (SELECT 1 FROM lop_tin_chi WHERE ma_gv = :m OR ma_gv_th = :m)
+                   OR EXISTS (SELECT 1 FROM lich_hoc WHERE ma_gv = :m)"""), {"m": m}).first()]
+
+
+def resolve_gv(db: Session, gia_tri: str | None) -> str | None:''',
+   "them gv_dang_hoat_dong()")
+
+va(LS, '''        song = [m for m, _ in khop if db.execute(text("""
+            SELECT 1 WHERE EXISTS (SELECT 1 FROM tai_khoan WHERE ma_cb = :m AND is_active)
+                       OR EXISTS (SELECT 1 FROM lop_tin_chi WHERE ma_gv = :m)
+                       OR EXISTS (SELECT 1 FROM lich_hoc WHERE ma_gv = :m)"""), {"m": m}).first()]''',
+   '''        song = gv_dang_hoat_dong(db, [m for m, _ in khop])''',
+   "resolve_gv dung ham chung")
+
+# ======================================================== schedule_tonghop.py
+s = doc(ST)
+A = "def _after_apply(ctx, parsed):"
+Z = '    ctx.report["lui_thuc_hanh"] = lui_th\n'
+assert s.count(A) == 1 and s.count(Z) == 1, "khong tim thay khung _after_apply"
+i, j = s.index(A), s.index(Z) + len(Z)
+
+MOI = '''def _tao_bo_tra_gv(db):
+    """Bộ tra TÊN giảng viên trong file -> MÃ cán bộ. Trả (resolve, canh_bao).
+
+    `resolve(ten, ma_lop, khoa_buoi)`; `khoa_buoi` = (thứ, tiết bắt đầu) để nhận ra mã đang gắn
+    với chính buổi đó TRƯỚC khi bộ nhập xoá-chèn lại buổi. Mọi thứ đọc từ CSDL được chụp một
+    lần ở đây, nên gọi được cả lúc XEM TRƯỚC lẫn lúc GHI THẬT và cho cùng một kết quả.
+
+    LUẬT CỨNG: không bao giờ trả về một mã mang TÊN KHÁC với tên trong file. Bản cũ "kế thừa" GV
+    lớp đang có khi tên trùng — tức lấy người khác tên — và đã gán nhầm buổi lý thuyết của thầy
+    Trần Tiến Dũng cho thầy Nguyễn Đình Dũng (Lập trình Web .1/.2, 13/08/2026) mà không báo gì.
+    """
+    from .. import lop_sua as _ls
+    ma_theo_ten = defaultdict(list)
+    for ma, ten in db.execute(text("SELECT ma_cb, ho_ten FROM can_bo")).all():
+        k = _nkey(ten)
+        if k and ma not in ma_theo_ten[k]:
+            ma_theo_ten[k].append(ma)
+    cur = {r[0]: (r[1], r[2]) for r in db.execute(
+        text("SELECT ma_lop_tc, ma_gv, ma_gv_th FROM lop_tin_chi")).all()}
+    buoi_cu = defaultdict(dict)
+    for c, thu, tt, g in db.execute(text(
+            "SELECT ma_lop_tc, thu, tu_tiet, ma_gv FROM lich_hoc WHERE ma_gv IS NOT NULL")).all():
+        buoi_cu[c][(thu, tt)] = g
+    trung = {k: ds for k, ds in ma_theo_ten.items() if len(ds) > 1}
+    song = {k: _ls.gv_dang_hoat_dong(db, ds) for k, ds in trung.items()}
+    canh_bao = {}          # thông điệp -> None: giữ thứ tự, bỏ lặp
+
+    def resolve(name, code, khoa_buoi=None):
+        k = _nkey(name)
+        if not k:                               # file không ghi tên -> giữ GV lớp đang có
+            return cur.get(code, (None, None))[0]
+        ds = ma_theo_ten.get(k)
+        if not ds:
+            canh_bao[f"{code}: “{name}” không có trong danh mục cán bộ — buổi để trống GV, "
+                     f"cần gán tay."] = None
+            return None                         # KHÔNG kế thừa người khác tên
+        if k not in trung:
+            return ds[0]
+        # TRÙNG TÊN. (1) Mã đang gắn với CHÍNH buổi / lớp này mà mang đúng tên ấy -> giữ:
+        #     giáo vụ đã chọn đúng người thì lần nhập sau không được đè.
+        for m in (buoi_cu.get(code, {}).get(khoa_buoi), *cur.get(code, (None, None))):
+            if m in ds:
+                return m
+        # (2) Người ĐANG HOẠT ĐỘNG, nếu lọc ra đúng một.
+        if len(song[k]) == 1:
+            return song[k][0]
+        # (3) Không phân định được -> để trống và BÁO, tuyệt đối không đoán.
+        canh_bao[f"{code}: “{name}” trùng tên {len(ds)} cán bộ ({', '.join(ds)}) — chưa xác "
+                 f"định được người dạy, cần gán tay bằng MÃ cán bộ."] = None
+        return None
+
+    return resolve, canh_bao
+
+
+def _after_apply(ctx, parsed):
+    """Sau khi upsert lop_tin_chi: chuẩn hóa GV (lý thuyết / thực hành) theo tên, rồi THAY SẠCH
+    buổi học theo từng lớp có trong file."""
+    db = ctx.db
+    sections = ctx.extra.get("sections", {})
+    slots = ctx.extra.get("slots", [])
+    from .. import lop_sua as _ls
+
+    # Chụp TRƯỚC khi xoá-chèn buổi: bộ tra cần biết mã đang gắn với từng buổi cũ.
+    resolve, canh_bao = _tao_bo_tra_gv(db)
+    by_lop = defaultdict(list)
+    for s in slots:
+        by_lop[s["code"]].append(s)
+
+    # 1) GV CẤP LỚP — lý thuyết lấy từ buổi KHÔNG phải P3x, thực hành từ buổi P3x. Bản cũ lấy
+    #    tên ở DÒNG ĐẦU TIÊN của file bất kể loại buổi, nên GV thực hành bị đẩy lên ô lý thuyết.
+    #    Chỉ GHI khi tra ra mã (KHÔNG xoá GV đang đúng khi file thiếu tên / tên không xác định).
+    sua_gv = 0
+    for code, sec in sections.items():
+        ss = [x for x in by_lop.get(code, []) if x.get("gv_name")]
+        lt = next((x for x in ss if not _ls.la_thuc_hanh(x.get("phong"))), None)
+        th = next((x for x in ss if _ls.la_thuc_hanh(x.get("phong"))), None)
+        g_lt = (resolve(lt["gv_name"], code, (lt["thu"], lt["tt"])) if lt
+                else resolve(sec.get("_gv"), code))
+        g_th = resolve(th["gv_name"], code, (th["thu"], th["tt"])) if th else None
+        if g_lt:
+            db.execute(text("UPDATE lop_tin_chi SET ma_gv=:g WHERE ma_lop_tc=:c"),
+                       {"g": g_lt, "c": code})
+            sua_gv += 1
+        goc_lt = g_lt or cur_gv_lop(db, code)
+        if g_th and g_th != goc_lt:             # thực hành do NGƯỜI KHÁC dạy -> ghi ô thực hành
+            db.execute(text("UPDATE lop_tin_chi SET ma_gv_th=:g WHERE ma_lop_tc=:c"),
+                       {"g": g_th, "c": code})
+    ctx.report["dat_ma_gv"] = sua_gv
+
+    # 2) THAY SẠCH buổi theo lớp: xóa buổi cũ của các lớp CÓ TRONG file, chèn lại từ file
+    #    (lớp không có trong file -> không đụng). Bỏ buổi không có lịch tuần (đồ án/khóa luận).
+    db.execute(text("ALTER TABLE lich_hoc ADD COLUMN IF NOT EXISTS ma_gv varchar"))
+    ins = text("""INSERT INTO lich_hoc
+        (ma_lop_tc, thu, ca_hoc, tu_tiet, den_tiet, tu_ngay, den_ngay, ma_phong, ma_gv)
+        VALUES (:c,:thu,:ca,:tt,:dt,
+                CAST(:tn AS DATE), CAST(:dn AS DATE), :ph, :gv)""")
+    them_buoi = 0
+    lui_th = 0
+    from .. import lich_thuc_hanh as _th
+    for code, ss in by_lop.items():
+        # Buổi THỰC HÀNH (phòng máy P3x) lùi một tuần so với lý thuyết — tuần đầu chưa có gì
+        # để thực hành. Làm ngay tại đây thay vì sửa tay sau mỗi lần nhập TKB.
+        lui_th += _th.lui_khi_nhap(ss)
+        db.execute(text("DELETE FROM lich_hoc WHERE ma_lop_tc=:c"), {"c": code})
+        for s in ss:
+            if not (s["thu"] and s["tt"]):
+                continue   # không có lịch tuần cố định -> giữ lớp, không tạo buổi
+            db.execute(ins, {"c": code, "thu": s["thu"], "ca": s["ca"], "tt": s["tt"],
+                             "dt": s["dt"], "tn": s["tu_ngay"], "dn": s["den_ngay"],
+                             "ph": s["phong"],
+                             "gv": resolve(s["gv_name"], code, (s["thu"], s["tt"]))})
+            them_buoi += 1
+    ctx.report["thay_buoi"] = them_buoi
+    ctx.report["lui_thuc_hanh"] = lui_th
+    if canh_bao:
+        ctx.report["gv_canh_bao"] = list(canh_bao)
+'''
+s = s[:i] + MOI + s[j:]
+
+# Hàm nhỏ: GV lý thuyết đang có của lớp (sau khi bước 1 có thể đã ghi).
+HELP = '''
+
+def cur_gv_lop(db, code):
+    """GV lý thuyết HIỆN TẠI của lớp (đọc lại sau khi có thể đã ghi ở bước 1)."""
+    return db.execute(text("SELECT ma_gv FROM lop_tin_chi WHERE ma_lop_tc=:c"),
+                      {"c": code}).scalar()
+
+
+LICH_TONGHOP = FormatSpec('''
+assert s.count("\n\nLICH_TONGHOP = FormatSpec(") == 1
+s = s.replace("\n\nLICH_TONGHOP = FormatSpec(", HELP, 1)
+
+# Xem trước: báo tên GV không xác định được NGAY bước xem trước.
+CU_P = '''    ctx.report["buoi_khong_lich"] = sum(1 for s in slots if not (s["thu"] and s["tt"]))'''
+MOI_P = '''    ctx.report["buoi_khong_lich"] = sum(1 for s in slots if not (s["thu"] and s["tt"]))
+    # Dò TÊN GV không xác định được (trùng tên / không có trong danh mục) ngay bước XEM TRƯỚC,
+    # để giáo vụ biết TRƯỚC khi bấm áp dụng. Cùng một bộ tra với lúc ghi thật.
+    try:
+        tra, cb = _tao_bo_tra_gv(ctx.db)
+        for s in slots:
+            if s.get("gv_name"):
+                tra(s["gv_name"], s["code"], (s["thu"], s["tt"]))
+        if cb:
+            ctx.report["gv_canh_bao"] = list(cb)
+    except Exception:
+        ctx.db.rollback()'''
+assert s.count(CU_P) == 1, "khong tim thay dong buoi_khong_lich"
+s = s.replace(CU_P, MOI_P, 1)
+ghi(ST, s)
+n += 3
+print("  ok  schedule_tonghop.py   viet lai _after_apply + bo tra GV + canh bao xem truoc")
+print("\nDa va %d cho." % n)

@@ -1,0 +1,58 @@
+# -*- coding: utf-8 -*-
+"""ARCHITECTURE.md §⚙️A: bẫy TÊN TRÙNG ở bộ nhập TKB (11/09/2026). Sửa tại chỗ."""
+import io
+
+P = r"D:\dev\FithouOne\.project\ARCHITECTURE.md"
+s = io.open(P, encoding="utf-8").read()
+n = 0
+
+
+def va(cu, moi, nhan):
+    global s, n
+    assert s.count(cu) == 1, "[%s] tim thay %d cho" % (nhan, s.count(cu))
+    s = s.replace(cu, moi, 1)
+    n += 1
+    print("  ok  %s" % nhan)
+
+
+va("""> Cập nhật lần cuối: **2026-09-10** (màn chi tiết SV hiện số điện thoại — nguồn
+> `sv_ho_so_mo_rong`; trước đó 08/09: §M thứ tự danh sách người, §N nhóm chat lớp biết GỠ
+> thành viên, điểm danh bằng giọng nói; 06/09 §H7 luật TỰ XẾP môn nợ theo học kỳ).""",
+   """> Cập nhật lần cuối: **2026-09-11** (§⚙️A bẫy TÊN GIẢNG VIÊN TRÙNG ở bộ nhập TKB; 10/09 màn
+> chi tiết SV hiện số điện thoại; 08/09 §M thứ tự danh sách người, §N nhóm chat lớp biết GỠ
+> thành viên, điểm danh bằng giọng nói; 06/09 §H7 luật TỰ XẾP môn nợ theo học kỳ).""",
+   "dong Cap nhat lan cuoi")
+
+MOC = "\n### B. ĐĂNG KÝ TÍN CHỈ — đồng bộ với Trường"
+THEM = """- **Bẫy TÊN TRÙNG (vá 11/09)** — danh bạ có **8 họ tên trùng, 4 người đang dạy** (Trần Tiến Dũng ·
+  Bùi Anh Tuấn · Lương Cao Đông · Nguyễn Thanh Tùng). Trùng tên **không chỉ do đổi mã**: hai "Trần
+  Tiến Dũng" là HAI NGƯỜI THẬT — `CH0170` Phòng TC-HC (`ttdung`) · `CH0411` TT Công nghệ KTS
+  (`ttdung2`), đối chiếu `cas_canbo`. **ĐỪNG xoá bản ghi "thừa" khi chưa đối chiếu CAS.**
+  - Bộ nhập TKB tổng hợp (`importer/schedule_tonghop`, file chỉ có TÊN GV) gặp tên trùng thì
+    "kế thừa" GV lớp đang có — tức lấy **một người KHÁC TÊN**, không báo gì. Lập trình Web
+    `K24-7E1018.22-I.2627-1/-2`: buổi lý thuyết thứ 7 của thầy Trần Tiến Dũng thành thầy Nguyễn Đình
+    Dũng (lần nhập 13–20/08); workload ghi công nhầm cho thầy Đình Dũng **16 giờ** (4 buổi). Đã
+    khôi phục qua `lop_sua.sua_lop` (sao lưu `*_bak_20260911_ltweb`) và gỡ 4 dòng nhật ký
+    (`activity_logs_bak_ltweb_20260911`).
+  - Khuyết tật thứ hai: GV CẤP LỚP lấy theo **dòng đầu tiên** của file bất kể LT/TH → GV thực hành
+    lên ô lý thuyết (cùng gốc với 5 lớp nắn tay 27/08). Nay: LT từ buổi không-P3x, TH từ buổi P3x.
+  - **LUẬT CỨNG của bộ tra (`_tao_bo_tra_gv`)**: không bao giờ trả về mã mang tên khác tên trong
+    file. Tên trùng → (1) mã đang gắn với CHÍNH buổi/lớp đó mà mang đúng tên (giáo vụ chọn rồi thì
+    không đè) → (2) **`lop_sua.gv_dang_hoat_dong`** nếu lọc ra đúng một → (3) để trống + cảnh báo.
+    Tên lạ → để trống + cảnh báo. Tiêu chí "đang hoạt động" dùng chung với `resolve_gv` (giáo vụ gõ
+    tên) — **đừng chép lại**.
+  - Cảnh báo `bo_qua.gv_canh_bao` hiện ở **bước XEM TRƯỚC** (khối đỏ trên nút Áp dụng) và nhắc lại
+    sau khi áp dụng. **PHẢI KIỂM khi nhập TKB**: xem trước không có khối đỏ, hoặc gán tay đủ các
+    buổi được liệt kê. Buổi để trống GV sẽ HIỆN theo GV cấp lớp (quy tắc kế thừa ở trên) cho tới khi
+    gán tay — đừng tưởng đã đúng.
+  - Tái hiện được bằng `_after_apply` với file giả 2 dòng trên dữ liệu thật rồi hoàn tác — cách
+    kiểm nhanh mỗi khi sửa bộ nhập.
+  - **Lỗ hổng truy vết**: lần nhập 13–20/08 không để lại dấu ở `import_log` lẫn audit (nhiều khả
+    năng chạy bằng script gọi thẳng hàm nhập, bỏ qua `engine.apply`). Chỉ còn bản sao lưu
+    `lich_hoc_bak_tkb_20260813` / `_phong_20260820` để khoanh vùng. **Nhập TKB phải đi qua màn
+    Nhập dữ liệu**, đừng gọi hàm nhập từ script.
+"""
+va(MOC, "\n" + THEM + MOC, "them bay TEN TRUNG vao muc A")
+
+io.open(P, "w", encoding="utf-8", newline="\n").write(s)
+print("\nDa cap nhat %d cho" % n)

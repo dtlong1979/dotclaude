@@ -1,0 +1,47 @@
+# -*- coding: utf-8 -*-
+"""web-admin: hiện cảnh báo GIẢNG VIÊN CHƯA XÁC ĐỊNH ĐƯỢC khi nhập TKB (xem trước + sau áp dụng),
+và bỏ emoji ở dòng liên hệ sinh viên (quy ước văn phong: trang trọng, không emoji)."""
+import io
+
+P = "web-admin/app.js"
+s = io.open(P, encoding="utf-8").read()
+n = 0
+
+
+def va(cu, moi, nhan):
+    global s, n
+    assert s.count(cu) == 1, "[%s] tim thay %d cho" % (nhan, s.count(cu))
+    s = s.replace(cu, moi, 1)
+    n += 1
+    print("  ok  %s" % nhan)
+
+
+# 1) Bước XEM TRƯỚC — khối cảnh báo đỏ, đứng ngay trên nút Áp dụng.
+va("""      if (bqMsg.length) h += `<p class="muted" style="margin-top:8px">Ghi chú: ${bqMsg.join(' · ')}</p>`;""",
+   """      if (bqMsg.length) h += `<p class="muted" style="margin-top:8px">Ghi chú: ${bqMsg.join(' · ')}</p>`;
+      // Tên GV trong file KHÔNG xác định được (trùng tên / không có trong danh mục) -> báo TRƯỚC khi
+      // áp dụng. Thiếu khối này, bộ nhập từng lặng lẽ gán buổi cho người KHÁC tên (13/08/2026).
+      if ((bq.gv_canh_bao || []).length) h += `<div style="margin-top:10px;padding:8px 12px;border:1px solid #ef9a9a;background:#ffebee;border-radius:8px;color:#b71c1c">
+        <b>Cảnh báo: ${bq.gv_canh_bao.length} giảng viên chưa xác định được.</b> Các buổi này sẽ để trống giảng viên; cần gán lại bằng mã cán bộ sau khi áp dụng.
+        <ul style="margin:6px 0 0;padding-left:20px">${bq.gv_canh_bao.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>`;""",
+   "xem truoc: khoi canh bao GV")
+
+# 2) Sau khi ÁP DỤNG — nhắc lại danh sách cần gán tay.
+va("""    alert(`Đã áp dụng: +${d.so_them} mới, ${d.so_capnhat} cập nhật, ${d.so_trung} trùng (bỏ qua).`);""",
+   """    const cbGv = ((d.bo_qua || {}).gv_canh_bao) || [];
+    alert(`Đã áp dụng: +${d.so_them} mới, ${d.so_capnhat} cập nhật, ${d.so_trung} trùng (bỏ qua).`
+      + (cbGv.length ? `\\n\\nCần gán lại ${cbGv.length} giảng viên chưa xác định được:\\n- ` + cbGv.join('\\n- ') : ''));""",
+   "ap dung: nhac danh sach can gan tay")
+
+# 3) Dòng liên hệ sinh viên — bỏ emoji, dùng nhãn chữ.
+va("""        ? `📞 <a href="tel:""", """        ? `Điện thoại: <a href="tel:""", "lien he: bo emoji dien thoai")
+va("""        ? `✉ <a href="mailto:""", """        ? `Email: <a href="mailto:""", "lien he: bo emoji email")
+
+io.open(P, "w", encoding="utf-8", newline="\n").write(s)
+
+Q = "web-admin/index.html"
+t = io.open(Q, encoding="utf-8").read()
+assert t.count("app.js?v=214") == 1
+io.open(Q, "w", encoding="utf-8", newline="\n").write(t.replace("app.js?v=214", "app.js?v=215", 1))
+print("  ok  bump app.js?v=215")
+print("\nDa va %d cho trong app.js" % n)
