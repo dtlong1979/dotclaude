@@ -1,0 +1,503 @@
+# STATE — Đang làm gì (cập nhật khi xong một mảng)
+
+_Cập nhật: 2026-09-09._
+
+## workload
+- ✅ **Deploy**: hệ màu trạng thái + phân khối (dải màu mép trái theo trạng thái, pill đậm, tiêu đề mục in hoa, thẻ hero có dải trạng thái). Lớp CSS append cuối `static/style.css`. Backup `style.css.bak_redesign_*`.
+- ✅ **Deploy (2026-08-19) — Mảng hoạt động BƯỚC 1**: bảng `linh_vuc` (7 mảng seed: Đào tạo·Tuyển sinh·NCKH·Đảm bảo chất lượng·Truyền thông·Cơ sở vật chất·Hành chính) + `tasks.linh_vuc_id`. Chọn Mảng ở Tạo/Sửa việc (việc con kế thừa mảng cha). Chip mảng ở chi tiết. Trang quản trị `/mang` (admin: thêm/đổi tên/ẩn/sắp xếp). Globals `linh_vuc_all()`/`linh_vuc_name()`. Nav "Mảng việc" (admin). CSS `.lv-chip`/`.mang-*`. Backup `db.py.bak_mang_* app.py.bak_mang_*`.
+- ✅ **Deploy (2026-08-20) — Mảng BƯỚC 2**: vẽ lại màn **Tạo công việc** thành 3 KHỐI (Nội dung / Phân loại & thời hạn / Đính kèm) + **BỎ "tạo nhóm mới khi giao việc"** (chống đẻ nhóm) — chỉ chọn Đơn vị có sẵn + Mảng. Backend `task_create`: `allowed` = admin | (gid∈led_groups) | (không-gid & can_create_task); xóa khối tạo-nhóm. CSS `.nf-*`. Deploy `--no-deps`.
+- ✅ **Deploy (2026-08-20) — ĐƠN VỊ theo vai + MẢNG tự đoán**: (A) **chỉ admin CHỌN đơn vị**; tổ trưởng → đơn vị **ép về tổ mình** (task_create server-side + task_new.html branch theo `is_admin`: 1 tổ=readonly, >1=select tổ mình). (B) **Mảng tự đoán** theo tên việc: `linh_vuc.keywords` (seed+backfill 7 mảng, admin sửa ở /mang) → option `data-kw` + JS `initMangPredict` (đoán khi gõ tên, chọn tay thì thôi). Backup `*.bak_kw_*`.
+- ❗ **User ĐẢO hướng quyền (2026-08-20):** GIỮ NGUYÊN "giao việc cho bất kỳ ai, người đó nhận là được" (cơ chế đồng ý sẵn đủ) → **BỎ** #2 (khóa người theo tổ) + **BỎ** #3b (đề nghị phối hợp) + không siết ai được tạo việc. Chỉ siết **chọn đơn vị** (đã làm ở trên).
+- ✅ **Deploy (2026-08-20) — GỘP tạo+giao 1 màn + ưu tiên cơ bản lên trên**: màn Tạo việc gộp **giao người ngay** (task_create nhận `user_ids`+`assignee_role` → tạo task_assignees cho_nhan + notify + recompute). Bố cục lại: **Khối 1** Tên + Giao cho ai (danh sách người cuộn, vai trò) → tạo nhanh; **Khối 2** Mảng(tự đoán)/Hạn/Mức độ; **Khối 3** `<details>` thu gọn Mô tả/Yêu cầu/Đơn vị/Giờ/Đính kèm. CSS `.nf-people/.nf-more/...`.
+- ✅ **Deploy (2026-08-20) — CHỌN NHANH HẠN + ÂM LỊCH**: nút chọn nhanh (1/3/5 ngày·1/2 tuần·1 tháng·Xóa) + −/+ 1 ngày quanh ô hạn; **module Lịch** `lich_ngay` (7306 ngày nhập từ file, cache RAM, API `/api/lich`) → ô hạn hiện âm lịch + **cảnh báo NGHỈ LỄ** + **chấm hoàng đạo(xanh)/hắc đạo(xám)**. Xem [[fithouone_lich_module]].
+- ✅ **Deploy (2026-08-20) — NHẬT KÝ NGÀY viết lại (chạm-tự-lưu) + tinh chỉnh**: `/log` bỏ form gõ. **Việc được giao**: mỗi việc 2 nút theo trạng thái — `cho_nhan`→[Nhận việc] (POST /tasks/accept next=/log), `dang_lam`→[✓ Đã hoàn thành] (POST /tasks/complete), `hoan_thanh`→"✓ Đã báo hoàn thành"; + nút **[Đang làm…]** mở picker Buổi (Sáng/Chiều/Cả ngày) → Sáng/Chiều mở tiếp mức giờ (30p/1h/2h/3h/4h/cả buổi), Cả ngày chốt ngay. **Việc khác**: gõ/chọn xong (event `change` — chọn datalist hoặc rời ô, KHÔNG cần Enter) → hiện item + picker ngay; **datalist chỉ mục `status='approved'`** (ẩn 167 proposed). **Tự lưu AJAX** `POST /log/set` (buổi×mức, `ngay` loại trừ sáng/chiều), `activity_logs`+cột `muc_tg`, hours quy đổi. Nạp lại lựa chọn đã ghi (has-sel tự mở picker). Giữ "Không có việc"+"Xin nghỉ phép". JS `initJournal`, CSS `.jt-*`. Backup `*.bak_jrn*`.
+- ✅ **Deploy (2026-09-10) — NHẬT KÝ /log tinh chỉnh tương tác (JS+CSS, `--no-deps workload`)**: (1) **Việc khác gõ-là-hiện**: bỏ commit theo `change`/Enter; thêm dòng "nháp" (`draftNode`) bám nội dung đang gõ qua sự kiện `input` → hiện buổi/giờ NGAY, chạm mức giờ đầu tiên `graduateDraft()` (chốt dòng + dọn ô). (2) **Buổi sáng lên khi đang chọn**: `openHours` thêm class `.jt-b.editing` (CSS `.jt-b.editing:not(.on)` viền xanh) — biết đang ở buổi nào dù chưa chọn giờ. (3) **Đổi giờ linh hoạt**: chọn mức xong GIỮ bảng giờ mở (không `closeHours`), chạm lại đúng mức = bỏ. Backup `static/{app.js,style.css}.bak_jrninline_*`. Song song bản mobile (build 22).
+- 🟡 Kế tiếp (nếu user muốn): **Bước 1b** lọc/chip /tasks theo mảng; **Bước 4** di trú 17 nhóm ad-hoc→mảng; **Bước 5** nối từ điển báo cáo ngày vào mảng (giờ /log đã dùng dictionary cho "việc khác").
+- ⏳ Nợ cũ: task #27 "Cần xử lý" đã deploy; nhánh mobile app chưa đụng.
+
+## hou-cntt
+
+### ⏳ CHỜ USER LÀM (đăng ký tín chỉ kỳ I 2026-2027)
+Đợt giả lập **id=2** (`loai='gia_lap'` — nội bộ, SV không thao tác) đang giữ **18 đăng ký + 11 lệnh hủy** chờ xuất.
+Quy trình: **Xuất file điều chỉnh → cập nhật trên hệ thống Trường → bấm Chốt**.
+Trong đó 3 dòng vừa thêm 26/08 cho 2 SV sắp tốt nghiệp (`ly_do` ghi rõ trong file):
+- `22A1001D0353` Nguyễn Đình Tuấn + `K24-7E1022.22-I.2627-2` Nhập Môn CNPM 2TC → **127/126 TC**, lấp nốt khối Tự chọn (môn track SE/NONE dồn sang Tự chọn vì em ấy chuyên ngành MT). Trường ĐANG GIỮ, chưa duyệt → cần duyệt.
+- `22A1001D0369` Nguyễn Văn Vinh + `K23-7E1024.22-I.2627-1` LT trên TBDĐ nâng cao 3TC. Trường ĐANG GIỮ, chưa duyệt → cần duyệt. (Lớp 60/55 — vượt sức chứa, nhưng Trường vốn đã xếp em ở đó.)
+- `22A1001D0369` + `K26-7A0006.22-I.2627-2` Pháp luật đại cương 2TC → **126/126 TC đúng chằn**. Trường CHƯA CÓ → cần THÊM MỚI.
+
+Sau khi thêm: **sổ đồng bộ `tong_sai_lech = 0`** (hai sai lệch cuối đã hết). Không trùng lịch.
+
+## mobile
+- 🟢 **CHỐT (2026-08-26) — App: REFACTOR, không rebuild.** 3 agent (UI/UX · đối chiếu web · kỹ thuật) rà soát đồng thuận 51/60 vs 31/60. Chẩn đoán: design-system phủ ~40% (146 màu hardcode/27 file) + thiếu tầng data/model (0 fromJson, 910 Map động) + workload thiếu nửa sau của web. Lộ trình 5 pha A→E. Artifact tổng hợp đã xuất. Chi tiết ở DECISIONS §app-refactor.
+- ✅ **Đợt 1 = Pha A + B — CODE XONG (2026-08-26), `flutter analyze` sạch, CHƯA build/CHƯA release** (gộp 1 lần phát hành sau):
+  - Pha A: tạo `lib/data/models/workload_models.dart` (WlTask+copyWith, MyGroup, CxlGiaoLai/MoiTreo/QuaHan, CanXuLyData, AssignOptions… đều fromJson, ép kiểu phòng thủ) + `lib/data/repos/workload_repo.dart` (bọc WorkloadApi, nơi DUY NHẤT chạm JSON cho màn mới). ⚠️ Bẫy Dart: doc-comment `///` đầu file (không gắn class) gây `dangling_library_doc_comments` → dùng `//` hoặc thêm `library;`.
+  - Pha B: `_TasksTab` tab "Được giao" → CÂY my-groups (header "Hoạt động lớn", thụt lề+viền theo depth, Pill trạng thái/Định kỳ/Phụ trách/Ưu tiên cao); màn mới `workload_can_xu_ly.dart` (3 mục + nút Nhắc) nối từ `_StatPill` "cần xử lý" ở Hôm nay; form tạo việc thêm Lặp+recur_until, Mảng, việc con (parentId/parentTitle); TaskDetail thêm chip "Định kỳ", nút Nhắc + Dừng lặp (gate `perms['can_manage']`). File sửa: workload_api/home/today/create_task; lich thêm kind `gap_mat`.
+  - **CHƯA làm (chờ release build):** chưa migrate màn cũ sang model/repo (để Pha C); nút tạo việc con chưa giới hạn người nhận theo phụ trách cha (chỉ pass parentId).
+  - ✅ **BACKEND Đợt 1B DEPLOY + verify prod (2026-08-26):** thêm `GET /api/app/my-groups` (cây gom theo hoạt động lớn + depth — LƯU Ý đặt top-level, KHÔNG dưới `/tasks/` để tránh bị `/tasks/{id}` nuốt), `GET /api/app/can-xu-ly` (list giao_lai/moi_treo/qua_han + N/X), `POST /api/app/tasks/{id}/remind` (msg tùy chọn), `POST /api/app/tasks/{id}/stop-recur`; mở rộng `api_task_create` nhận **parent_id/linh_vuc_id/chu_ky/recur_until** (cha kế thừa mảng); `assign-options` thêm **linh_vuc[]**. Sửa ở `workload/app_api_dot1.py` + gateway `hou-cntt/backend/app/api/routes/workload.py` (wl.call forward raw body nên create KHÔNG cần đổi gateway). Backup `*.bak_dot1b_*`. Verify container: my-groups trả cây depth 0/1, create+stop-recur+cleanup ALL PASS, OpenAPI gateway có đủ 4 route.
+### ✅ Lịch học SV trong app — VÁ XONG 3 việc (2026-08-27) · ĐÃ PHÁT HÀNH build 17
+Viết lại `mobile/lib/features/schedule/schedule_screen.dart` + thêm `lib/data/models/schedule_models.dart`.
+Backend KHÔNG phải sửa gì (đã sẵn sàng cả 3 từ trước). Chi tiết cấu trúc ở ARCHITECTURE §4 MOBILE.
+1. **Sai tên giảng viên** → lấy `SvSession.tenGv` (GV của TỪNG BUỔI, backend đã áp quy tắc LT/TH),
+   tên cấp lớp chỉ còn là dự phòng. Xác minh trên server: `K25-7E1013.22-I.2627-1` có T4/P22 =
+   Trịnh Thị Xuân (LT) và T5/P32 = **Lê Ngọc An** (TH) — app cũ hiện Trịnh Thị Xuân cho cả hai.
+2. **Chuyển tuần** → gọi `/me/schedule?ngay=…`, thanh ‹ › + "Tuần này" luôn hiện; chủ nhật mở sẵn
+   tuần mới (đúng ý user). Có chống lệch thứ tự phản hồi khi bấm liên tục.
+3. **Buổi riêng của Khoa** → đọc nhánh `su_kien`, gộp vào lưới ngày với nhãn "KHOA TỔ CHỨC".
+   Xác minh: SV `26A1001D0034` (lớp 2610A01) có **3 buổi** tuần 31/08–06/09 mà app cũ không hiện.
++ **Làm thêm (cùng màn, cùng dữ liệu đã có sẵn):** nhãn **NGHỈ** (gạch ngang) / **HỌC BÙ** /
+  **ĐỔI PHÒNG** + "Học cách tuần" + "Tự nghiên cứu" — web có, app trước đây vẽ buổi đã báo nghỉ y
+  như buổi bình thường, tức là đẩy sinh viên tới lớp trống.
+**Trạng thái:** `flutter analyze lib` sạch (No issues found) + `flutter build apk --release` OK (79.0MB).
+(Đợt sửa "rà soát app cán bộ" bên dưới nằm CHUNG working tree này — phát hành một lượt.)
+Đã gộp vào bản phát hành **0.5.0+17** (commit `350aaa2`).
+
+### 🔎 RÀ SOÁT APP CÁN BỘ — 10 vấn đề user nêu (2026-08-27)
+Backend ĐÃ DEPLOY + verify prod. App ĐÃ SỬA và **ĐÃ PHÁT HÀNH** trong bản 0.5.0+17 (`350aaa2`).
+
+**Backend (live, backup `*.bak_rasoat_*`):**
+- `diem_danh_gv.lop_day_ky()` mới + `/gv/dashboard` trả thêm **`lop_day`** (toàn cảnh lớp cả kỳ,
+  đủ buổi, `si_so`, `ten_gv` của từng buổi, cờ `cua_toi`) và `tuan`. Verify: CH0159 ra 1 lớp/2 buổi
+  (T2 P13 mình dạy · T3 P34 Bùi Anh Tuấn); CH0590 (GV thực hành) ra đúng buổi P3x của mình.
+- `hoc_tap.chi_tiet` — GV theo TỪNG BUỔI đúng §A (trước join trơ `lich_hoc.ma_gv`). Verify SV
+  25A1001D0007: **0 buổi trống tên GV**, lớp 2 GV tách đúng người.
+- `sv_public` (bảng trình chiếu công khai) — vá cùng lỗi §A ở 2 câu truy vấn.
+- `chat`: **`GET /chat/danh-ba` + `POST /chat/tao`** (loai `CB_DM` / `CB_NHOM`, chỉ cán bộ) — xem
+  DECISIONS 27/08. Smoke test: 1-1 mở lại ra ĐÚNG hội thoại cũ (`moi=false`), nhóm đủ 3 người,
+  SV bị chặn 403, mã bừa bị chặn 400, dọn sạch (hoi_thoai 236→236).
+- `chat.members()` — `DISTINCT ON (username)`: **CH0159 có 3 tài khoản** (`dtlong2`/`admin`/
+  `giangvien_test`) và CH0603 có 2 → danh sách thành viên trước đây hiện một người 3 lần.
+- workload `app.teaching_range()` mới + `api_lich` dùng nó: **`scope=chung` nay có lịch giảng
+  TOÀN KHOA** kèm tên GV (trước luôn bó theo `macb`). Verify tuần 07–13/09: của-tôi 1 buổi,
+  toàn-khoa **79 buổi**.
+
+**App (đã phát hành ở build 17):**
+1. GV trang chủ: "Lớp giảng dạy TRONG KỲ" từ `lop_day` — tên môn · mã lớp · sĩ số · từng buổi;
+   buổi của GV khác ghi kèm tên; lớp có buổi hôm nay → viền vàng + nhãn HÔM NAY; chấm đỏ/vàng giữ.
+2. GV thuần: **rà xong, gating ĐÃ ĐÚNG** (không sửa mã) — 4 GV thuần `CH0367 CH0050 CH0637 GVTEST`,
+   workload trả 403 → gateway `enabled:false` → ẩn hẳn thế giới Công việc + lọc lối tắt.
+3. `gv_student_detail` thêm mục "Lịch học trong kỳ" (từng buổi + GV + cảnh báo TRÙNG LỊCH).
+4. `workload_today`: ô đếm "việc cần làm" / "chờ bạn hoàn thành" bấm được → cuộn tới đúng mục.
+5. FAB "Tạo việc" nay **theo tab** (`_fab()`, chỉ Hôm nay + Việc) + padding đáy 96 cho 3 danh sách.
+6. Trao đổi: (a) FAB "Tạo việc" thôi đè nút soạn bài của tab Trao đổi; (b) `ChatListScreen` có nút
+   **"Trao đổi mới"** (danh bạ cán bộ, tìm theo tên, chọn 1 người = nhắn riêng / nhiều = lập nhóm).
+7+10. Ô nhập — **rà HẾT 54 `TextField` trong app**, không còn ô soạn thảo nào `maxLines: 2-5` cố định.
+   `composerDeco`/`composerSheet`/**`nhapVanBan`** chuyển từ `workload_home.dart` sang **`core/ui.dart`**.
+   - Sang bottom-sheet lớn: bình luận việc · cập nhật tiến độ · từ chối · yêu cầu sửa · **nhắc người
+     xử lý** (2 nơi: TaskDetail + màn Cần xử lý) · "Thêm việc khác" ở nhật ký.
+   - Nở theo nội dung (`minLines` + `maxLines: null`): **mô tả khi tạo việc** · **lý do nghỉ phép** ·
+     **ghi chú CVHT** · **nội dung Gửi thông báo** (8 dòng) · **lý do báo nghỉ** · **lý do báo bù** ·
+     lý do "buổi học khác" (điểm danh) · lý do gỡ khóa nhiệm vụ.
+   - Hộp thoại còn giữ `AlertDialog` thì rộng hết màn (`insetPadding` + `SizedBox(width: maxFinite)`):
+     thêm mục nhật ký · báo nghỉ · buổi học khác · gỡ khóa.
+   - Giữ cố ý: thanh gõ tin nhắn chat, ô một dòng thật (câu hỏi/lựa chọn bình chọn, tên học phần, số giờ).
+8. `workload_lich`: thêm **chế độ THÁNG** (lưới lịch có chấm màu + agenda ngày đang chọn), nhãn kỳ
+   đổi từ `08-24 – 08-30` sang `24/08 – 30/08` / `Tháng 8/2026`.
+9. Lịch "Toàn khoa" hiện **tên giảng viên** của buổi + nhãn HỌC BÙ / ĐỔI PHÒNG.
+
+### 💬 RÀ LUỒNG NHẮN TIN — "không nhập được / không tạo được tin nhắn" (2026-08-27)
+Backend ĐÃ DEPLOY + verify prod. App đã vá và ĐÃ PHÁT HÀNH ở build 17.
+
+**GỐC RỄ (đo được, không đoán):** `sync_lop_tc` chỉ nhận `lop_tin_chi.ma_gv` làm giảng viên của
+nhóm lớp → **23 giảng viên / 37 lượt lớp KHÔNG có tên trong nhóm lớp mình đang dạy** (điển hình:
+người chỉ dạy phần thực hành P3x). Không phải thành viên thì nhóm **không hiện ra** ở Trao đổi và
+gửi tin ăn 403 — đúng triệu chứng "không nhập được tin nhắn". Nặng thêm vì `sync` **chỉ chạy khi
+quản trị bấm tay** (`POST /chat/sync`, không có lịch tự động).
+
+**Đã sửa:**
+- `chat.gv_cua_lop()` mới = định nghĩa DUY NHẤT "GV đứng lớp" cho chat (`ma_gv` ∪ `ma_gv_th` ∪
+  `lich_hoc.ma_gv`), `sync_lop_tc` dùng nó.
+- `chat.dam_bao_thanh_vien()` chạy đầu `list_conversations` — **tự vá** tư cách thành viên của
+  chính người đang mở (lớp mình dạy / lớp mình đăng ký), bọc try để không làm trắng danh sách.
+- Chạy lại sync có chốt chặn (dừng nếu `don_ky_cu` định xóa nhóm): **+41 thành viên, 0 nhóm bị xóa,
+  tin nhắn 119 → 119 không đổi**. Sau đó: `luot_gv_con_thieu = 0`, `sv_con_thieu = 0`.
+- `api_task_detail.perms` thêm **`frozen` + `can_comment`**; app khóa nút Trao đổi/thao tác khi việc
+  đã đóng băng (>14 ngày) và ghi rõ lý do — trước đây gõ xong mới ăn 403 "không có quyền".
+
+**Verify đầu-cuối trên prod (dọn sạch sau khi thử):** GV thực hành CH0590 thấy 9 hội thoại, có nhóm
+`K25-7E1013.22-I.2627-1`, gửi + đọc lại được; xóa tư cách thành viên rồi mở danh sách → **tự vá lại
+đúng**; hội thoại tự tạo gửi/đọc hai chiều OK; SV 25A1001D0007 thấy 12 hội thoại. Cuối cùng:
+hoi_thoai 236, tin_nhan 119, thanh_vien 11001 — không còn rác kiểm thử.
+
+### 💬 KÊNH RIÊNG CỐ VẤN ↔ SINH VIÊN (2026-08-27) — backend LIVE, app ở build 17
+User chốt phạm vi sau khi bàn (xem DECISIONS 27/08): **chỉ CVHT ↔ sinh viên lớp mình chủ nhiệm**;
+KHÔNG mở tới giảng viên môn (nhiều thầy/cô không cơ hữu, hỏi mà không ai trả lời còn dở hơn),
+KHÔNG mở sinh viên ↔ sinh viên. Lớp giảng dạy giữ nhóm chung `LOP_TC`.
+- Backend: `chat.cvht_cua_sv()` + `chat.tao_hoi_thoai_cvht()`, loại `SV_CVHT`, mã tham chiếu
+  `cv:<ma_cb>|<mssv>` (mở lại ra đúng hội thoại cũ). Route `GET/POST /chat/cvht`.
+- Tên hội thoại RIÊNG nay tính theo NGƯỜI XEM (`_LOAI_RIENG`) — áp cho cả `CB_DM`.
+- App: sinh viên có nút "Nhắn riêng cố vấn học tập — {tên}" đầu màn Trao đổi (ẩn nếu lớp chưa gán
+  cố vấn); cố vấn có nút "Nhắn riêng" trong hồ sơ từng sinh viên.
+- **Verify prod (dọn sạch sau):** SV `23A1001D0351` ↔ CVHT `CH0168` — SV mở kênh (`moi=True`),
+  cố vấn mở lại ra ĐÚNG hội thoại (`moi=False`); gửi/đọc hai chiều OK; SV thấy tên "Lê Thị Thanh
+  Thùy", cố vấn thấy tên "Trần Đức Thương"; cố vấn ↔ SV lớp khác **bị chặn 403**; SV không có hồ sơ
+  **bị chặn 400**. hoi_thoai 237 → 237.
+
+### 🎉 PHÁT HÀNH 0.5.0 (build 17) — 2026-08-27 ✅
+Commit `350aaa2` (58 file, +1682/−560) → push master → trigger REST API cả hai workflow.
+- `android-release`: **finished** — `app-release.apk` 80.2 MB + `app-release.aab` 69.1 MB → Google Play Closed Test.
+- `ios-testflight`: **finished** — `hou_cntt.ipa` 24.7 MB → TestFlight.
+- Nội dung: logo mới (iOS+Android) · lịch học SV (GV theo buổi, chuyển tuần, buổi riêng của Khoa)
+  · trang chủ GV "Lớp giảng dạy trong kỳ" · lịch công tác có chế độ THÁNG + lịch giảng toàn khoa
+  · Trao đổi tạo mới được + kênh riêng CVHT↔SV · rà hết 54 ô nhập liệu.
+- Đang chờ Google/Apple duyệt trước khi tới tay người dùng.
+
+### 🎌 VÁ NGÀY NGHỈ trên lịch app (2026-08-27, backend LIVE — KHÔNG cần build mới)
+User hỏi app có hiện lịch nghỉ lễ như web không. Rà ra lệch thật: `/api/app/lich` chỉ đọc
+`lich_ngay` (lễ TĨNH), trong khi web `/lich-cong-tac` dùng `off_days_in_range()` hợp nhất
+`lich_ngay` **+** `ngay_nghi` (đợt nghỉ Khoa tự đặt). Hệ quả với đợt nghỉ 29/08–02/09: web hiện
+đủ 5 ngày, app chỉ hiện 02/09 — 4 ngày kia trống trơn không nói vì sao (lịch giảng đã bị ẩn đúng).
+Vá: `api_lich` dùng `off_days_in_range`. Verify prod: 29/08→02/09 đều trả "Nghỉ Quốc khánh 2/9".
+**App KHÔNG phải sửa** — màn lịch vốn đã vẽ `nghi_le` (chip đỏ ở chế độ tuần, tô đỏ số ngày ở chế
+độ tháng), nên build 17 hưởng ngay khi máy tải lại dữ liệu.
+⏳ CÒN THIẾU: **lịch học của SINH VIÊN** (`/me/schedule`, hou-cntt) chưa có ngày nghỉ — bản WEB
+`web-sv` cũng chưa có, nên hai bên đang ngang nhau. Muốn làm thì hou-cntt phải hỏi workload
+(bảng `lich_ngay`/`ngay_nghi` nằm bên workload).
+
+### 📅 THỐNG NHẤT LỊCH NGHỈ TOÀN HỆ (2026-08-27) — backend LIVE, app build 18
+User chốt: Khoa đặt ngày nghỉ MỘT LẦN trên workload → mọi phân hệ web/app hiện giống nhau
+(lịch đỏ), và mọi phép xếp lịch (học, họp, làm việc) phải tránh / cảnh báo. Kiến trúc ở
+ARCHITECTURE §5 (mục 📅 LỊCH NGHỈ).
+- **Cổng phát**: workload `GET /api/app/ngay-nghi` (chỉ service token, `_chi_svc`) + gateway
+  `GET /gv/workload/ngay-nghi`. **Bên đọc**: hou-cntt `services/ngay_nghi.py` (cache 15', hỏng
+  thì trả rỗng, không ném lỗi).
+- **Đã nối 7 điểm** — verify prod với đợt nghỉ 29/08–02/09 (lễ tĩnh chỉ có 02/09, còn lại do
+  Khoa đặt):
+  1. `/me/schedule` trả `ngay_nghi` ✅  2. `lich_giang` + `/gv/dashboard` ✅
+  3. `/api/app/lich` (đã vá trước đó) ✅  4. `/api/public/lich-tuan` báo nghỉ, không bày lịch ✅
+  5. **`bao_bu.goi_y` LOẠI HẲN ngày nghỉ** — gợi ý ra `27,28/08 · 03,04,05,06/09`, không lọt
+     ngày nào trong 5 ngày nghỉ ✅ (trước đây có thể gợi ý dạy bù đúng 2/9)
+  6. `bao_bu.phan_tich` cảnh báo ✅  7. `su_kien_lich.kiem_tra` cảnh báo ✅
+- **App**: lịch học SV tô đỏ + chip lý do (ngày nghỉ hiện cả khi không có buổi nào); đặt hạn
+  việc và tạo lịch cá nhân cảnh báo ngay dưới ô ngày.
+- **Quy ước**: cảnh báo, KHÔNG chặn.
+- ✅ **WEB đã nối nốt (cùng ngày)**: `web-sv` lịch học SV (đầu cột đỏ + ô nền đỏ nhạt + chip lý
+  do ở bản danh sách, "Được nghỉ" thay cho "Nghỉ" khi là ngày nghỉ chính thức) và **lưới lịch
+  tuần web-admin** (`/admin/lich-tuan` trả `days[].nghi_le`, đầu cột đỏ). Ở web-admin buổi VẪN
+  hiện nguyên — giáo vụ cần nhìn thấy lớp nào đang vướng ngày nghỉ để xử lý, không giấu đi.
+  Bump `app.js?v=201 → v=202`. Verify: `/admin/lich-tuan` tuần 31/08–06/09 trả nghỉ đúng 3 ngày
+  đầu tuần. **Kiểm LIVE từ ngoài**: `fit.hou.edu.vn/sinhvien` và `api.fit.hou.edu.vn/sinhvien/`
+  đều có mã mới; `api.fit.hou.edu.vn/admin/` trỏ `app.js?v=202` và file đó có nhánh `nghi_le`.
+
+### 🎉 PHÁT HÀNH 0.5.1 (build 18) — 2026-08-27 ✅ CẢ HAI XONG
+Commit `a7428c7` → push master → trigger REST API cả hai workflow.
+- `android-release`: **finished** — apk 80.2 MB + aab 69.1 MB → Google Play Closed Test.
+- `ios-testflight`: **finished** — ipa 24.7 MB → TestFlight.
+Nội dung: thống nhất lịch nghỉ toàn hệ (mục trên).
+Đang chờ Google/Apple duyệt (cùng lúc với build 17 nộp trước đó ~1 tiếng).
+
+### ⌨️ RÀ Ô NHẬP MỘT DÒNG (2026-09-02) — app build 19 + web LIVE
+User phản ánh nhiều ô nhập chỉ một dòng, không hợp để nhập nội dung dài. Lần rà trước
+(build 17) chỉ bắt ô khóa cứng `maxLines: 2-5`; **34 ô MỘT DÒNG** (không khai `maxLines`)
+chưa hề soi — đó là lỗ hổng của lần rà đó.
+- **App — sửa 9 ô** (dùng helper mới `khongXuongDong` ở `core/ui.dart`):
+  - *Tự xuống hàng, chặn Enter* (một giá trị nhưng dài): tiêu đề thông báo · tiêu đề việc ·
+    tiêu đề bài đăng Trao đổi · tiêu đề/địa điểm/link phòng họp của lịch cá nhân ·
+    "Công việc đã làm" ở nhật ký · tên học phần khi điểm danh buổi khác.
+  - *Nhiều dòng thật*: lý do yêu cầu hủy đăng ký tín chỉ (1 → 3 dòng, hộp rộng hết màn).
+  - *Giữ một dòng có chủ ý*: mật khẩu, mã xác thực, 11 ô tìm kiếm, số giờ, câu hỏi/lựa chọn
+    bình chọn.
+- **Web workload — đổi 10 ô `<input type=text>` → `<textarea>`**: bình luận/trả lời/sửa bình
+  luận ở Trao đổi (3) · tiến độ việc · ghi chú–trao đổi trong việc · nội dung cuộc họp (việc +
+  lịch công tác) · góp ý từ điển · lý do & ghi chú ở "Lớp của tôi". Thêm CSS `.comment-form`.
+  ⚠️ Bẫy đã dính khi làm: `<input>` tự đóng còn `<textarea>` thì không — 7/10 chỗ thiếu thẻ
+  đóng sau lần thay đầu, phải đếm `<textarea` vs `</textarea>` mới phát hiện. Đã cân bằng và
+  kiểm 5 template nạp được bằng Jinja trong container.
+- Công cụ dò lại: `scratchpad/ra_soat_o_nhap.py` (liệt kê mọi TextField không khai maxLines).
+
+### 🎉 PHÁT HÀNH 0.5.2 (build 19) — 2026-09-02 ✅ CẢ HAI XONG
+Commit `70b379e` → push master → trigger REST API cả hai workflow.
+- `android-release`: **finished** — apk 80.3 MB + aab 69.1 MB → Google Play Closed Test.
+- `ios-testflight`: **finished** — ipa 24.7 MB → TestFlight.
+Phần web đã live ngay (không cần build).
+
+**Ba bản đang cùng chờ Google/Apple duyệt: 0.5.0+17 · 0.5.1+18 · 0.5.2+19.**
+
+### 🎙️ ĐIỂM DANH BẰNG GIỌNG NÓI — viết lại (2026-09-08), backend LIVE + app build 20
+User: đọc tên thì bị LỌC mất cả lớp, phải back/xóa mới thấy lại → không hiệu quả; muốn đọc
+lần lượt là xong, không phải chạm tay.
+1. **Bỏ lọc** — câu đọc không còn đổ vào ô tìm kiếm. Chỉ CUỘN em vừa gọi lên đầu trang
+   (`itemExtent: 76` + `ScrollController`, cuộn theo chỉ số) + tô sáng 6 giây. Câu đang nghe
+   hiện ở thanh trạng thái riêng.
+2. **Đọc tên = CÓ MẶT**; nói "vắng"/"không có mặt" ngay sau đó (không cần đọc lại tên) thì em
+   vừa gọi chuyển sang VẮNG. Hai nút sửa tay giữ nguyên.
+   - Trùng tên gọi: lớp `K25-7A0010.22-I.2627-3` có **11/35 em trùng** (Anh×3, Duy, Huy,
+     Minh, Nguyên). Chọn em **CHƯA điểm danh đứng đầu**. Mô phỏng trên lớp thật:
+     **đọc lần lượt → 35/35 đúng người, 0 lần chạm**; đọc lộn xộn → 31 đúng / 4 lệch, nên
+     thông báo luôn hiện TÊN ĐẦY ĐỦ của em vừa đánh để sửa ngay bằng một chạm.
+3. **Sắp xếp kiểu Việt Nam** — thêm `services/vn_sort.py` (tên → họ đệm → MSSV; bảng chữ cái
+   a ă â b c d đ… + thứ tự thanh). Verify trên lớp thật: An < Anh < Ả < Ánh < Ăn < Âm,
+   Dũng < Đạt, hai em trùng tên tách theo MSSV.
+4. **Chuyên cần trong danh sách**: `ds_buoi` trả thêm `so_lan_co_mat` + `tong_so_buoi`; app
+   hiện "x/y buổi", tô đỏ khi vắng quá 1/5. Verify: lớp 2 buổi → em 1/2, em 2/2 đúng số.
+5. **TRÙNG HOÀN TOÀN HỌ TÊN** (user bổ sung sau): backend `vn_sort.danh_dau_trung_ten` đánh cờ
+   `trung_ten`; app hiện **mã SV trong ngoặc** tô đậm màu nhấn ở dòng dưới tên + biểu tượng
+   cạnh tên, và mọi thông báo giọng nói kèm mã SV. Số liệu thật: **107 tên trùng toàn khoa**,
+   "Nguyễn Việt Anh" 8 em; lớp `K23-7A0005.22-I.2627-4` có 2 em "Nguyễn Văn Dũng"
+   (`23A1001D0087`/`…0088`). Verify prod: đúng 2/109 em được đánh cờ.
+
+### 🎉 PHÁT HÀNH 0.6.0 (build 20) — 2026-09-08 ✅ CẢ HAI XONG
+Commit `ffc5ef7` → push master → trigger REST API cả hai workflow.
+- `android-release`: **finished** — apk 80.3 MB + aab 69.2 MB → Google Play Closed Test.
+- `ios-testflight`: **finished** — ipa 24.8 MB → TestFlight.
+⚠️ Build 20 dựng từ `ffc5ef7` nên **CHƯA có phần vá TRÙNG HOÀN TOÀN HỌ TÊN** (mục 5 ở trên).
+→ Phần đó đã **phát hành ở build 21** (mục dưới).
+
+### 🐛 SỬA LỖI BẮT "ĐỒNG Ý" LẠI KHI HẾT PHIÊN + NHẬT KÝ CO GỌN (2026-09-09), app build 21
+User: thỉnh thoảng mở app lại bắt bấm màn "Đồng ý & tiếp tục" (chính sách), trong khi đúng ra chỉ một lần.
+- **GỐC RỄ (đo được):** `Auth.logout()` gọi `p.clear()` — xóa SẠCH SharedPreferences, kéo theo mất cờ
+  `consent_v1` (đã đồng ý). `logout()` được gọi tự động khi phiên hết hạn (`_onUnauthorized`), nên mỗi
+  lần token hết hạn âm thầm → lần mở kế tiếp hiện lại màn Đồng ý. **Vá:** `logout()` chỉ `p.remove` các
+  khóa PHIÊN (`token/refreshToken/vaiTro/hoTen/mssv/username`), giữ `consent_v1` và mọi cài đặt khác.
+  (Máy đã lỡ bị xóa cờ thì còn hiện Đồng ý **một lần cuối**, sau đó dứt điểm.)
+- **Nhật ký ngày co gọn (accordion)** — `workload_log.dart`: mỗi mục là thẻ gập/mở; gập thì hiện tiêu đề +
+  chip tóm tắt giờ (`Sáng: 2h · Chiều: 30p` / `Cả ngày`); mở 1 mục → các mục khác tự thu gọn; mục đang mở
+  làm nổi (dải màu trái + tiêu đề đậm màu nhấn). Đúng yêu cầu "chuyển sang nội dung khác thì thu nhỏ cái
+  đã ghi, cái đang chọn nổi hơn".
+- **Gộp kèm**: phần vá TRÙNG HOÀN TOÀN HỌ TÊN (build 20 còn thiếu) — `gv_session.dart` nhãn `(MSSV)` cho
+  em trùng tên trong thông báo/danh sách điểm danh.
+
+### 🎉 PHÁT HÀNH 0.6.0 (build 21) — 2026-09-09
+Commit `aca1654` (+ `f4e7377` cập nhật build IDs) → push master → trigger REST API cả hai workflow.
+- `android-release`: buildId `6aa15ad27b0da3f072063e43` — đang chạy.
+- `ios-testflight`: buildId `6aa15ad3acab44fee1c4f53b` — đang chạy (chờ Apple review).
+Nội dung: sửa lỗi bắt Đồng ý lại khi hết phiên · nhật ký co gọn accordion · nhãn trùng tên điểm danh.
+
+### ✍️ NHẬT KÝ NGÀY — TINH CHỈNH TƯƠNG TÁC (2026-09-10), app build 22 + WEB LIVE
+User nêu 4 điểm khi ghi nhật ký (ảnh chụp là bản WEB, nhưng chốt làm **CẢ web lẫn mobile**):
+1. Việc được giao — bấm hiện giờ: giữ nguyên (đã ổn).
+2. Việc khác — **vừa gõ là hiện phần chọn giờ ngay** (trước phải rời ô/chọn datalist mới hiện).
+3. Chạm buổi mà chưa chọn giờ thì **phải sáng lên** cho biết đang ở buổi nào.
+4. **Đổi giờ linh hoạt** — không phải bỏ chọn rồi mới chọn lại.
+- **Mobile (`workload_log.dart`)**: bỏ modal mức giờ → **bảng giờ inline** dưới từng buổi; chạm buổi lẻ là
+  viền xanh + "chọn giờ" ngay (dù chưa có mức); đổi mức một chạm, chạm lại để bỏ; "Cả ngày" một chạm bật/tắt;
+  ô "việc khác" là **TextField inline** (bỏ nút Thêm + modal `nhapVanBan`), chạm giờ đầu tiên chốt việc + dọn ô.
+- **Web (`/log`, JS `initJournal` + CSS `.jt-*`)**: dòng "nháp" `draftNode` bám nội dung gõ (sự kiện `input`)
+  → hiện buổi/giờ ngay, `graduateDraft()` chốt khi chạm giờ đầu; class `.jt-b.editing` cho buổi đang chọn;
+  giữ bảng giờ mở sau khi chọn + chạm lại để bỏ. Xem mục workload (2026-09-10) ở trên.
+
+### 🎉 PHÁT HÀNH 0.6.0 (build 22) — 2026-09-10
+Commit `42dc276` (+ `4c97c1c` build IDs) → push master → trigger REST API cả hai workflow.
+- `android-release`: buildId `6aa2e62062866623897d07d4` — đang chạy.
+- `ios-testflight`: buildId `6aa2e62162866623897d07d6` — đang chạy (chờ Apple review).
+Nội dung: nhật ký chọn giờ inline · gõ-là-hiện việc khác · buổi sáng lên ngay · đổi giờ một chạm. (Web đã live cùng ngày.)
+
+### 🔤 QUY TẮC SẮP XẾP DANH SÁCH NGƯỜI — áp toàn hệ (2026-09-08), backend LIVE
+User: "tất cả các danh sách lớp đều đổi sang nguyên tắc Việt Nam, nên lưu lại quy tắc chung".
+- **Quy tắc đã ghi thành mục §⚙️ M** trong ARCHITECTURE (K, L đã bị phiên 03/09 dùng).
+  Nội dung: TÊN → HỌ ĐỆM → MSSV · dùng `services/vn_sort.py`, đừng viết lại · **`ORDER BY
+  ho_ten` sai hai lần** (so theo mã ký tự + xếp theo họ) · bảng chữ cái + thứ tự thanh ·
+  trùng hoàn toàn họ tên thì BẮT BUỘC kèm mã SV.
+- **Đã áp thêm (deploy + verify prod)**: `co_van.sv_cua_cvht` (lớp cố vấn — xếp theo lớp rồi
+  tới tên) · `sv_lop_ql.danh_sach` (bạn cùng lớp) · `internal` SV lớp quản lý + SV lớp tín chỉ.
+  Verify lớp 2110A05: Bảo → Đạt → Ngọc → Nhất → Phố → Phúc → Quang → Tâm.
+- **CHƯA áp, ghi sẵn trong §M để làm nốt khi đụng tới**: `bao_bu` · `lop_sua` · `dang_ky_tc`
+  (gồm bản kết xuất) · `sv_nghi_hoc` · `ctdt_de_xuat` · `api/routes/admin.py` · `chat.members`.
+- ⚠️ Ghi luôn vào §M: **chỉ `app/api/routes/*` được nạp**; file cùng tên ở gốc `app/` là bản
+  chết, sửa ở đó vô ích.
+- **KHÔNG cần phát hành app** — đây là thứ tự do máy chủ trả về.
+
+**BÁO USER, CHƯA TỰ XỬ LÝ:**
+- `tai_khoan` có **mã cán bộ dùng chung**: `CH0159` ← `dtlong2` + `admin` + `giangvien_test`;
+  `CH0603` ← `gvdemo` + `ntthuong14`. Trong chat họ là CÙNG MỘT người, và `_so_huu` cũng coi
+  `admin`/`giangvien_test` sở hữu lớp của thầy Long. Cần chốt xử lý.
+- Danh bạ trao đổi mới đang liệt kê cả tài khoản thử nghiệm vai GV (`admin_test`, `gv_test`,
+  `giangvien_test`, `gv.review.play`, `gvdemo`) — theo quy ước thì BÁO chứ không tự gỡ.
+- ✅ **ĐÃ XỬ LÝ — tài khoản không có hồ sơ tại Khoa.** Nguồn KHÔNG phải CAS (CAS đang tắt trên
+  prod) mà là **HOU CORE**: `core_auth.authenticate` cố ý tạo tài khoản với `mssv=None` khi MSSV
+  không có trong `sinh_vien` ("vẫn cho vào"). Nay ném `KhongCoHoSo` → **403 kèm câu giải thích tử
+  tế, KHÔNG tạo tài khoản**. Đã xóa **11** tài khoản mã ngoài Khoa (sao lưu `tai_khoan_bak_ngoaikhoa`).
+  ⚠️ **CÒN 19 tài khoản mang mã CNTT (`…A1001…`) mà VẮNG trong `sinh_vien`** — GIỮ LẠI, chưa xóa:
+  đây có thể là **lỗ hổng danh sách sinh viên** chứ không phải người ngoài vào nghịch. Không ai
+  trong số đó ở `sv_thoi_hoc`/`sv_bao_luu`. Khóa 19A–24A đều CÓ trong `sinh_vien` (23/33/104/256/355)
+  nên không giải thích được bằng "khóa cũ đã dọn". **Cần user xem 19 em này là ai.**
+- ✅ **ĐÃ XỬ LÝ (user chốt) — lớp giả Play Review.** `TEST-LOPTC` chuyển về kỳ hiện tại
+  (`2026-2027`/`I`) → được cấp nhóm chat (id 2129). `gv.review.play` nay thấy 1 hội thoại,
+  `sv.review.play` thấy 2. **KHÔNG tạo `dang_ky_hoc_ky`** — sinh viên thử nghiệm thêm thẳng vào
+  `thanh_vien_hoi_thoai`, để không dòng giả nào chảy vào đợt đăng ký / đối chiếu Trường / file kết
+  xuất (§B). Lớp có 1 buổi `lich_hoc` thiếu `tu_ngay/den_ngay` nên không lọt lên bảng trình chiếu.
+
+- 🟡 Nợ cũ (build sau): điểm rèn luyện & cảnh báo, reactions trao đổi, đính kèm tệp, hết phiên 401, real-time WS — backend đã deploy, app chưa build.
+
+## Cross-cutting
+- 🟠 **Tái tổ chức cơ cấu/giao việc** (mesh → cây + mảng hoạt động): đang bàn với user. Bản đề xuất artifact đã gửi. Chờ user chốt danh mục mảng + phạm vi làm. Xem DECISIONS/TAXONOMY.
+
+### mobile Đợt 2 (Pha C+D) — 2026-08-26
+- ✅ **Backend Pha D DEPLOY+verify prod:** `POST /api/app/tasks/delete` (JSON, cascade + guard chưa-ai-hoàn-thành, gỡ liên kết activity_logs/su_kien/groups) + gateway `POST /gv/workload/tasks/delete`. **SỬA GAP:** `api_task_detail` nay trả thêm `task.chu_ky`, `task.recur_until`, `perms.can_delete` (trước đây thiếu chu_ky → chip "Định kỳ"/nút "Dừng lặp" mobile Đợt 1 sẽ không hiện; nay đã có). Verify: create→detail(chu_ky+can_delete)→delete 200→gone→re-delete 403 PASS. Backup `app_api.py.bak_del_*`, gateway `*.bak_del_*`.
+- 🔨 mobile Đợt 2 kế hoạch 3 chặng: (1) TÁCH god file workload_home.dart 2161d → shell + tabs/{tasks,notif,feed,diary,task_detail} (pure move); (2) chuẩn hóa 100% ui.dart + rebuild 2 màn nặng + wire nút Xóa hoàn toàn (can_delete); (3) BadgeController (bỏ 9 timer + 6 GlobalKey poke) + enum WorkloadTab (gỡ bit-packing 3 file) + IA (Lịch/Tạo ra FAB).
+- ✅ **Mobile Đợt 2 — chuẩn hóa giao diện + nút Xóa (2026-08-26), analyze sạch, chưa build:** quét bỏ màu Material cứng → token / `Card`→`AppCard` / rỗng→`EmptyState` / bỏ emoji ở: dashboard SV, gv_dashboard (+vá dark-mode), schedule, profile, chat_list/thread, notification_list, student_card, handbook, attendance (banner), và các tab trong workload_home (_NotifTab/_FeedTab/_DiaryTab/TaskDetail/_statusChip…). Thêm `deleteTask` + nút "Xóa hoàn toàn" (gate `perms.can_delete`, xác nhận, bắt 409). Bẫy Dart: đổi `Card(child:Padding(child:X))`→`AppCard(padding:,child:X)` phải bớt 1 `)`.
+  - Tail còn hardcode (chuẩn hóa nốt cuối chặng): graduation_section, ctdt_screen, ren_luyen_section, warnings_section, nhiem_vu_ui, gv_session/bao_bu/advisee. (theme.dart/ui.dart giữ — là NƠI ĐỊNH NGHĨA token.)
+- ✅ **Tái cấu trúc BƯỚC 1 — tách god file (analyze sạch):** `workload_home.dart` 2365→333 dòng + 4 part (`_tasks` 741, `_notif` 86, `_feed` 768, `_diary` 447) qua `library workload_home;`+`part/part of` (giữ truy cập private xuyên file). Bẫy: thứ tự `library`→`import`→`part`.
+- ✅ **Tái cấu trúc BƯỚC 2a — `enum WorkloadTab` (analyze sạch):** thay bit-packing `(++_req<<3)|(tab&7)` bằng `WorkloadTabRequest(req, WorkloadTab)` + `WorkloadTab.fromIndex/fromLoai`, sửa 3 nơi (gv_root_shell/workload_home/push_service). `activeWorkloadTab` nay là `WorkloadTab?`. **PHÁT HIỆN+VÁ bug ngầm:** feed poll gate `activeWorkloadTab == 2` (Nhật ký) trong khi Trao đổi là tab 4 → poll không chạy khi đang xem Trao đổi; sửa thành `== WorkloadTab.traoDoi`. (Đúng loại bug magic-number report C cảnh báo.)
+- ✅ **BƯỚC 2b — BadgeController (user chốt LÀM LUÔN, analyze sạch):** file mới `lib/core/badge_controller.dart` = nguồn DUY NHẤT cho badge Công việc (count = tasks_todo+unread) — 1 WS sub + 1 poll 30s, chỉ chạy khi `enabled`. Provider đặt TRÊN MaterialApp (app.dart) để cả route push đọc được; lazy → SV không đọc → KHÔNG tạo → 0 chi phí. `main.dart` truyền CÙNG 1 ApiClient cho Auth+HouApp nên dio có token. `gv_root_shell` gỡ sạch `_badge/_poll/_wsSub/_refreshBadge/_check/_eligible` → `context.watch<BadgeController>().enabled/.count`; onPageChanged p==0 → `refresh()`. **CHỦ Ý GIỮ (giảm blind-risk):** cơ chế reload real-time của workload_home (`_refreshTab` + GlobalKey `_load()` + `onWorkloadRefresh`) và chấm dot `_newNotif/_newFeed` để NGUYÊN — badge COUNT là single-source, dot per-tab là mối lo khác. 9 timer/6 poke KHÔNG gỡ hết (chỉ gỡ của gv_root_shell) — cố ý.
+- ✅ **Đuôi chuẩn hóa XONG (analyze sạch):** graduation/ctdt/ren_luyen/warnings/nhiem_vu + gv_session/bao_bu + about/login/password → token (gv_advisee đã sẵn chuẩn). Giữ cố ý: gradient/logo login, chip pastel có chú thích, const map màu miền dữ liệu, glyph ✓/○, mic/FAB đỏ "đang ghi". Nay KHÔNG còn màn dùng màu cứng vô cớ. Bẫy: `Card` bọc `ExpansionTile`/`ListTile` thì KHÔNG ép sang AppCard (chèn padding phá tile).
+- ✅ **ĐỢT 2 XONG (analyze sạch toàn project, CHƯA build).** Change set: 18 file sửa + 7 file mới (badge_controller, data/, workload_can_xu_ly, 4 part workload_home_*). Tail chuẩn hóa (graduation/ctdt/ren_luyen/warnings/nhiem_vu/gv_session…) CHƯA làm — polish cuối nếu muốn.
+- LƯU Ý blind-risk chung: KHÔNG runtime-test được tới khi build Codemagic → user PHẢI test bản build (chuyển thế giới GV↔Công việc, chấm badge thông báo, mở app từ push) trước khi nộp store.
+
+### Rà soát Fable-5 (2 agent) + vá — 2026-08-26
+**Backend review:** KHÔNG lỗ hổng bảo mật/injection/mất-dữ-liệu-do-quyền (SQL bind đúng, phân quyền chặt, cascade đủ bảng, can_delete khớp guard). Đánh giá: an toàn giữ prod.
+**Mobile review:** phát hiện 2 lỗi CAO do BadgeController (regression mình gây):
+- (CAO-1) `me()` nuốt lỗi → guard `_enabled` biến 1 lần rớt mạng thành TẮT VĨNH VIỄN thế giới Công việc (+ có thể trắng PageView). **ĐÃ VÁ:** refresh() bỏ qua reason error/unavailable (giữ trạng thái), poll chỉ hủy khi backend TRẢ LỜI dứt khoát; badge dùng `_asInt` phòng thủ.
+- (CAO-2) BadgeController sống trên MaterialApp → không reset khi logout/login (rò timer, lẫn user). **ĐÃ VÁ:** controller nhận `Auth`, tự `init()` khi login / `reset()` khi logout; app.dart truyền `ctx.read<Auth>()`; gv_root_shell thêm guard `jumpToPage(0)` khi mất quyền lúc đang ở trang Công việc.
+**Backend vá (deploy+verify prod, ALL PASS):** create — parent bậy→400 (thôi rơi im lặng thành việc gốc), định kỳ bắt buộc có hạn→400, hạn quá khứ→400, recur_until sai ISO→400, việc con thì BỎ chu_ky (chu kỳ thuộc cha); remind bỏ việc huy/hoan_thanh→400. Mobile: đọc `error` từ body lỗi để hiện đúng thông báo. Backup `app_api_dot1.py.bak_fix_*`.
+**CÒN (chưa vá — pre-existing / low, xếp đợt sau):**
+- Backend: delete race (BEGIN IMMEDIATE — hoãn vì rủi ro transaction), xóa không để audit, file đính kèm trên đĩa không dọn, N+1 my_groups (không nghẽn cỡ 26 CB), linh_vuc_id/parent chưa kiểm tồn tại chặt, except trống quanh linh_vuc_all.
+- Mobile: push deep-link tạo instance WorkloadHome thứ 2 → dispose xóa vô điều kiện 2 static (activeWorkloadTab/workloadWorldVisible) dù instance PageView còn sống; gotoTab-req không chạy khi trang chưa sống (caller hiện = homNay nên chưa lộ); cold-start push đua Auth.load; tab Hôm nay không refresh theo WS; _TasksTab._load thiếu silent; rò nhỏ (_askReason controller, diary suggest Completer); perf: GvHomeShell poll 15s×2, PageView không keep-alive (~6 request mỗi lần switch), _loadInitialBadge gọi me() thừa (dùng BadgeController.unreadNotif được).
+
+### Vá build-14 bugs + nhóm "còn lại" (2026-08-26, analyze sạch, chưa build)
+**2 lỗi user gặp ở build 14 (Galaxy S26):**
+- Vuốt ngang chuyển thế giới: trước KHÓA (`NeverScrollableScrollPhysics`) → MỞ lại (`PageScrollPhysics`) ở gv_root_shell. (Lưu ý: nếu cuộn dọc bị tranh chấp trở lại thì cân nhắc giới hạn vùng vuốt — nút switch vẫn còn.)
+- Voice điểm danh báo "không có voice offline": gv_session ép `onDevice:true` (ngoại tuyến) → S26 không có gói tiếng Việt ngoại tuyến. Vá: `_startListen()` ưu tiên onDevice, onError (on_device/offline/language) tự hạ `_onDevicePref=false` rồi thử lại TRỰC TUYẾN + báo "chuyển sang trực tuyến". (Riêng tư: khi rơi xuống online, audio qua Google STT — chấp nhận, có thể đổi nếu user muốn.)
+**Nhóm còn lại — MOBILE đã vá:** push deep-link không mở WorkloadHome CHỒNG khi đã ở thế giới Công việc (chỉ refresh); `_TasksTab._load({silent})` — WS refresh không nháy spinner; `_loadInitialBadge` dùng `BadgeController.unreadNotif` (bỏ 1 me() thừa); rò nhỏ: `_askReason` dispose controller (try/finally), diary suggest hoàn tất Completer cũ (không treo future).
+**Nhóm còn lại — BACKEND HOÃN có chủ ý (không redeploy, giữ bản đã verify):** delete race `BEGIN IMMEDIATE` (rủi ro transaction trên conn dùng chung > lợi ích, cửa sổ đua ~0 với 26 CB), audit xóa, dọn file đính kèm trên đĩa, N+1 my_groups (không nghẽn), kiểm tồn tại linh_vuc_id/parent chặt hơn — để đợt bảo trì riêng.
+
+### Thông báo GV: bỏ lớp-dạy + tách chính thức/hệ thống (2026-08-26, deploy+verify prod)
+User (GV) than: mở Thông báo thấy "1 mớ của sinh viên", tràn tin quan trọng. Điều tra: KHÔNG rò dữ liệu — `_thong_bao_gv_khop` lọc đúng theo ma_cb (ALL + lớp cố vấn + lớp dạy). Dữ liệu thực: **947 he_thong vs 46 chinh_thuc** (tin máy tự sinh theo SV áp đảo ~20:1). Yêu cầu user: bỏ tin lớp DẠY, tách tin hệ thống sang tab riêng, badge chỉ tính tin quan trọng.
+**Backend (giang_vien.py):** `_thong_bao_gv_khop(db,user,loai=None)` — BỎ nhánh LOP_TC (lớp dạy) + thêm lọc `loai` (chinh_thuc/he_thong, coalesce null→he_thong). `gv_notifications?loai=` (mặc định chinh_thuc); `unread-count` chỉ đếm chinh_thuc (badge không phồng vì tin hệ thống); `read-all?loai=` theo tab. Backup `giang_vien.py.bak_gvnoti_*`.
+**Mobile:** `NotificationList` thêm tham số `query` (gửi kèm GET + read-all). `gv_notify` thêm 2 tab SegmentedButton **Chính thức | Hệ thống** (NotificationList keyed theo tab, query {loai}); reloadSignal chỉ ở tab Chính thức (tin GV gửi = chinh_thuc). GV-sent tới lớp DẠY sẽ KHÔNG hiện lại ở list (đúng ý "lớp dạy ko cần") — vẫn gửi được.
+**Lưu ý "trực tiếp đến tôi":** thông báo cá nhân/giao việc tới GV đi qua kênh Công việc (notifications/notify → tab Thông báo trong thế giới Công việc), KHÔNG qua ThongBao — nên đã tách sẵn.
+
+### SV home: bảng "Truy cập nhanh" (2026-08-26, analyze sạch, chưa build)
+User: học vụ quan trọng nhưng ở build 14 khó tìm (nằm cuối Trang chủ, grid 2 ô). Thêm bảng chức năng kiểu app ngân hàng.
+- `dashboard_screen.dart`: AppCard "Truy cập nhanh" NGAY dưới thống kê (đầu trang) — GridView 4 cột, ô icon tròn màu + nhãn 2 dòng. **TÙY BIẾN được (theo yêu cầu user):** SV tự chọn lối tắt yêu thích, lưu SharedPreferences `sv_quick_favs`. Kho `_fnMeta`/`_pool` (const map id→(nhãn,icon,màu)) — **12 chức năng**: dangky·ketqua·ctdt·canhbao·renluyen·totnghiep·thesv·hocphi (push route) + lichhoc·camnang·website·hoso (chuyển TAB qua `widget.onTab(1/3/4/5)`). LOẠI TRỪ theo user: quét mã điểm danh + thông báo/tin nhắn. Mặc định `_defaultFavs` = 6 mục học vụ (dangky·ketqua·ctdt·canhbao·renluyen·thesv), tốt nghiệp/còn lại là tùy chọn. Ô cuối = **"Tùy chỉnh lối tắt"** (icon tune) mở bottom-sheet CheckboxListTile bật/tắt (thay nút "Tất cả học vụ" cũ — user nói trùng chính bảng này). Cảnh báo có chấm đỏ khi `_warnings` không rỗng. Bỏ grid "Tiện ích" cũ. Helper `_quick`/`_push`/`_openFn`/`_quickFn`/`_loadFavs`/`_customizeFavs`.
+- `hocvu_hub.dart`: mở public `KetQuaScreen` + `HocVuSectionScreen` (trước là private `_KetQuaScreen`/`_SectionScreen`) để dashboard deep-link thẳng vào từng chức năng.
+
+### GV/cán bộ UX (2026-08-27, analyze sạch, chưa build)
+Rà UX bên GV/cán bộ (kiểu SV). User chọn làm cả 4; nhấn: GIỮ tách 2 thế giới (cơ hữu = 2 thế giới, GV thuần = chỉ giảng dạy).
+- **Bảng "Thao tác nhanh" tùy biến** trên trang chủ GV (`gv_dashboard.dart`) — mirror SV. Kho `_fnMeta` 8 mục có cờ cần-workload (bool thứ 4): diemdanh/covan/guitb/website (không cần) + taoviec/lichct/canxuly/nghiphep (push thẳng WorkloadApi, cần workload). **Lọc theo `BadgeController.enabled`:** GV thuần (enabled=false) KHÔNG thấy mục Công việc ở cả bảng lẫn hộp tùy chỉnh. Lưu `gv_quick_favs`. `_defaultFavs` GỒM website (vì hạ khỏi nav) → GV thuần lọc còn diemdanh/covan/guitb/website. `build` `context.watch<BadgeController>()` để panel cập nhật khi enabled bật (cơ hữu cold start).
+- **Tạo việc → FAB** (`workload_home.dart` FloatingActionButton.extended), bỏ khỏi menu "Thêm" (menu còn Nghỉ phép & Duyệt).
+- **Hết nhầm "Thông báo":** tab 3 GV world nhãn nav 'Thông báo'→'Gửi TB' (AppBar title vẫn 'Gửi thông báo').
+- **Hạ Website khỏi bottom-nav GV** (còn 4 tab: Trang chủ/Điểm danh/Cố vấn/Gửi TB); Website vào lối tắt. Dọn sạch _webTab/_webNew/_checkWeb/_tick + import thừa.
+- **CHỜ user quyết (sau build 15):** GV thuần có nên giữ bảng "Thao tác nhanh" không (hơi trùng tab dưới) hay chỉ cơ hữu mới có.
+
+### Bàn tầm nhìn 2 thế giới cán bộ + rà soát backend (2026-08-27) — CHƯA CODE, chờ user chốt ưu tiên
+Artifact rà soát: https://claude.ai/code/artifact/c6c1b648-02e7-4187-8942-4b53583f0896
+**Người giám hộ:** nguồn = file `D:\Downloads\Phiếu thông tin sinh viên mới (Responses) (1).xlsx` (369 dòng Google Form, KHÔNG có MSSV). Giám hộ ở cột 15–19 (họ tên/địa chỉ/SĐT/email/nơi làm việc cha-mẹ). Khớp thử với sinh_vien khoa='2025' (338 SV): **333 khớp chắc (tên+ngày sinh)**, 20 tên khớp-DOB lệch, 16 không khớp. Kế hoạch: bảng `sinh_vien_giam_ho` (MSSV PK) + import + lượt bỏ dấu cứu 16. LƯU Ý: khoa lưu = NĂM ('2025'/'2026'…), lop DB dạng `2510A05` (form ghi `25A05`).
+**Chat (đã rà kỹ):** hạ tầng MẠNH sẵn — `hoi_thoai`(loai/ma_tham_chieu) + `thanh_vien_hoi_thoai` + `tin_nhan`(reply_to_id, thu_hoi, url_file). Routes chat.py: conversations/unread/search/mute/messages/react(like|love|agree|haha|sad)/like/seen/poll/read/members/recall/upload. App chat_thread (716d) đã phơi: reply, 5 reaction, poll, recall, ảnh/tệp, WS+poll 4s. **THIẾU: @mention (tag tên)** — cả backend lẫn app. @mention là mấu chốt cho chấm ĐỎ(tag/reply)/VÀNG(chung). Gap vs Zalo: mention/typing/pin/forward/edit/voice/xem-ảnh-đẹp.
+**Chốt từ user:** (1) báo nghỉ/bù khi bấm lớp giảng dạy; (3) nghỉ/bù/họp → cập nhật lịch toàn khoa + gợi ý phòng trống + phản hồi + auto-notify (hạ tầng su_kien_lich có ma_phong); (5) BỎ hộp "Việc cần làm" (việc đã bày sẵn trên màn). Còn treo: last_login SV (chưa có cột, cần thêm cơ chế ghi) — user chưa trả lời.
+
+### PHIÊN TỰ ĐỘNG (2026-08-27, user duyệt sáng mai) — triển khai toàn bộ + 3× review + build
+User mandate: triển khai toàn bộ tầm nhìn 2 thế giới, tự động, không hỏi; rà 3 vòng (mỗi vòng 3 agent Fable-5 tìm lỗi + 2 agent thảo luận phương án → tự vá); build Codemagic → Play/iOS. LƯU Ý: KHÔNG runtime-test được, chỉ analyze + review đọc mã.
+**Backend Wave 1 DEPLOY+clean boot:**
+- Giám hộ: nhập 310 SV K25 vào `sinh_vien_giam_ho` (OWNER hou_cntt) từ file form (333 khớp tên+DOB + 16 khớp tên; 20 unmatched ghi /tmp/gh_unmatched.txt trên server). `GET /gv/co-van/sv/{mssv}` nay trả `giam_ho{ho_ten_gh,dia_chi_gh,sdt_gh,email_gh,noi_lam_viec_gh}`.
+- Chat: `list_conversations` nay trả **co_nhac**(bool: có tin @tag-tên hoặc reply-mình chưa đọc → chấm ĐỎ) + **chua_doc**(int chung → chấm VÀNG), cho MỌI vai. `_huong_toi_canbo` (đã có sẵn: `noi_dung ILIKE %@họ tên% OR reply tin của mình`). Global badge unread_total giữ nguyên (cán bộ = directed-only). Backup `*.bak_w1_*`.
+**Mobile 3 gói song song (đang chạy):** M1 redesign trang chủ GV (chip CVHT + list lớp dạy today-highlight + chấm đỏ/vàng + tap→chi tiết lớp: SV+điểm danh+báo nghỉ/bù); M2 chat @mention(gợi ý@ + tô sáng) + chấm đỏ/vàng list + xem ảnh phóng to; M3 hồ sơ SV cho GV + mục người giám hộ.
+**CHƯA làm (report cho user): #3 tích hợp lịch toàn khoa+gợi ý phòng+auto-notify khi nghỉ/bù/họp; redesign sâu thế giới Công việc (kho lưu trữ, chi tiết theo vai); last_login SV. Ưu tiên chất lượng phần đã chọn.**
+
+### Review Vòng 1 (3 finder + 2 bàn phương án Fable-5) — 2026-08-27
+Phát hiện quan trọng về QUY TRÌNH: finder đọc bản backend LOCAL (D:\dev\hou-cntt\backend) bị CŨ → báo nhầm "backend thiếu co_nhac/giam_ho/loai" (thực ra ĐÃ live trên server). Đã verify server. Finder A (đọc server qua ssh) đáng tin.
+**Backend Vòng 1 DEPLOY+verify:** BE1 gv-notif lọc loai/tiêu-đề vào SQL TRƯỚC limit(300) (xử lý NULL bằng coalesce+is_(None)or_notin_) — sửa bug 14/46 tin chính thức mất. BE2/BE3 việc-con: dùng `can_break_down`, chặn depth≥MAX_DEPTH(2)/cha đóng-khóa/frozen, kế thừa+giao-chéo group, lọc người nhận⊂cha, recompute cha vô điều kiện (smoke ALL PASS). BE4 mention khi ho_ten rỗng (cả list_conversations+unread_total). BE5 get_messages: after≤0 nạp N tin MỚI NHẤT (trước nạp cũ nhất bò dần), reply thêm id+nguoi_gui (nhảy-reply + reply-mình trước đây chết). BE6 remind chặn tam_dung. Backup `*.bak_r1_*`.
+**Mobile Vòng 1 (đang chạy):** MO1 disposeLater (→core/ui.dart) cho gvBaoNghi+_askReason; MO2 badge guard sau await; MO3 _customizeFavs mounted; MO4 mounted sau await chat; MO5 _forward try/catch+chặn poll/thu-hồi; MO6 search cờ lỗi; MO7 _mentionsMe khớp _members; MO8 cụm nhỏ.
+
+### Review Vòng 2 (3 finder + 2 bàn Fable-5) — 2026-08-27
+R1 fixes xác nhận ỔN (không hồi quy, BE5 test live). Phát hiện lỗi BẢO MẬT + medium.
+**Backend Vòng 2 DEPLOY+clean:** A1 [CAO BẢO MẬT] rò tin xuyên hội thoại qua reply_to_id — vá 4 chỗ: send() validate `id AND hoi_thoai_id`→400, get_messages join ràng cùng hội thoại, `_huong_toi_canbo` EXISTS ràng cùng hội thoại (forged rows lịch sử kích badge), recipients_for_message ràng cid (định tuyến FCM). C3 recall broadcast WS `{type:chat_recall,cid,mid}`. A4 việc con ép linh_vuc kế thừa cha. (DB có 0 dòng reply bẩn.) Backup `*.bak_r2_*`.
+**Mobile Vòng 2 (đang chạy):** C2 epoch (reload không bị _polling nuốt) → C3-client (WS chat_recall set thu_hoi tại chỗ) → C4 auto-scroll gần-đáy; C8 dispose _scroll+controllers; C9 mention biên nhánh _members; C10 error??detail; C11 feed upload; C12 cache sort; C6/C7 workload_log/notif/diary try-catch+mounted; B1/B2 error-as-empty IndexedStack (gv_class_list/gv_notify); B3 SV _customizeFavs; B5 merge giữ lối tắt workload; B6 _chat swap-on-success.
+**HOÃN có chủ ý (backlog):** A2 mention-prefix false-positive server (badge-only, cần mention có cấu trúc); C1 jump-to-reply xa (cần scrollable_positioned_list); C3 react/vote sync chéo.
+
+### Review Vòng 3 (cuối, 3 finder Fable-5) — 2026-08-27
+Finder A: "BACKEND ỔN ĐỂ BUILD" — A1/C3/A4 verify live, 0 reply lệch cid, mọi endpoint sạch, không hồi quy. Finder B: "chat ổn để build" — C2/C3/C4/C8/C9/C12 đứng vững. Finder C: R2 fixes ĐẠT, không build-blocker.
+R3 chỉ còn lỗi NHỎ/RÕ (không mơ hồ, không bảo mật) → vá thẳng (không cần ceremony 2-agent như R1/R2): R3-1 Dio timeout (api_client) chống treo mạng; R3-2 mounted đầu hàm _load/_loadMonth (workload notif/diary/log — dạng gọi chuyền); R3-3 gv_dashboard chốt _wlEnabled 1 lần (race B5 tồn dư); R3-4 AlwaysScrollableScrollPhysics cho list rỗng workload (pull-refresh Android); R3-5 chat vote không giật đáy; R3-6 RichText textScaler.
+**KẾ TIẾP:** analyze tổng → bump pubspec 0.3.0+15→0.4.0+16 → commit 43+ file → push master (github fithouone-mobile) → Codemagic tự build iOS(TestFlight)+Android(APK/AAB). Backend đã live sẵn suốt phiên.
+echo "STATE updated"; tail -3 "D:/Dev/FithouOne/.project/STATE.md" | head -1
+
+### ✅ BUILD 15 ĐÃ PUSH (2026-08-27) — hoàn tất phiên tự động
+- Commit `36d1c04` (45 file, +4795/-2506, 9 file mới) → push `origin/master` (github fithouone-mobile) THÀNH CÔNG.
+- pubspec GIỮ 0.3.0+15 = build 15 (iOS auto +1 từ TestFlight 14; Android versionCode 15). analyze sạch.
+- Push master = trigger Codemagic (iOS→TestFlight, Android→APK/AAB) NẾU "Automatic build triggering" bật. Không xác minh được build đã chạy từ phiên này (không có Codemagic API) — user kiểm Codemagic UI.
+- Backend đã live suốt phiên. 3 vòng review Fable-5: R1 ~14 lỗi, R2 bảo mật A1 (rò tin xuyên hội thoại) + ~15, R3 6 robustness. Backlog chưa vá: A2 mention-prefix server (badge-only), C1 jump-reply xa, C3 react/vote sync, lịch sử chat >100 tin.
+
+---
+## ⚠️ 27/08 07:2x — SỰ CỐ PHÁT HÀNH & VÁ: build 15 KHÔNG chứa việc tối qua
+**Người dùng test build 15 thất vọng: GV vẫn cũ, chưa tách tab TB, còn Website, vuốt 2 thế giới không chạy.**
+Chẩn đoán (đã xác minh git + server):
+- Build 15 = commit `e476c04` (26/08) = CHỈ Đợt 1 (Công việc). Đây là bản user đang cài.
+- Việc tối qua ở `36d1c04` nhưng **để nguyên pubspec +15** → trùng versionCode đã phát hành → Android không publish lên Google Play → user KHÔNG nhận được. (Lỗi đánh số build của tôi.)
+- Code tối qua ĐÚNG & đã có trong repo (đã grep xác nhận: gv_dashboard "Thao tác nhanh"+chip CVHT, gv_home_shell 4 tab bỏ Website, gv_root_shell PageScrollPhysics).
+**Vá:** bump `0.4.0+16`, commit `c561d8f`, đã push → Codemagic build **16** (versionCode 16 duy nhất) → Play Closed Test + TestFlight.
+**"Lịch toàn khoa rỗng" KHÔNG lỗi:** tuần mặc định đúng (Thứ 2 tuần chứa hôm nay). `su_kien_lich` có 15 sự kiện nhưng đều ở tuần 03–05/09 (Gặp mặt tân SV K26 + CVHT). User xem tuần 21–27/09 nên trống.
+**Bài học:** MỖI lần phát hành PHẢI bump versionCode; kiểm `git show <đã-phát-hành>:pubspec.yaml` trước khi tái dùng số.
+
+## 27/08 ~08:00 — Build 16 ĐÃ DỰNG & ĐANG CHỜ REVIEW
+- Auto-trigger Codemagic KHÔNG bắn (webhook/toggle) → **bấm Start new build tay** thì chạy bình thường. (Không phải lỗi version, không hết phút.)
+- Android `android-release` build **thành công**, `.aab` 0.4.0 (build 16) đã lên **Google Play Console** (track Closed testing). iOS `ios-testflight` đang dựng.
+- **Đang chờ Google/Apple review** → chưa cài để test ngay được. User sẽ báo khi review xong + test trên máy.
+- Cần verify trên máy (chưa test runtime được): GV home mới (chip CVHT + list lớp today, bỏ 🎉), vuốt 2 thế giới, chat @mention + chấm đỏ/vàng, 2 tab thông báo, bỏ Website, lịch toàn khoa tuần 03–05/09.
+- TODO lần sau: bật "Automatic build triggering" trong Codemagic để push tự build.
+
+## 27/08 — MỚI: Trang trình chiếu công khai (Digital Signage) — ĐANG LÊN KẾ HOẠCH
+- Đã phân tích + chốt 4 quyết định (xem DECISIONS.md 27/08). Player công khai `/trinh-chieu` (Next.js), cấu hình trang riêng trong admin website, media Directus/MinIO, lịch/SV từ hou-cntt.
+- Nội dung tái dùng: ~3.760 ảnh trong MinIO (giàu), chỉ 1 video mp4 → video chủ yếu upload.
+- Phạm vi: 1 playlist chung · SV tiêu biểu biên tập tay · lịch toàn khoa hôm nay · trang cấu hình riêng ngay.
+- CHỜ: user bật đèn xanh để bắt tay Pha 0 (dựng collection signage_* + endpoint lịch công khai) → Pha 1 (Player + trang cấu hình).
+
+## 27/08 — VÁ hồi quy: "Lịch học trong kỳ" của SV mất trong "Lớp của tôi" (workload)
+- Triệu chứng (user, trên web): chi tiết SV lớp CVHT trước hiện mục "🗓 Lịch học trong kỳ", giờ chỉ còn bảng "Kết quả học tập" (điểm trống).
+- Gốc: hou-cntt `internal.sv_hoc_ba` dựng `lich` chỉ khi `dang_ky_tc.dot_hien_tai(db)` có đợt mở. Đợt ĐK HK1 2026-2027 đã đóng → `dot_hien_tai=None` → lịch rỗng + kỳ hiện tại rơi xuống bảng điểm. KHÔNG phải hồng do dữ liệu (lich_hoc còn đủ: 128/139 lớp) và KHÔNG phải web-admin/mobile.
+- Vá: thay `dot_hien_tai` bằng `bao_cao._ky_hien_tai(db)` (fallback kỳ nhiều lớp nhất) trong `sv_hoc_ba`. Backup `internal.py.bak_svlich_20260827_030308`. Rebuild+up `hou-cntt-api`.
+- Kiểm chứng: gọi `/api/internal/sv-hoc-ba` (CH0168/23A1001D0351) → `cur={2026-2027,I}`, 4 HP có lịch, 3 kỳ cũ ở bảng điểm. → User chỉ cần TẢI LẠI trang, không cần build.
+
+## 27/08 — Signage Pha 1 (LÕI PLAYER) — ĐÃ DỰNG + CHẠY local
+Files mới (website `D:\dev\Fithou Website`):
+- `lib/signage.ts` — types + engine ĐỒNG BỘ theo đồng hồ (`computePosition`, anchor daily|epoch), playlist fallback.
+- `lib/signage-content.ts` — resolver dựng "deck" từ CMS (album ảnh + thông báo; chừa chỗ vinh_danh/lịch/video).
+- `app/api/signage/config/route.ts` — API CÔNG KHAI `/api/signage/config` (force-dynamic, serverNowMs, CORS *).
+- `app/trinh-chieu/{page.tsx,Player.tsx,player.module.css}` — Player TỰ CHẠY (không nút): crossfade double-buffer, Ken Burns, wake-lock, đồng hồ sống, tự poll 5', tự phục hồi lỗi mạng. Overlay brand+clock+progress. Giao diện TV tối 16:9.
+- Đã chạy `npm run dev` (localhost:3000/trinh-chieu) → hydrate OK, đồng hồ sống, slide tự chuyển (hero↔notice). `tsc --noEmit` sạch cho file mới.
+- **GIỚI HẠN local:** Directus (fetch) KHÔNG tới được từ máy local → ảnh thật/gallery rỗng, chỉ chạy fallback (hero + notices hardcode). Muốn thấy nội dung thật phải DEPLOY (server tới được directus:8055).
+CÒN LẠI: resolver vinh_danh + lịch-toàn-khoa-hôm-nay (endpoint công khai hou-cntt) + slide video/image upload · trang cấu hình `/quan-tri/trinh-chieu` · collection Directus `signage_config`/`signage_vinh_danh` · deploy fithou-web.
+
+## 27/08 — Signage: connector ngoài + lịch + DEPLOY LIVE ✅
+- Thêm connector NGOÀI: slide `youtube` (video/LIVE, helper `youtubeId/youtubeEmbedUrl`, autoplay+mute, loop) + `iframe` (URL HTTPS bất kỳ). CSP site đã sẵn `frame-src youtube/nocookie/vimeo` → YouTube chạy ngay; iframe domain khác cần whitelist.
+- Thêm resolver: vinh_danh (biên tập tay, people nhúng trong spec) · image/video upload · lich_hom_nay.
+- Backend hou-cntt: endpoint CÔNG KHAI `/api/public/lich-hom-nay` (append vào `sv_public.py`) — buổi học hôm nay (trừ NGHỈ) + su_kien_lich hôm nay, không PII. Rebuilt hou-cntt-api. Test: 13 buổi hôm nay OK.
+- **DEPLOY website:** scp 6 file mới → server (`~/code/fithouone/Fithou Website`, scp-based, KHÔNG git) → `up -d --build --no-deps fithou-web`. Build PASS.
+- **LIVE:** `https://fit.hou.edu.vn/trinh-chieu` = 200; `/api/signage/config` trả 40 slide THẬT (hero + lịch 13 buổi + 36 ảnh gallery + 2 notice, cycle 374s). Mở URL trên TV là tự chạy.
+- CÒN: trang cấu hình `/quan-tri/trinh-chieu` (kéo-thả, thêm YouTube/vinh danh/thời lượng/âm thanh) + collection Directus `signage_config`/`signage_vinh_danh` để cấu hình thay cho DEFAULT_SPEC.
+- (Dev server local `npm run dev` còn chạy nền — không cần nữa, có thể để user tự dừng.)
+
+## 27/08 — Signage: TRANG CẤU HÌNH hoàn tất + LIVE ✅
+- Directus collection singleton `signage_config` (field JSON `data`) đã tạo + seed mặc định (chạy script trong container fithou-web).
+- `lib/signage-config.ts` (đọc/ghi, cache 15s, fallback DEFAULT) · API config công khai đọc từ Directus · API admin `/api/signage/admin` (GET/POST, guard system_admin/content_admin).
+- Trang `/quan-tri/trinh-chieu` (frontend-engineer dựng): sửa playlist (thêm/xóa/đổi thứ tự/bật-tắt), 10 loại slide, dán YouTube/live + iframe, Vinh danh (people editor), meta anchor/transition/audio, nút Lưu + Mở trình chiếu. Link ở menu quản trị (MonitorPlay).
+- Deploy fithou-web. Kiểm LIVE: `/quan-tri/trinh-chieu`=200, `/api/signage/admin` chưa login=401, `/api/signage/config`=40 slide đọc từ Directus.
+- Signage COI NHƯ XONG lõi. Còn (tùy chọn, chưa cần): tách collection vinh_danh riêng · upload ảnh/video ngay trong trang cấu hình (hiện dán URL) · lịch phát theo khung giờ · nhiều playlist đa vị trí.
+
+## 27/08 — Signage: QUYỀN RIÊNG can_manage_signage (giống Gallery) ✅
+- Thêm quyền `canManageSignage` = admin hệ thống/nội dung HOẶC cờ `can_manage_signage` trên user Directus → giao trang trình chiếu cho người phụ trách (kể cả SV) không cần quyền cán bộ.
+- Sửa: `lib/fithou-auth.ts` (type+cờ+`getUserSignageFlag`+helper, 2 nơi populate), `lib/fithou-advanced-admin.ts` (`setAdvancedUserSignagePermission`+fetch+map+type), `app/api/fithou-advanced-admin/route.ts` (map `user-signage`), `app/api/signage/admin/route.ts` (dùng canManageSignage), `app/quan-tri/page.tsx` (menu guard + redirect signage-only → /quan-tri/trinh-chieu), `app/quan-tri/nang-cao/page.tsx` (nút "Cấp/Thu hồi quyền trình chiếu" tab Users), `app/quan-tri/nhat-ky/page.tsx` (nhãn audit).
+- Tạo trường Directus `can_manage_signage` (boolean) trên directus_users. tsc sạch. Deploy fithou-web OK.
+- Cách cấp: Quản trị nâng cao → Users → "Cấp quyền trình chiếu".
+- GHI NHẬN: user đã tự test trang cấu hình — cấu hình đang lưu = hero + YouTube(youtu.be/LAccklWKhdo) + notice → luồng sửa/lưu/đọc + connector YouTube chạy đúng.
+
+## 27/08 — Signage nâng cấp (rà soát từng phần). NỀN TẢNG + LÔ A xong
+- NỀN TẢNG: hou-cntt `/api/public/lich-tuan` (lịch TUẦN toàn khoa Mon-Sat, mỗi ngày items có session Sáng/Chiều/Tối, ~98 buổi/tuần). Website `uploadImageToDirectus` (fithou-albums) + route `/api/signage/upload` (auth canManageSignage, sharp→webp→Directus /files, trả {id,url}).
+- LÔ A (deploy fithou-web): **Lịch** slide có `mode` today|week + `session` lọc buổi + tự TRÔI (ScrollBox đo overflow, keyframe lichscroll), tuần nhóm theo ngày (highlight hôm nay) + buổi. **Nhúng web** thêm mô tả (`body`). Config page thêm ô Chế độ/Buổi (lịch) + Mô tả (iframe). tsc sạch.
+- CÒN (lô sau): **Thông báo** (lấy đoạn đầu bài + full link + QR + chọn 3/5/tự chọn) — cần thêm dep `qrcode` (npm ci → phải cập nhật package-lock). **Gallery** (ẩn/cỡ tiêu đề, chọn album cụ thể, hiệu ứng đa dạng). **Ảnh** (upload nhiều ảnh thay URL, tự chuyển). **Vinh danh** (upload ảnh chân dung/sự kiện). — dùng `/api/signage/upload` đã có.
+
+## 27/08 — Signage: HOÀN TẤT rà soát từng phần (Lịch/Thông báo/Gallery/Ảnh/Vinh danh)
+- **Lịch:** endpoint lịch-tuần toàn khoa; slide có mode today/week + tự trôi (rAF); nhãn buổi Sáng/Chiều/Tối (thay tiết) + màu; sắp buổi→phòng tăng dần; khử trùng; phòng thành chip nổi bật; nền nhẹ theo buổi; **chế độ "Tự động theo giờ"** (<11h30 Sáng · <15h30 Chiều · <16h30 Chiều+Tối · sau 16h30 Tối); cỡ chữ giảm ~35% (giữ tên GV).
+- **Thông báo:** nguồn = bài "announcements" (đúng /thong-bao); ưu tiên TÓM TẮT, thiếu thì tải bài lấy đoạn đầu; 2 cột: nội dung + ảnh bìa + **link đầy đủ + QR** (dep `qrcode`); cấu hình số lượng. (CHƯA làm: chọn bài "selected" thủ công.)
+- **Gallery:** chọn album cụ thể (API `/api/signage/albums`), ẩn/cỡ tiêu đề (small/normal/large), 4 kiểu Ken Burns luân phiên.
+- **Ảnh:** `imageUrls[]` upload nhiều ảnh (mỗi ảnh 1 slide tự chuyển) — nút Tải ảnh lên.
+- **Vinh danh:** upload ảnh chân dung từng người + ảnh sự kiện (nền mờ).
+- **Nhúng web:** thêm mô tả.
+- **Upload:** `/api/signage/upload` (auth canManageSignage, sharp→webp→Directus) + `uploadImageToDirectus`.
+- **Reset timeline khi Lưu:** config route đặt anchor=epoch=updatedAt → phát lại từ đầu + vẫn đồng bộ. **Tự làm mới:** deck.rev (updatedAt|BUILD_REV), player poll 30s, rev đổi → location.reload. Bump BUILD_REV mỗi deploy player.
+- File: lib/signage.ts, lib/signage-content.ts, lib/signage-config.ts, lib/fithou-albums.ts(+uploadImageToDirectus), app/api/signage/{config,admin,upload,albums}/route.ts, app/trinh-chieu/{Player.tsx,player.module.css}, app/quan-tri/trinh-chieu/{page.tsx,editor.module.css}. Backend hou-cntt sv_public.py (/lich-hom-nay,/lich-tuan).
+
+## 27/08 — VÁ: quyền trình chiếu không hiện dù đã cấp
+- Bùi Anh Tuấn (tuanba@) có can_manage_signage=t nhưng KHÔNG thấy link Trình chiếu.
+- Gốc: `refreshFithouSessionUser` (chạy mỗi lần tải trang từ cookie) fetch user THIẾU `can_manage_signage` trong field list → `Boolean(undefined)=false` ghi đè cờ đúng lúc login.
+- BẪY chung: thêm cờ per-user Directus mới thì PHẢI thêm vào CẢ `getUserXFlag` (login), populate #2 map, VÀ **fetch fields của refreshFithouSessionUser**. Đã thêm `can_manage_signage` vào dòng fields refresh. Deploy fithou-web.
+
+## 27/08 — Signage: slide "Lời nhắn gửi" (shout-outs) + nhạc nền + vá quyền
+- Loại slide `loi_nhan`: mỗi lời nhắn 1 slide (min 60s, mặc định 90s), phong cách tươi sáng (gradient pastel + blob + thẻ kính mờ, 4 tông). Deps `xlsx`+`mammoth`.
+- Import: `/api/signage/messages/import` (auth) — Excel: mỗi Ô=1 lời nhắn; Word(.docx): mỗi paragraph=1 lời nhắn; gọn+bỏ trùng. Config UI `MessagesEditor` (nhập tệp → duyệt/sửa/xóa textarea → messages[]).
+- Nhạc nền tự sinh (Web Audio, ngũ cung La thứ, ducking khi video) — meta.bgMusic. Album chọn cụ thể → hiện hết ảnh.
+- Vá: quyền can_manage_signage bị mất do refreshFithouSessionUser thiếu field (đã thêm).
+- BUILD_REV hiện = 2026-08-27m.
+
+## 08/09 — Workload: quyền lịch công tác cho Văn phòng + nhật ký nổi bật + cỡ ô nhập
+- `can_post_chung` (workload app.py): bỏ điều kiện `role IN ('truong','pho')` → **MỌI thành viên Tổ Văn phòng** (unit_type=van_phong) tạo được lịch công tác + ngày nghỉ (trước chỉ trưởng/phó). Chỉ gác khu lịch, không đụng thông báo.
+- Nhật ký (log.html/app.js): accordion + thu-gọn-về-tóm-tắt + open-highlight VỐN ĐÃ CÓ. Cải thiện CSS: mục đang mở nổi bật hơn (viền trái primary + shadow 3px .32); số giờ ở mục thu gọn thành CHIP (`.jt-item.has-sel:not(.open) .jt-sum`).
+- Textarea workload: min-height 84px + tăng rows mô tả/yêu cầu (task_new/task_panel). Xuất DS lớp GV (Excel, hou-cntt `/api/internal/lop-danh-sach-excel` + workload `/lop-cua-toi/xuat`).

@@ -1,0 +1,219 @@
+# INFRA — Bản đồ hạ tầng FithouOne (đọc TRƯỚC khi làm gì)
+
+> Ba phân hệ triển khai chung trên **một server**, dùng **một Postgres**. Mọi phiên (session) đọc file này để hiểu chung hạ tầng.
+
+## 1. Ba phân hệ
+| Phân hệ | Là gì | Stack | Mã nguồn (local) | Container |
+|---|---|---|---|---|
+| **workload** | Web nhật ký / giao việc khoa | FastAPI + SQLite + Jinja | `src/workload` | `fithouone-workload-1` |
+| **hou-cntt** | Hỗ trợ học tập + ĐK tín chỉ | FastAPI + PostgreSQL + SPA tĩnh | `src/{backend, web-admin, web-sv, db}` | `fithouone-hou-cntt-api-1` |
+| **mobile** | App GV/SV (Flutter) | Flutter + Firebase | `src/mobile` | (không container — build Codemagic) |
+
+`src/` là junction → `D:\Dev\hou-cntt` (chứa cả 3). `deploy/` là junction → `D:\Dev\fithouone-deploy`.
+
+## 2. Server & triển khai
+- **SSH**: alias `sscfit` (dùng `ssh sscfit '...'`, `scp ... sscfit:...`).
+- **Thư mục deploy**: `/home/fitadm/code/fithouone/fithouone-deploy` (docker compose).
+- **Mã nguồn trên server (SOURCE-OF-TRUTH để deploy)**:
+  - `/home/fitadm/code/fithouone/workload`
+  - `/home/fitadm/code/fithouone/hou-cntt`
+- **Lệnh deploy** (rebuild + restart 1 service) — **PHẢI có `--no-deps`**, nếu không compose sẽ build + recreate LUÔN service kia (đã từng vô tình deploy bản workload đang dang dở của phiên khác):
+  ```bash
+  ssh sscfit 'cd /home/fitadm/code/fithouone/fithouone-deploy && docker compose --env-file .env up -d --build --no-deps <workload|hou-cntt-api>'
+  ```
+- **Containers**: `fithouone-workload-1`, `fithouone-hou-cntt-api-1`, `fithouone-postgres-1`, `fithouone-minio-1`.
+
+## 3. Quy trình sửa mã (đang dùng)
+Nguồn deploy là **trên server**, KHÔNG phải bản local. Cách làm chuẩn:
+1. Sửa file (bản làm việc ở scratchpad hoặc local mirror).
+2. `scp` file lên **server source** (`/home/fitadm/code/fithouone/<phân hệ>/...`).
+3. Rebuild service tương ứng bằng lệnh deploy ở trên.
+4. Kiểm tra: `docker logs <container> | tail`, hoặc probe endpoint.
+> **Bẫy:** bản local `D:\Dev\hou-cntt` và bản `OneDrive\...\workload` có thể CŨ hơn server. Trước khi sửa nhiều, `scp` bản server về đối chiếu (đã từng lệch: local `style.css` thiếu khối reskin). Luôn coi **server là chuẩn**.
+
+## 4. Cơ sở dữ liệu
+- **hou-cntt**: PostgreSQL trong `fithouone-postgres-1`. Tên DB/user đọc từ `deploy/.env` (`HOUCNTT_DB`, `HOUCNTT_DB_USER`, `HOUCNTT_DB_PASSWORD`). Truy vấn:
+  ```bash
+  ssh sscfit 'DBU=$(grep HOUCNTT_DB_USER .../.env|cut -d= -f2); DBN=$(grep "HOUCNTT_DB=" .../.env|cut -d= -f2); docker exec fithouone-postgres-1 psql -U $DBU -d $DBN -c "..."'
+  ```
+- **workload**: SQLite tại `/data/data.db` **trong container** (volume — KHÔNG phải `/app`). Truy vấn bằng `docker exec fithouone-workload-1 python -c "import sqlite3; ..."`.
+- **Migration**:
+  - hou-cntt: idempotent DDL trong `dang_ky_tc.ensure_tables()` (`ALTER TABLE ... ADD COLUMN IF NOT EXISTS`), chạy đầu endpoint.
+  - workload: `db.py` phần MIGRATION (index cho cột mới phải để ở migration, KHÔNG ở SCHEMA — DB cũ chưa có cột).
+
+## 4b. SAO LƯU & PHỤC HỒI (dựng 03/09/2026 — trước đó KHÔNG CÓ gì)
+
+**Tình trạng trước 03/09/2026:** không có lịch sao lưu nào. `cron` chưa cài trên máy
+(`systemctl is-active cron` → inactive, unit not-found), không systemd timer nào.
+Bản sao lưu duy nhất là **30/07/2026**, tức 35 ngày không có bản mới. Script `backup.sh`
+có sẵn từ 06/07 nhưng **chưa bao giờ được lên lịch**.
+
+**Nay:** container **`fithouone-backup-1`** (service `backup` trong compose) tự giữ lịch,
+chạy **02:00 giờ VN hằng ngày**, giữ **7 ngày**, `restart: unless-stopped` nên sống lại
+sau khi khởi động máy.
+- **Vì sao là container chứ không phải cron:** máy không có cron và `fitadm` không có
+  `sudo` không mật khẩu để cài. Container không cần quyền root.
+- **An toàn:** KHÔNG gắn docker socket. Nói chuyện với Postgres qua mạng compose, đọc dữ
+  liệu qua volume gắn **chỉ-đọc** ở `/vol/*`. Tiến trình sao lưu không có quyền tương
+  đương root trên máy chủ.
+- **Chạy bù:** lịch xét theo "đã tới giờ chưa" chứ không phải "đúng phút đó", nên máy tắt
+  lúc 2h sáng thì bật lại là chạy bù ngay. Dấu ngày ở `backup/.state/done_YYYYMMDD`.
+- **Gồm những gì** (v2 — v1 BỎ SÓT hai thứ quan trọng):
+  | Thành phần | v1 | v2 |
+  |---|---|---|
+  | `fit_hou_cms`, `hou_cntt`, globals | có | có |
+  | **CSDL `audit`** (kho nhật ký truy vết) | **KHÔNG** | có |
+  | **volume `minio_data`** (1,1 GB tệp ĐANG DÙNG THẬT) | **KHÔNG** | có |
+  | `houcntt_uploads`, `workload_uploads`, `directus_extensions` | có | có |
+  | workload SQLite | tar (có thể không nhất quán) | **`VACUUM INTO`** — ảnh chụp nhất quán |
+  | `directus_uploads` (837 MB, kho CŨ trước MinIO) | mỗi ngày | **một lần** ở `backup/_tinh/` |
+- **`backup/_tinh/` KHÔNG bị vòng dọn đụng tới** — hàm dọn chỉ xóa thư mục có tệp
+  `BACKUP_OK`. Đọc `backup/_tinh/DOC-TRUOC.txt` trước khi động vào.
+- **Kích thước thật:** ~1,2 GB/ngày → 7 bản ≈ 8,4 GB. Script tự **từ chối chạy** nếu còn
+  dưới `MIN_FREE_MB` (mặc định 8000).
+- **Lệnh:**
+  - chạy tay: `docker compose exec backup /scripts/backup.sh`
+  - xem log: `docker logs fithouone-backup-1 --tail 30`
+  - phục hồi THẬT (ghi đè): `scripts/restore.sh backup/<thư-mục>`
+  - **diễn tập KHÔNG đụng dữ liệu thật: `bash scripts/dien_tap_phuc_hoi.sh`** — nạp vào
+    một CSDL tạm, đối chiếu số dòng, rồi tự xóa. Nên chạy định kỳ.
+- **Đã diễn tập phục hồi 03/09/2026:** 0 lỗi khi nạp, 12/12 bảng khớp số dòng
+  (`sinh_vien` 1732, `dang_ky_hoc_ky` 8144, `ket_qua_hoc_phan` 39960...), 183/183 bảng.
+  Đây là **lần đầu tiên** bản sao lưu của hệ được chứng minh là dùng được.
+
+### ⚠ ĐỤNG VÀO SAO LƯU THÌ PHẢI KIỂM GÌ
+- **Sửa `backup.sh` thì PHẢI sửa `restore.sh` cho khớp.** Hai tệp đọc/ghi cùng một định
+  dạng; đổi một bên là lần cần dùng thật mới phát hiện hỏng — đúng lúc không được phép hỏng.
+- **Vòng dọn bản cũ chạy NGAY lần đầu.** Ngày 03/09 nó đã xóa mất bản 30/07 — bản duy
+  nhất khi đó, và là bản duy nhất chứa `directus_uploads`. Không mất dữ liệu (volume gốc
+  còn nguyên) nhưng suýt mất nguồn phục hồi. **Thêm/bớt thành phần khỏi bản hằng ngày thì
+  phải kiểm bản cũ có còn giữ nó không TRƯỚC KHI để vòng dọn chạy.**
+- **SQLite của workload ở chế độ WAL.** Mở CHỈ-ĐỌC trên volume gắn `:ro` là hỏng — SQLite
+  cần tạo được tệp `-shm` mới mở nổi WAL ("unable to open database file"). Phải chép ra
+  chỗ ghi được rồi mới `VACUUM INTO`.
+- **workload còn tự sao lưu SQLite của riêng nó** vào `workload_data/backups/data-*.db`
+  (~02:00 hằng ngày, liên tục từ 05/08). Đây là nguồn phục hồi thứ hai, nằm trong bản sao
+  lưu chung. Đừng xóa thư mục đó.
+- **`_tinh/` lạc hậu là im lặng:** `directus_uploads` được coi là tĩnh (kiểm 03/09: 0 tệp
+  sửa sau 01/08). Nếu volume này sống lại thì bản ở `_tinh/` thành cũ mà **không có gì báo**.
+### 📤 BẢN SAO NGOÀI MÁY CHỦ — Google Drive, CÓ MÃ HÓA (dựng 03/09/2026)
+
+**Tái sử dụng kênh Drive mà workload đã chạy ổn định từ 28/07/2026** (38 lượt, đều `ok`):
+`scripts/day_gdrive.py` đọc `gdrive_client_id / client_secret / refresh_token / folder_id`
+từ bảng `settings` của workload qua volume gắn **chỉ-đọc**. Không phải cấp quyền OAuth lại.
+Phạm vi token là **`drive.file`** — chỉ đụng được tệp do chính ứng dụng tạo.
+
+- **LUÔN MÃ HÓA TRƯỚC KHI RỜI MÁY CHỦ**: `openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -salt`.
+  Bản sao chứa dữ liệu cá nhân của hơn 1.700 sinh viên và ~312 phụ huynh; đưa nguyên trạng lên
+  Google là **chuyển dữ liệu cá nhân ra nước ngoài** theo **Điều 25 NĐ 13/2023**. Mã hóa bằng
+  khóa chỉ Khoa giữ thì Google chỉ nhận khối dữ liệu vô nghĩa — đây là điểm giải trình được.
+  `day_gdrive.py` **TỪ CHỐI chạy** nếu thiếu `BACKUP_ENC_PASS`; compose dùng `${...:?}` nên
+  thiếu biến là container không khởi động.
+- **🔑 KHÓA GIẢI MÃ — ĐIỂM HỎNG NGUY HIỂM NHẤT**: khóa nằm ở `BACKUP_ENC_PASS` trong `.env`
+  (600). **Mất máy chủ = mất khóa = toàn bộ bản trên Drive thành rác không khôi phục được.**
+  Khóa phải có một bản **NGOÀI máy chủ** (trình quản lý mật khẩu / giấy). Bản in một lần ở
+  `~/KHOA-GIAI-MA-SAO-LUU.txt` (600) — **chép đi rồi XÓA tệp đó**.
+- **Nội dung**: ngày thường gói **11 tệp ≈ 222 MB** (bỏ `minio_data.tgz` 1,05 GB — ảnh bài
+  viết, nặng và ít đổi). **Chủ nhật gói ĐỦ**, kể cả minio (`.full.tar.enc`).
+- **Giữ trên Drive**: `GDRIVE_KEEP=14` bản, tự dọn bản quá hạn.
+- **Hỏng ở bước đẩy KHÔNG làm hỏng bản tại chỗ** — chỉ ghi cảnh báo vào log.
+- **Đã diễn tập VÒNG KHÉP KÍN 03/09/2026**: tải ngược từ Drive → giải mã → bung →
+  **11/11 tệp khớp MD5 từng byte** với bản gốc. Chạy lại: `scripts/kiem_gdrive.py <tên-tệp> <thư-mục-gốc>`.
+- **Giải mã tay**:
+  `openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -in fithouone-<ngày>.tar.enc -out ban.tar`
+
+**⚠ Ba công cụ container `postgres:16-alpine` KHÔNG có sẵn**, `backup_loop.sh` tự cài mỗi lần
+dựng lại: `sqlite3` (chụp SQLite nhất quán) · `openssl` (mã hóa) · `python3` (bộ tải lên).
+Cài bằng tay vào container đang chạy là **mất khi dựng lại** — phải sửa ở `backup_loop.sh`.
+
+**CÒN LẠI**: minio chỉ có bản ngoài vào chủ nhật; chưa có cảnh báo khi tác vụ sao lưu thất bại
+(hiện chỉ ghi log, không ai được báo).
+
+## 5. Web / phiên bản tĩnh
+- **workload**: template Jinja; CSP `style-src 'self'` → **không inline style/JS**, dùng `class` + `data-*` + `static/app.js`. Cache-bust bằng `asset_ver` (md5 tự tính lúc khởi động → rebuild là đổi).
+- **hou-cntt web-admin**: SPA tĩnh phục vụ ở `/admin`, `index.html` nạp `app.js?v=NNN` (**hiện v122** — bump thủ công khi sửa app.js). web-sv ở `/sinhvien`.
+- **Domain — ĐỌC BẢNG NÀY, đừng đọc mục 8** (đối chiếu thực tế 03/09/2026 bằng `curl` từ máy ngoài + đọc cấu hình nginx thật):
+
+  > **nginx CHẠY THẲNG TRÊN `sscfit`**, KHÔNG phải ở VM `nginx-proxy` như mục 8 mô tả.
+  > Nó là dịch vụ của hệ điều hành (`/usr/sbin/nginx`, `systemctl is-active nginx` → active),
+  > nghe `0.0.0.0:80/443`. Cấu hình: `/etc/nginx/conf.d/fithouone.conf` +
+  > `/etc/nginx/sites-enabled/sscfit`. Chứng chỉ dùng chung
+  > `/etc/letsencrypt/live/sscfit.hou.edu.vn/`.
+  > ⚠ compose CÓ định nghĩa service `nginx` nhưng **nó không chạy** — cấu hình chết,
+  > đừng sửa ở đó rồi tưởng đã đổi được định tuyến.
+
+  | Tên miền | Trỏ tới | Là gì |
+  |---|---|---|
+  | `fit.hou.edu.vn` | `127.0.0.1:3000` | website Next.js (`/trinh-chieu`); proxy `/sinhvien` sang cổng SV; **không có `/admin`** |
+  | `api.fit.hou.edu.vn` | `127.0.0.1:8000` | hou-cntt: `/api/*`, `/admin` = web-admin, `/sinhvien` = cổng SV. `/api/ws` có khối riêng đặt TRƯỚC `location /` |
+  | **`admin.fit.hou.edu.vn`** | `127.0.0.1:8000` | **cùng khối server với `api.`** — web-admin RA ĐƯỢC Internet qua tên miền này (dòng cũ chỉ nhắc `api.` nên dễ tưởng web-admin kín) |
+  | `canbo.fit.hou.edu.vn` | `127.0.0.1:8080` | workload |
+  | **`cms.fit.hou.edu.vn`** | `127.0.0.1:8055` | **giao diện quản trị Directus, MỞ ra Internet** (kiểm 03/09: HTTP 200 từ ngoài) |
+
+  Máy chủ còn phục vụ vài ứng dụng **ngoài phạm vi FithouOne** trên các tên miền khác
+  (dùng chung nginx, chung tài khoản `fitadm`, chung máy). Không mô tả ở đây; chỉ cần
+  nhớ khi đánh giá rủi ro: **`sscfit` không phải máy chủ dành riêng cho FithouOne**.
+
+## 6. Mobile
+- Repo git **RIÊNG** ở `src/mobile` (`D:\Dev\hou-cntt\mobile`) → GitHub `dtlong1979/fithouone-mobile`, nhánh **master**.
+- Push master ⇒ **Codemagic** tự build iOS (TestFlight) + Android. Group signing `android_signing` (CM_KEYSTORE base64).
+- Nhiều tính năng backend đã deploy nhưng **app chờ build** (xem STATE.md).
+
+## 7. Trỏ tới tri thức chi tiết
+- **Cấu trúc/hiện trạng mọi phân hệ** (module, endpoint, bảng, feature, bẫy) → **`ARCHITECTURE.md`** (cùng thư mục). Nguồn chuẩn; sửa tại chỗ khi đổi.
+- Cứu server (mục 8) + Phát hành mobile (mục 9) ngay trong file này.
+- Memo feature cũ (khảo cổ, đã gom vào ARCHITECTURE) → `.project/_archive_memory/`.
+> **Tri thức FithouOne để HẾT trong `d:\dev\FithouOne\.project\`** — KHÔNG để ở `~/.claude/memory` nữa.
+
+## 8. Cứu server khi mất điện / ngoài không vào được (nếu `.142` sống)
+Hạ tầng **VMware ESXi** quản ở `https://118.70.222.142/ui` (user dungnd). VM: **zentyal-router** (firewall, eth0=`118.70.222.141/27` WAN, eth1=`192.168.1.1` gateway; NAT ra ISP `.129`), **SSC/sscfithou** (VM20, `192.168.1.20`, fitadm, chạy toàn bộ Docker), **nginx-proxy** (`192.168.1.2`, port-forward `.141:443/80→.1.2`, `.141:2222→.1.2:22`). SSH ngoài `ssh sscfit` = jump qua zentyal `.141:22` → sscfit `.20`.
+
+> ⚠ **Đính chính 03/09/2026:** dù đường đi mạng có qua `.1.2` hay không, **nginx phục vụ
+> FithouOne nằm TRÊN `sscfit`** (dịch vụ hệ điều hành, cấu hình ở `/etc/nginx/`, log ở
+> `/var/log/nginx/`). Muốn đổi định tuyến/tên miền thì sửa ở đó — xem bảng domain ở mục 5.
+>
+> **Bề mặt ra Internet (dò từ máy ngoài 03/09/2026):** chỉ **22 (SSH), 80, 443** mở.
+> `8443` (Zentyal web admin), `53` (DNS), `5432`, `8000` đều **bị tường lửa chặn** dù có
+> tiến trình nghe trên `0.0.0.0` — đừng kết luận "nghe 0.0.0.0 là lộ ra ngoài", và cũng
+> đừng kết luận ngược lại: **dò cổng thô KHÔNG đủ**, nhiều dịch vụ chỉ nghe `127.0.0.1`
+> nhưng vẫn ra Internet qua nginx theo tên miền.
+>
+> **`/var/log/nginx/access.log` KHÔNG được xoay vòng** — 1,12 GB trong một tệp, không có
+> tệp `.1`/`.gz` nào. Vừa là nguy cơ đầy đĩa, vừa là nhật ký truy cập web DUY NHẤT của hệ.
+>
+> **SSH trên `.141`: ĐÃ TẮT ĐĂNG NHẬP BẰNG MẬT KHẨU (03/09/2026).**
+> Trước đó bị dò 35.649 lần trong 4,5 ngày (30/08–03/09), 0 lần thành công; mọi lần thành
+> công trong lịch sử đều là `publickey` của `zadmin` từ **một IP duy nhất** (3.160/3.160).
+> Đã đặt `PasswordAuthentication no` (dòng 58 `/etc/ssh/sshd_config`), `sshd -t` hợp lệ,
+> `systemctl reload ssh`. **Kiểm chứng từ máy ngoài:** máy chủ nay chỉ mời `publickey`
+> (trước: `publickey,password`); thử bằng mật khẩu bị từ chối ngay
+> `Permission denied (publickey)`. Bản lùi: `~zadmin/sshd_config.bak_20260903`.
+> - `sshd_config.d/50-cloud-init.conf` KHÔNG khai `PasswordAuthentication` nên dòng 58 có
+>   hiệu lực. **Nhớ điều này khi sửa sshd lần sau:** `Include` nằm TRƯỚC dòng 58 và OpenSSH
+>   lấy khai báo ĐẦU TIÊN — sửa dòng 58 mà tệp trong `sshd_config.d/` có khai thì vô ích
+>   nhưng vẫn báo thành công. Kiểm bằng `sudo sshd -T | grep -i passwordauth`, đừng tin `grep` tệp.
+> - `zadmin` chỉ có **MỘT** khóa (`key-sscfit`, ED25519). Mất khóa là mất SSH — đường lùi là
+>   console VM ở `https://118.70.222.142/ui` (đã kiểm: trả HTTP 303 từ Internet, sống).
+> - **CÒN NỢ:** máy chạy **Ubuntu 20.04** (hết hỗ trợ tiêu chuẩn 04/2025),
+>   `openssh-server 1:8.2p1-4ubuntu0.2` (bản vá ~11/2020, ~5 năm không cập nhật);
+>   `fail2ban` không chạy. Tắt mật khẩu đã khử rủi ro chính, nhưng hệ điều hành biên mạng
+>   vẫn chưa được vá.
+
+> **`cron` VÀ `logrotate` ĐỀU KHÔNG CÀI trên `sscfit`** (`systemctl is-enabled` → `not-found`
+> cho cả hai). Một gốc, hai hậu quả: (a) không có lịch sao lưu — xem mục 4b; (b) nhật ký
+> không bao giờ xoay vòng dù `/etc/logrotate.d/nginx` cấu hình ĐÚNG (`daily`, `rotate 14`,
+> `compress`): `access.log` 1,12 GB một tệp, `btmp` 1,01 GB, journal 2,9 GB.
+> **Đừng sửa `/etc/logrotate.d/` rồi tưởng đã xong — phải cài `logrotate` trước.**
+1. VM không tự bật → ESXi UI bật (đã đặt Autostart: zentyal→nginx→SSC→Virtualmin).
+2. zentyal-router mất default route → Network→Gateways đổi IP=`118.70.222.129`, Save. (Tạm: `sudo ip route add default via 118.70.222.129 dev eth0`.)
+3. Đụng IP `.141` (cloud-init SSC tự gán) → ARP loạn. Đã vá vĩnh viễn: gỡ `/etc/netplan/50-cloud-init.yaml` + disable network-config. SSC chỉ nên có `.20` + default via `.1`.
+4. SSH 22 chặn → Zentyal Firewall thêm luật external→Zentyal ACCEPT SSH/22.
+> Workload log lấy IP thật sau khi Zentyal **bỏ tick "Replace source address" (SNAT)** cho forward 443/80. Container workload đặt `TZ=Asia/Ho_Chi_Minh`+tzdata (giờ VN).
+
+## 9. Phát hành mobile (Codemagic — chi tiết)
+Repo `src/mobile` (`D:\Dev\hou-cntt\mobile`, git RIÊNG) → GitHub `dtlong1979/fithouone-mobile` nhánh **master**. `codemagic.yaml` ở gốc repo mobile. Claude được phép tự chạy git/PS/CLI (user đã đồng ý). Với git cần `export HOME=/c/Users/SingPC` + `git config --global --add safe.directory '*'`.
+- **Phát hành = commit + `git push origin master` RỒI trigger REST API** (push KHÔNG tự kích hoạt). Token ở `D:\dev\hou-cntt\.cm_token.txt` (đọc, ĐỪNG in). `appId=6a761ad69f91075762599b28`. `POST https://api.codemagic.io/builds` header `x-auth-token`, body `{"appId":...,"workflowId":"<ios-testflight|android-release>","branch":"master"}` → `buildId`; xem `GET /builds/<id>` (`build.status`).
+- 2 workflow: **ios-testflight** (IPA→TestFlight, integration ASC `FithouOneASC`, tự tăng build number) · **android-release** (APK+AAB ký release + **publish Google Play Closed Test** track `alpha`, app id `vn.edu.hou.fit.fithouone`). Cả hai lấy versionName từ `pubspec.yaml` `version: X.Y.Z+build`; iOS auto-tăng build number, **Android versionCode = số +N trong pubspec → PHẢI BUMP +N mỗi lần** (trùng code đã có sẽ bị từ chối).
+- **Ký Android**: group `android_signing` (App-level env, tài khoản CÁ NHÂN): `CM_KEYSTORE` (base64 .jks), `CM_KEYSTORE_PASSWORD`, `CM_KEY_ALIAS`, `CM_KEY_PASSWORD`. Publish Play: `GCLOUD_SERVICE_ACCOUNT_CREDENTIALS` (JSON service account `codemagic_publish@hou-calendar-sync...`).
+- **Bẫy instance**: gói billing chỉ có `mac_mini_m2` — đặt linux/windows sẽ fail. Cả 2 workflow dùng `mac_mini_m2`.
+- Trước khi push: `flutter analyze lib` sạch + APK build OK. Backend deploy trực tiếp (mục 2-3); mobile CHỈ push để Codemagic build.
