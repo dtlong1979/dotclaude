@@ -1,0 +1,241 @@
+# -*- coding: utf-8 -*-
+"""Sinh 2 tệp phiếu từ mẫu Phụ lục 1 và Phụ lục 2 (vòng 4)."""
+import copy, json, sys, re
+import docx
+from docx.enum.text import WD_BREAK
+from docx.oxml.ns import qn
+
+sys.path.insert(0, '.')
+import diem, nx_pl1, nx_pl2, audit
+from minhchung import KHONG_DU_DK, KHONG_DU_DK_NAM, KHONG_CHE_TEN, ANDANH
+
+PL1 = nx_pl1.PL1
+EX = json.load(open('excel.json', encoding='utf-8'))
+
+HO_TEN = 'TS. Đinh Tuấn Long'
+LINH_VUC = 'Khoa học tự nhiên'
+HOI_DONG = '01'
+NGAY = 'Hà Nội, ngày 12 tháng 9 năm 2026'
+TICK, BOX = '■', '□'
+
+T1 = r'D:/HĐ NCKH/3. Phụ lục 1. Phieu nhan xet - Gửi Thành viên HĐ.docx'
+T2 = r'D:/HĐ NCKH/4. Phụ lục 2. Phieu đanh gia - Gửi thành viên HĐ.docx'
+
+DE_NGHI = {
+    'Vào vòng chung khảo': 'Đề nghị: vào vòng chung khảo.',
+    'Giải Ba': 'Đề nghị: Giải Ba.',
+    'Giải Khuyến khích': 'Đề nghị: Giải Khuyến khích.',
+    'Không đạt giải': 'Chưa đạt yêu cầu xét giải.',
+}
+
+
+def dat_text(p, txt, dam=None):
+    """Ghi lại toàn bộ nội dung đoạn, giữ định dạng của run đầu tiên."""
+    if not p.runs:
+        p.add_run('')
+    r0 = p.runs[0]
+    for r in p.runs[1:]:
+        r._element.getparent().remove(r._element)
+    r0.text = txt
+    if dam is not None:
+        r0.bold = dam
+    return p
+
+
+def them_doan_sau(p, txt, mau=None):
+    """Chèn một đoạn mới ngay sau đoạn p, sao chép định dạng từ đoạn mẫu."""
+    goc = mau if mau is not None else p
+    moi = copy.deepcopy(goc._element)
+    p._element.addnext(moi)
+    np = docx.text.paragraph.Paragraph(moi, p._parent)
+    dat_text(np, txt, dam=False)
+    return np
+
+
+def xoa(p):
+    p._element.getparent().remove(p._element)
+
+
+def ly_do_loai(ma):
+    ly = []
+    if ma in KHONG_CHE_TEN:
+        ly.append('hồ sơ không che tên tác giả (Khoản 2 Điều 7, Điều 10 Thông tư 45)')
+    if ma in KHONG_DU_DK_NAM:
+        ly.append('không có công bố hoặc ứng dụng hợp lệ trong năm 2025')
+    return '; '.join(ly)
+
+
+def ket_luan(ma):
+    """Câu tổng điểm và đề nghị xếp giải sinh từ bảng điểm để luôn khớp."""
+    t = diem.tong(ma)
+    than = PL1[ma]['kl'].strip() if ma in PL1 else ''
+    if ma in ANDANH:
+        than = f'{than} {ANDANH[ma][1]}'
+    if ma in KHONG_DU_DK:
+        duoi = f'Tổng điểm: {t}/100. Hồ sơ không hợp lệ: {ly_do_loai(ma)}.'
+    else:
+        duoi = f'Tổng điểm: {t}/100. {DE_NGHI[diem.xep(t, ma)]}'
+    return f'{than} {duoi}'.strip()
+
+
+def y_kien_pl2(ma):
+    than = nx_pl2.PL2.get(ma) or PL1[ma]['kl']
+    note = audit.NOTE.get(ma, '')
+    if note and note not in than:
+        than = f'{than} {note}'
+    if ma in ANDANH:
+        than = f'{than} {ANDANH[ma][1]}'
+    if ma in KHONG_DU_DK_NAM and 'năm 2025' not in than:
+        than += ' Không có công bố hoặc ứng dụng hợp lệ trong năm 2025.'
+    if ma in KHONG_CHE_TEN:
+        than += ' Hồ sơ không hợp lệ do không che tên tác giả.'
+    return than
+
+
+def stt_cua(ma):
+    return int(EX.get(ma, {}).get('stt') or 0)
+
+
+def ten_cua(ma):
+    return str(EX.get(ma, {}).get('ten', '')).strip().replace('\n', ' ')
+
+
+def ngat_trang(doc):
+    doc.add_paragraph().add_run().add_break(WD_BREAK.PAGE)
+
+
+def chep_than(nguon, dich):
+    for ch in nguon.element.body.iterchildren():
+        if ch.tag != qn('w:sectPr'):
+            dich.element.body.append(copy.deepcopy(ch))
+
+
+def bat_dau(mau_path):
+    d = docx.Document(mau_path)
+    for ch in list(d.element.body.iterchildren()):
+        if ch.tag != qn('w:sectPr'):
+            d.element.body.remove(ch)
+    return d
+
+
+def ky_ten(d):
+    for tb in d.tables:
+        for row in tb.rows:
+            for cell in row.cells:
+                for p in cell.paragraphs:
+                    t = p.text.strip()
+                    if t.startswith('Hà Nội, ngày'):
+                        dat_text(p, NGAY)
+                    elif 'Ký, ghi rõ họ tên' in t:
+                        them_doan_sau(p, '\n\n\n' + HO_TEN)
+
+
+def dau_phieu(p, t, ma, nhiem_vu):
+    if t.startswith('Lĩnh vực:'):
+        dat_text(p, f'Lĩnh vực: {LINH_VUC}')
+    elif t.startswith('Hội đồng số:'):
+        dat_text(p, f'Hội đồng số: {HOI_DONG}')
+    elif t.startswith('1. Họ và tên'):
+        dat_text(p, f'1. Họ và tên thành viên hội đồng: {HO_TEN}')
+    elif t.startswith('2. Nhiệm vụ'):
+        dat_text(p, nhiem_vu)
+    elif t.startswith('3. Tên đề tài'):
+        dat_text(p, f'3. Tên đề tài đề nghị xét tặng: {ten_cua(ma)}')
+    elif t.startswith('4. Mã số đề tài'):
+        dat_text(p, f'4. Mã số đề tài/ Số thứ tự đề tài: {ma} / STT {stt_cua(ma)}')
+    else:
+        return False
+    return True
+
+
+# ---------- Phụ lục 1 ----------
+MUC_PL1 = [
+    ('a. Tổng quan', 'a', 'a. Tổng quan tình hình nghiên cứu và luận giải sự cần thiết của vấn đề nghiên cứu: '),
+    ('b. Nội dung nghiên cứu', 'b', 'b. Nội dung nghiên cứu: '),
+    ('c. Phương pháp nghiên cứu', 'c', 'c. Phương pháp nghiên cứu: '),
+    ('d. Kết quả nghiên cứu', 'd', 'd. Kết quả nghiên cứu: '),
+    ('e. Hình thức trình bày', 'e', 'e. Hình thức trình bày báo cáo tổng kết đề tài: '),
+    ('f. Có công bố khoa học', 'f', 'f. Có công bố khoa học từ kết quả nghiên cứu của đề tài, cụ thể: '),
+    ('- Bài báo được đăng trên các tạp chí khoa học trong nước', 'f1',
+     '- Bài báo được đăng trên các tạp chí khoa học trong nước được tính điểm của Hội đồng Giáo sư Nhà nước '
+     'hoặc đăng trong kỷ yếu hội thảo, hội nghị quốc gia, quốc tế có phản biện: '),
+    ('- Bài báo được đăng trên các tạp chí quốc tế', 'f2', '- Bài báo được đăng trên các tạp chí quốc tế uy tín: '),
+    ('- Sáng chế', 'f3', '- Sáng chế, giải pháp hữu ích, bản quyền tác giả, bản quyền tác phẩm,... đã được chứng nhận: '),
+]
+
+
+def phieu_pl1(ma):
+    d = docx.Document(T1)
+    v = PL1[ma]
+    nv = f'2. Nhiệm vụ trong Hội đồng:        {BOX} Ủy viên                          {TICK} Ủy viên phản biện'
+    for p in d.paragraphs:
+        t = p.text.strip()
+        if dau_phieu(p, t, ma, nv):
+            continue
+        for dau, k, nhan in MUC_PL1:
+            if t.startswith(dau):
+                dat_text(p, nhan + v[k])
+                break
+        else:
+            if t.startswith('7. Kết luận'):
+                dat_text(p, '7. Kết luận của thành viên Hội đồng (Đánh giá chung theo các tiêu chí nhận xét tại mục 6)')
+                them_doan_sau(p, ket_luan(ma))
+    ky_ten(d)
+    return d
+
+
+# ---------- Phụ lục 2 ----------
+def phieu_pl2(ma):
+    d = docx.Document(T2)
+    v = diem.D[ma]
+    tong = diem.tong(ma)
+    xg = diem.xep(tong, ma)
+    uv, pb = (BOX, TICK) if ma in diem.PB else (TICK, BOX)
+    nv = f'2. Nhiệm vụ trong Hội đồng:  {BOX} Chủ tịch     {uv} Ủy viên     {pb} Ủy viên phản biện'
+    for p in d.paragraphs:
+        dau_phieu(p, p.text.strip(), ma, nv)
+    cham = [p for p in d.paragraphs if set(p.text.strip()) <= {'.'} and len(p.text.strip()) > 20]
+    if cham:
+        dat_text(cham[0], y_kien_pl2(ma))
+        for p in cham[1:]:
+            xoa(p)
+    for p in d.paragraphs:
+        t = p.text
+        if '□ Vào vòng chung khảo' in t:
+            a = TICK if xg == 'Vào vòng chung khảo' else BOX
+            b = TICK if xg == 'Giải Ba' else BOX
+            dat_text(p, f'{a} Vào vòng chung khảo \t\t\t{b} Giải Ba', dam=True)
+        elif '□ Giải Khuyến khích' in t:
+            a = TICK if xg == 'Giải Khuyến khích' else BOX
+            b = TICK if xg == 'Không đạt giải' else BOX
+            dat_text(p, f'{a} Giải Khuyến khích \t\t\t{b} Không đạt giải', dam=True)
+    tb = d.tables[1]
+    for r in range(1, 7):
+        dat_text(tb.rows[r].cells[3].paragraphs[0], str(v[r - 1]), dam=True)
+    for r in (7, 8, 9):
+        dat_text(tb.rows[r].cells[3].paragraphs[0], '-')
+    dat_text(tb.rows[10].cells[3].paragraphs[0], str(tong), dam=True)
+    ky_ten(d)
+    return d
+
+
+if __name__ == '__main__':
+    thu_tu = sorted(diem.D, key=stt_cua)
+    pb = [m for m in thu_tu if m in diem.PB]
+    out1 = bat_dau(T1)
+    for i, ma in enumerate(pb):
+        if i:
+            ngat_trang(out1)
+        chep_than(phieu_pl1(ma), out1)
+    f1 = r'D:\HĐ NCKH\7. Phu luc 1 - Phieu nhan xet (19 de tai phan bien) - TS Dinh Tuan Long.docx'
+    out1.save(f1)
+    print('Đã lưu', f1, '|', len(pb), 'phiếu')
+
+    out2 = bat_dau(T2)
+    for i, ma in enumerate(thu_tu):
+        if i:
+            ngat_trang(out2)
+        chep_than(phieu_pl2(ma), out2)
+    f2 = r'D:\HĐ NCKH\8. Phu luc 2 - Phieu danh gia (59 de tai) - TS Dinh Tuan Long.docx'
+    out2.save(f2)
+    print('Đã lưu', f2, '|', len(thu_tu), 'phiếu')
