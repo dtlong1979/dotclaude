@@ -1,0 +1,18 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+
+# Anchored: src/uacmd/data/ is source code and must stay tracked.
+/data/
+
+# Local environments and per-session worktrees.
+.venv/
+.venv-*/
+.claude/worktrees/
+
+# Feature files, if someone fetches them inside the repo. Prefer keeping them
+# OUTSIDE it -- each Desktop session gets its own git worktree, and untracked
+# files do not follow into one, so a copy inside the repo is invisible to every
+# session but the first. See docs/huong-dan-chay-local.md.
+/data-features/

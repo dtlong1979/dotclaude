@@ -1,0 +1,26 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+
+<<<<<<< HEAD
+# Virtual environments and downloaded data: large, machine-specific, and
+# reproducible from requirements.txt and scripts/fetch_features.py.
+.venv/
+.venv-gpu/
+data-features/
+=======
+# Anchored: src/uacmd/data/ is source code and must stay tracked.
+/data/
+
+# Local environments and per-session worktrees.
+.venv/
+.venv-*/
+.claude/worktrees/
+
+# Feature files, if someone fetches them inside the repo. Prefer keeping them
+# OUTSIDE it -- each Desktop session gets its own git worktree, and untracked
+# files do not follow into one, so a copy inside the repo is invisible to every
+# session but the first. See docs/huong-dan-chay-local.md.
+/data-features/
+>>>>>>> origin/claude/research-skills-proposal-set3gw
