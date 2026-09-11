@@ -1,0 +1,1165 @@
+import { revalidatePath } from "next/cache";
+import { legacySections, type LegacySectionKey } from "@/lib/legacy-sections";
+
+type DirectusResponse<T> = {
+  data: T;
+};
+
+export type AdvancedRole = {
+  id: string;
+  name: string;
+  description: string;
+};
+
+export type AdvancedUser = {
+  id: string;
+  email: string;
+  name: string;
+  firstName: string;
+  lastName: string;
+  title: string;
+  location: string;
+  description: string;
+  avatarUrl: string;
+  status: string;
+  roleId: string;
+  roleName: string;
+  sections: string[];
+  canManageAlbums: boolean;
+  canManageFaq: boolean;
+  canManageSignage: boolean;
+};
+
+export type AdvancedSection = {
+  id?: number | string;
+  key: string;
+  name: string;
+  description: string;
+  enabled: boolean;
+};
+
+export type AdvancedPageBlock = {
+  id?: number | string;
+  type: string;
+  sort: number;
+  enabled: boolean;
+  kicker: string;
+  title: string;
+  description: string;
+  actionLabel: string;
+  href: string;
+  imageUrl: string;
+  sectionKey: string;
+  limit: number;
+  config: Record<string, unknown>;
+};
+
+type RoleRow = {
+  id?: string;
+  name?: string;
+  description?: string;
+};
+
+type UserRow = {
+  id?: string;
+  email?: string;
+  first_name?: string;
+  last_name?: string;
+  title?: string;
+  location?: string;
+  description?: string;
+  avatar?: string | { id?: string } | null;
+  status?: string;
+  can_manage_albums?: boolean | null;
+  can_manage_faq?: boolean | null;
+  can_manage_signage?: boolean | null;
+  role?: {
+    id?: string;
+    name?: string;
+  } | string | null;
+};
+
+type SectionRow = {
+  id?: number | string;
+  section_key?: string;
+  name?: string;
+  description?: string;
+  enabled?: boolean;
+};
+
+type PageBlockRow = {
+  id?: number | string;
+  type?: string;
+  sort?: number;
+  enabled?: boolean;
+  kicker?: string;
+  title?: string;
+  description?: string;
+  action_label?: string;
+  href?: string;
+  image_url?: string;
+  section_key?: string;
+  limit?: number;
+  config?: Record<string, unknown> | null;
+};
+
+type ScopeRow = {
+  id?: number;
+  user_id?: string;
+  section_key?: LegacySectionKey;
+};
+
+const directusUrl = process.env.DIRECTUS_URL?.replace(/\/$/, "");
+const adminEmail = process.env.DIRECTUS_ADMIN_EMAIL;
+const adminPassword = process.env.DIRECTUS_ADMIN_PASSWORD;
+
+const roleNameMap: Record<string, string> = {
+  system_admin: "Quản trị viên hệ thống",
+  content_admin: "Quản trị nội dung",
+  publisher: "Quản trị nội dung chuyên trang",
+  editor: "Biên tập viên"
+};
+
+export async function getAdvancedAdminData() {
+  const [roles, users, sections, blocks] = await Promise.all([
+    listRoles().catch(() => fallbackRoles()),
+    listUsers().catch(() => []),
+    listSections().catch(() => fallbackSections()),
+    listHomeBlocks().catch(() => [])
+  ]);
+
+  return { roles, users, sections, blocks };
+}
+
+export async function createAdvancedRole(formData: FormData) {
+  const name = cleanText(formData.get("roleName"), 120);
+  const description = cleanText(formData.get("roleDescription"), 300);
+
+  if (!name) {
+    throw new Error("Tên role không được để trống");
+  }
+
+  const token = await login();
+  const role = await ensureRole(name, description || "Role được tạo từ FithouOne");
+  const policy = await ensurePolicy(`${name} Policy`, description || "Phân quyền FithouOne", true);
+  await ensureAccess(role.id, policy.id);
+  await applyRolePermissions(policy.id, permissionLevelFromForm(formData));
+  revalidateAdmin();
+}
+
+function roleNameOf(row: { role?: unknown } | null | undefined): string {
+  const r = (row?.role ?? "") as { name?: string } | string;
+  return typeof r === "object" && r ? String(r.name ?? "") : String(r ?? "");
+}
+
+// Chặn thao tác gỡ/khóa/xóa quản trị hệ thống (system_admin) cuối cùng.
+async function ensureNotLastSystemAdmin(userId: string, token: string, verb: string) {
+  const target = await directusGet<UserRow>(`/users/${encodeURIComponent(userId)}?fields=role.name`, token).catch(() => null);
+  if (roleKind(roleNameOf(target)) !== "system_admin") return;
+  const admins = await directusGet<UserRow[]>(
+    "/users?fields=id,status,role.name&filter[status][_eq]=active&limit=200", token
+  ).catch(() => [] as UserRow[]);
+  const count = admins.filter((u) => roleKind(roleNameOf(u)) === "system_admin").length;
+  if (count <= 1) {
+    throw new Error(`Không thể ${verb} quản trị hệ thống (system_admin) cuối cùng.`);
+  }
+}
+
+// Tài khoản DỊCH VỤ = DIRECTUS_ADMIN_EMAIL: vừa giữ static token đọc nội dung công khai, vừa là
+// tài khoản website đăng nhập để thao tác quản trị. TUYỆT ĐỐI không cho khóa/xóa/đổi-role/đổi-mật-khẩu
+// từ giao diện — đã từng bị khóa nhầm làm sập toàn bộ nội dung web (INFRA: "website mất nội dung").
+async function assertNotServiceAccount(userId: string, token: string, verb: string) {
+  if (!adminEmail) return;
+  const target = await directusGet<UserRow>(
+    `/users/${encodeURIComponent(userId)}?fields=email`, token
+  ).catch(() => null);
+  const email = String(target?.email ?? "").trim().toLowerCase();
+  if (email && email === adminEmail.trim().toLowerCase()) {
+    throw new Error(
+      `Không thể ${verb} tài khoản dịch vụ hệ thống (${adminEmail}). ` +
+        "Đây là tài khoản website dùng để đọc nội dung công khai — khóa/xóa/đổi sẽ làm sập trang."
+    );
+  }
+}
+
+export async function assignAdvancedUserRole(formData: FormData, actorId?: string) {
+  const userId = String(formData.get("userId") ?? "");
+  const roleId = String(formData.get("roleId") ?? "");
+
+  if (!userId || !roleId) {
+    throw new Error("Cần chọn user và role");
+  }
+
+  const token = await login();
+  await assertNotServiceAccount(userId, token, "đổi role");
+  const role = await getRoleById(roleId, token);
+  const kind = roleKind(role?.name ?? roleId);
+
+  if (kind !== "system_admin") {                 // hạ quyền: chốt an toàn
+    if (actorId && userId === actorId) {
+      throw new Error("Không thể tự đổi role của chính mình");
+    }
+    await ensureNotLastSystemAdmin(userId, token, "đổi role của");
+  }
+  const selectedSections = normalizeSections(formData.getAll("sections"));
+  // explicit = form sửa từng user: TÔN TRỌNG đúng ô đã tick, KHÔNG tự đổ về full khi bỏ bớt.
+  const explicit = String(formData.get("sectionsMode") ?? "") === "explicit";
+  // system_admin: toàn quyền, không cần scope. Còn lại (content_admin/editor) đều CHỌN được chuyên mục;
+  // không tick gì (và không phải explicit) = mặc định toàn bộ chuyên mục.
+  const sections =
+    kind === "system_admin"
+      ? []
+      : explicit
+        ? selectedSections
+        : selectedSections.length
+          ? selectedSections
+          : legacySections.map((section) => section.key);
+
+  // Cho phép 0 chuyên mục khi chọn có chủ đích (explicit) — vd tài khoản chỉ quản lý Gallery.
+  if (!explicit && kind !== "system_admin" && !sections.length) {
+    throw new Error("Cần chọn ít nhất một chuyên mục cho role này");
+  }
+
+  await directusPatch(`/users/${encodeURIComponent(userId)}`, { role: roleId }, token);
+  await replaceAuthorScopes(userId, sections, token, scopePermissions(kind));
+
+  revalidateAdmin();
+}
+
+export async function createAdvancedUser(formData: FormData) {
+  const email = cleanText(formData.get("email"), 160);
+  const password = cleanText(formData.get("password"), 120);
+  const firstName = cleanText(formData.get("firstName"), 80);
+  const lastName = cleanText(formData.get("lastName"), 80);
+  const title = cleanText(formData.get("title"), 120);
+  const location = cleanText(formData.get("location"), 120);
+  const description = cleanText(formData.get("description"), 600);
+  const avatarPreset = cleanText(formData.get("avatarPreset"), 40) || "ocean";
+  const roleId = String(formData.get("roleId") ?? "");
+  const selectedSections = normalizeSections(formData.getAll("sections"));
+
+  if (!email || !password || !roleId) {
+    throw new Error("Cần nhập email, mật khẩu ban đầu và role");
+  }
+
+  const token = await login();
+  const role = await getRoleById(roleId, token);
+  const kind = roleKind(role?.name ?? roleId);
+  const avatar = await uploadPresetAvatar(avatarPreset, [firstName, lastName].filter(Boolean).join(" ") || email, token).catch(() => "");
+  const sections =
+    kind === "system_admin"
+      ? []
+      : selectedSections.length
+        ? selectedSections
+        : legacySections.map((section) => section.key);
+  const created = await directusPost<UserRow>(
+    "/users",
+    {
+      email,
+      password,
+      first_name: firstName,
+      last_name: lastName,
+      title,
+      location,
+      description,
+      avatar: avatar || undefined,
+      role: roleId,
+      status: "active"
+    },
+    token
+  );
+
+  if (created.id && kind !== "system_admin") {
+    await replaceAuthorScopes(created.id, sections, token, scopePermissions(kind));
+  }
+
+  revalidateAdmin();
+}
+
+export async function resetAdvancedUserPassword(formData: FormData) {
+  const userId = String(formData.get("userId") ?? "");
+  const password = cleanText(formData.get("newPassword"), 120);
+
+  if (!userId || !password) {
+    throw new Error("Cần chọn user và nhập mật khẩu mới");
+  }
+
+  if (password.length < 10) {
+    throw new Error("Mật khẩu mới cần có ít nhất 10 ký tự");
+  }
+
+  const token = await login();
+  await assertNotServiceAccount(userId, token, "đặt lại mật khẩu");
+  await directusPatch(`/users/${encodeURIComponent(userId)}`, { password }, token);
+  revalidateAdmin();
+}
+
+export async function setAdvancedUserStatus(formData: FormData, actorId?: string) {
+  const userId = String(formData.get("userId") ?? "");
+  const status = String(formData.get("status") ?? "active") === "active" ? "active" : "suspended";
+
+  if (!userId) {
+    throw new Error("Cần chọn user");
+  }
+
+  const token = await login();
+  await assertNotServiceAccount(userId, token, "đổi trạng thái");
+  if (status === "suspended") {                  // khóa: chốt an toàn
+    if (actorId && userId === actorId) {
+      throw new Error("Không thể tự khóa tài khoản của mình");
+    }
+    await ensureNotLastSystemAdmin(userId, token, "khóa");
+  }
+  await directusPatch(`/users/${encodeURIComponent(userId)}`, { status }, token);
+  revalidateAdmin();
+}
+
+export async function updateAdvancedUser(formData: FormData) {
+  const userId = String(formData.get("userId") ?? "");
+  if (!userId) {
+    throw new Error("Cần chọn user");
+  }
+  const firstName = cleanText(formData.get("firstName"), 80);
+  const lastName = cleanText(formData.get("lastName"), 80);
+  const title = cleanText(formData.get("title"), 120);
+  const location = cleanText(formData.get("location"), 120);
+  const description = cleanText(formData.get("description"), 600);
+  const avatarPreset = cleanText(formData.get("avatarPreset"), 40);
+
+  const token = await login();
+  const patch: Record<string, unknown> = {
+    first_name: firstName,
+    last_name: lastName,
+    title,
+    location,
+    description
+  };
+  if (avatarPreset) {                            // chỉ đổi avatar khi chọn preset mới
+    const avatar = await uploadPresetAvatar(avatarPreset, [firstName, lastName].filter(Boolean).join(" ") || userId, token).catch(() => "");
+    if (avatar) patch.avatar = avatar;
+  }
+  await directusPatch(`/users/${encodeURIComponent(userId)}`, patch, token);
+  revalidateAdmin();
+}
+
+export async function deleteAdvancedUser(formData: FormData, actorId?: string) {
+  const userId = String(formData.get("userId") ?? "");
+  if (!userId) {
+    throw new Error("Cần chọn user");
+  }
+  if (actorId && userId === actorId) {
+    throw new Error("Không thể tự xóa tài khoản của mình");
+  }
+  const token = await login();
+  await assertNotServiceAccount(userId, token, "xóa");
+  await ensureNotLastSystemAdmin(userId, token, "xóa");
+  await directusDelete(`/users/${encodeURIComponent(userId)}`, token);
+  revalidateAdmin();
+}
+
+export async function setAdvancedUserAlbumPermission(formData: FormData) {
+  const userId = String(formData.get("userId") ?? "");
+  const canManage = String(formData.get("canManageAlbums") ?? "false") === "true";
+
+  if (!userId) {
+    throw new Error("Cần chọn user");
+  }
+
+  const token = await login();
+  await directusPatch(`/users/${encodeURIComponent(userId)}`, { can_manage_albums: canManage }, token);
+  revalidateAdmin();
+}
+
+export async function setAdvancedUserFaqPermission(formData: FormData) {
+  const userId = String(formData.get("userId") ?? "");
+  const canManage = String(formData.get("canManageFaq") ?? "false") === "true";
+  if (!userId) {
+    throw new Error("Cần chọn user");
+  }
+  const token = await login();
+  await directusPatch(`/users/${encodeURIComponent(userId)}`, { can_manage_faq: canManage }, token);
+  revalidateAdmin();
+}
+
+export async function setAdvancedUserSignagePermission(formData: FormData) {
+  const userId = String(formData.get("userId") ?? "");
+  const canManage = String(formData.get("canManageSignage") ?? "false") === "true";
+  if (!userId) {
+    throw new Error("Cần chọn user");
+  }
+  const token = await login();
+  await directusPatch(`/users/${encodeURIComponent(userId)}`, { can_manage_signage: canManage }, token);
+  revalidateAdmin();
+}
+
+export async function saveAdvancedCategory(formData: FormData) {
+  const key = slugKey(cleanText(formData.get("categoryHref"), 80) || cleanText(formData.get("categoryName"), 80));
+  const name = cleanText(formData.get("categoryName"), 120);
+  const description = cleanText(formData.get("categoryDescription"), 300);
+
+  if (!key || !name) {
+    throw new Error("Cần nhập tên category và đường dẫn");
+  }
+
+  const token = await login();
+  await upsertSection(key, name, description, token);
+  revalidateAdmin();
+}
+
+export async function setAdvancedCategoryStatus(formData: FormData) {
+  const key = String(formData.get("categoryKey") ?? "");
+  const enabled = String(formData.get("enabled") ?? "true") === "true";
+
+  if (!key) {
+    throw new Error("Cần chọn category");
+  }
+
+  const token = await login();
+  const rows = await directusGet<Array<{ id?: number }>>(
+    `/items/fithou_content_sections?filter[section_key][_eq]=${encodeURIComponent(key)}&fields=id&limit=1`,
+    token
+  );
+
+  if (!rows[0]?.id) {
+    throw new Error("Category không tồn tại");
+  }
+
+  await directusPatch(`/items/fithou_content_sections/${rows[0].id}`, { enabled }, token);
+  revalidateAdmin();
+}
+
+export async function deleteAdvancedCategoryWithMove(formData: FormData) {
+  const fromCategory = normalizeSection(String(formData.get("fromCategory") ?? ""));
+  const toCategory = normalizeSection(String(formData.get("toCategory") ?? ""));
+
+  if (fromCategory === "all" || toCategory === "all" || fromCategory === toCategory) {
+    throw new Error("Cần chọn category nguồn và category đích khác nhau");
+  }
+
+  const token = await login();
+  const target = legacySections.find((section) => section.key === toCategory);
+  const rows = await directusGet<Array<{ id?: number }>>(
+    `/items/legacy_articles?filter[category_key][_eq]=${encodeURIComponent(fromCategory)}&fields=id&limit=5000`,
+    token
+  );
+
+  for (const row of rows) {
+    if (row.id) {
+      await directusPatch(
+        `/items/legacy_articles/${row.id}`,
+        {
+          category_key: toCategory,
+          category_name: target?.categories[0] ?? target?.title ?? toCategory
+        },
+        token
+      );
+    }
+  }
+
+  await disableSection(fromCategory, token);
+  revalidateAdmin();
+}
+
+export async function saveAdvancedTheme(formData: FormData) {
+  const presetName = cleanText(formData.get("themePreset"), 80) || "Academic Blue";
+  const presetKey = slugKey(presetName);
+  const primary = colorValue(formData.get("primaryColor"), "#0b4f8a");
+  const accent = colorValue(formData.get("accentColor"), "#d99a2b");
+  const soft = colorValue(formData.get("softColor"), "#eef5fb");
+  const token = await login();
+
+  await upsertThemePreset(presetKey, presetName, primary, accent, soft, token);
+  await upsertSiteSettings({ theme_preset: presetKey }, token);
+  revalidateAdmin();
+}
+
+function parseSliderImages(raw: FormDataEntryValue | null, max = 12): string[] {
+  if (typeof raw !== "string" || !raw.trim()) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter((item): item is string => typeof item === "string")
+      .map((item) => item.trim())
+      .filter((item) => item.length > 0 && item.length <= 500)
+      .slice(0, max);
+  } catch {
+    return [];
+  }
+}
+
+export async function saveAdvancedHero(formData: FormData) {
+  const token = await login();
+  const sliderImages = parseSliderImages(formData.get("heroSliderImages"));
+  await upsertHomeBlock(
+    "hero",
+    {
+      sort: 1,
+      enabled: true,
+      kicker: cleanText(formData.get("kicker"), 120),
+      title: cleanText(formData.get("heroTitle"), 160),
+      description: cleanText(formData.get("heroDescription"), 800),
+      action_label: cleanText(formData.get("primaryCta"), 80),
+      href: cleanText(formData.get("primaryHref"), 160),
+      // Giữ image_url = ảnh đầu (tương thích ngược + dùng cho OG); slider đọc từ config.sliderImages.
+      image_url: sliderImages[0] ?? cleanText(formData.get("heroImage"), 500),
+      config: {
+        sliderImages,
+        backgroundImage: cleanText(formData.get("backgroundImage"), 500),
+        imageAlt: cleanText(formData.get("imageAlt"), 200) || "Sinh viên ngành Công nghệ Thông tin trao đổi trong không gian học tập số",
+        primaryIcon: cleanText(formData.get("primaryIcon"), 40) || "Bell",
+        secondaryLabel: cleanText(formData.get("secondaryLabel"), 80) || "Giới thiệu khoa",
+        secondaryHref: cleanText(formData.get("secondaryHref"), 160) || "/gioi-thieu",
+        secondaryIcon: cleanText(formData.get("secondaryIcon"), 40) || "FlaskConical",
+        stat1Value: cleanText(formData.get("stat1Value"), 40) || "7",
+        stat1Label: cleanText(formData.get("stat1Label"), 120) || "mảng thông tin chính",
+        stat2Value: cleanText(formData.get("stat2Value"), 40) || "1038",
+        stat2Label: cleanText(formData.get("stat2Label"), 120) || "bài viết cũ đã chuẩn hóa",
+        stat3Value: cleanText(formData.get("stat3Value"), 40) || "CMS",
+        stat3Label: cleanText(formData.get("stat3Label"), 120) || "quản trị nội dung riêng",
+        // Banner toàn màn hình
+        bannerEnabled: formData.get("bannerEnabled") === "on",
+        bannerVideo: cleanText(formData.get("bannerVideo"), 500),
+        bannerHeading: cleanText(formData.get("bannerHeading"), 160),
+        bannerSubheading: cleanText(formData.get("bannerSubheading"), 400),
+        bannerPrimaryLabel: cleanText(formData.get("bannerPrimaryLabel"), 80),
+        bannerPrimaryHref: cleanText(formData.get("bannerPrimaryHref"), 200),
+        bannerSecondaryLabel: cleanText(formData.get("bannerSecondaryLabel"), 80),
+        bannerSecondaryHref: cleanText(formData.get("bannerSecondaryHref"), 200),
+        bannerEffect: ["all", "kenburns", "aurora", "sparkle", "none"].includes(String(formData.get("bannerEffect")))
+          ? String(formData.get("bannerEffect"))
+          : "all"
+      }
+    },
+    token
+  );
+  revalidateAdmin();
+}
+
+export async function saveAdvancedPageBuilderBlock(formData: FormData) {
+  const token = await login();
+  const type = cleanText(formData.get("blockType"), 80);
+  const sectionKey = normalizeSection(String(formData.get("sectionKey") ?? "announcements"));
+  const limit = boundedNumber(formData.get("limit"), 1, 12, 6);
+  const knownBlock = defaultPageBlock(type);
+
+  await upsertHomeBlock(
+    type,
+    {
+      sort: knownBlock?.sort,
+      title: knownBlock?.title,
+      kicker: knownBlock?.kicker,
+      description: knownBlock?.description,
+      action_label: knownBlock?.actionLabel,
+      href: knownBlock?.href,
+      section_key: sectionKey === "all" ? "" : sectionKey,
+      limit,
+      enabled: true,
+      config: {
+        priority: cleanText(formData.get("priority"), 40) || "mixed"
+      }
+    },
+    token
+  );
+  revalidateAdmin();
+}
+
+export async function saveAdvancedAnnouncementVisual(formData: FormData) {
+  const token = await login();
+  const knownBlock = defaultPageBlock("article-list");
+
+  await upsertHomeBlock(
+    "article-list",
+    {
+      sort: knownBlock?.sort,
+      title: knownBlock?.title,
+      section_key: "announcements",
+      limit: boundedNumber(formData.get("limit"), 1, 12, 6),
+      enabled: true,
+      image_url: cleanText(formData.get("imageUrl"), 500),
+      config: {
+        captionKicker: cleanText(formData.get("captionKicker"), 80) || "Student hub",
+        captionTitle:
+          cleanText(formData.get("captionTitle"), 220) ||
+          "Thông báo, học vụ và hoạt động được gom theo luồng rõ ràng.",
+        imageAlt:
+          cleanText(formData.get("imageAlt"), 220) ||
+          "Sinh viên Khoa Công nghệ Thông tin trong hoạt động học tập và trao đổi nhóm",
+        imageZoom: boundedNumber(formData.get("imageZoom"), 100, 220, 100),
+        imagePositionX: boundedNumber(formData.get("imagePositionX"), 0, 100, 50),
+        imagePositionY: boundedNumber(formData.get("imagePositionY"), 0, 100, 50)
+      }
+    },
+    token
+  );
+  revalidateAdmin();
+}
+
+export async function saveAdvancedTechShowcase(formData: FormData) {
+  const token = await login();
+  const chips = cleanList(formData.get("chips"), 6);
+  const tracks = cleanList(formData.get("tracks"), 8);
+  const cubeFaces = cleanList(formData.get("cubeFaces"), 6);
+
+  await upsertHomeBlock(
+    "tech-showcase",
+    {
+      sort: 3,
+      enabled: true,
+      kicker: cleanText(formData.get("kicker"), 120) || "Technology showcase",
+      title: cleanText(formData.get("showcaseTitle"), 160) || "Hệ sinh thái số của Khoa CNTT",
+      description:
+        cleanText(formData.get("showcaseDescription"), 800) ||
+        "Một khối trình diễn công nghệ gọn, có thể bật/tắt bằng PageBuilder và dùng để nhấn mạnh các trục đào tạo, nghiên cứu, học liệu và kết nối sinh viên.",
+      action_label: cleanText(formData.get("actionLabel"), 80) || "Xem nghiên cứu",
+      href: cleanText(formData.get("href"), 160) || "/nghien-cuu",
+      config: {
+        chips: chips.length ? chips : ["AI & Data", "Security", "Cloud & OER"],
+        tracks: tracks.length ? tracks : ["AI", "Data", "Software", "Security", "Cloud", "OER"],
+        cubeFaces: cubeFaces.length ? cubeFaces : ["AI", "DATA", "SEC", "DEV", "OER", "LAB"],
+        graphLabel: cleanText(formData.get("graphLabel"), 120) || "FithouOne knowledge graph",
+        motion: String(formData.get("motion") ?? "on") === "on"
+      }
+    },
+    token
+  );
+  revalidateAdmin();
+}
+
+export async function setAdvancedPageBlockStatus(formData: FormData) {
+  const type = cleanText(formData.get("blockType"), 80);
+  const enabled = String(formData.get("enabled") ?? "true") === "true";
+
+  if (!type) {
+    throw new Error("Cần chọn block");
+  }
+
+  const token = await login();
+  await upsertHomeBlock(type, { enabled }, token);
+  revalidateAdmin();
+}
+
+export async function saveAdvancedOer(formData: FormData) {
+  const token = await login();
+  // Chỉ cập nhật TIÊU ĐỀ hiển thị; danh sách link quản lý ở block PageBuilder (không ghi đè).
+  await upsertHomeBlock(
+    "open-resources",
+    { title: cleanText(formData.get("oerTitle"), 160) },
+    token
+  );
+  revalidateAdmin();
+}
+
+export async function saveAdvancedGallery(formData: FormData) {
+  const token = await login();
+  // Chỉ cập nhật TIÊU ĐỀ hiển thị; ảnh và chú thích quản lý ở block PageBuilder (không ghi đè).
+  await upsertHomeBlock(
+    "gallery",
+    { title: cleanText(formData.get("galleryTitle"), 160) },
+    token
+  );
+  revalidateAdmin();
+}
+
+async function listRoles() {
+  const token = await login();
+  const rows = await directusGet<RoleRow[]>("/roles?fields=id,name,description&sort=name&limit=200", token);
+  return rows
+    .filter((role) => role.id && role.name)
+    .map((role) => ({
+      id: role.id ?? "",
+      name: displayRoleName(role.name ?? ""),
+      description: role.description ?? ""
+    }));
+}
+
+async function listUsers() {
+  const token = await login();
+  const [rows, scopes] = await Promise.all([
+    directusGet<UserRow[]>("/users?fields=id,email,first_name,last_name,title,location,description,avatar,status,can_manage_albums,can_manage_faq,can_manage_signage,role.id,role.name&sort=email&limit=200", token),
+    directusGet<ScopeRow[]>("/items/fithou_author_scopes?fields=user_id,section_key&limit=5000", token).catch(() => [])
+  ]);
+  const scopesByUser = new Map<string, string[]>();
+
+  for (const scope of scopes) {
+    if (!scope.user_id || !scope.section_key) continue;
+    scopesByUser.set(scope.user_id, [...(scopesByUser.get(scope.user_id) ?? []), scope.section_key]);
+  }
+
+  const serviceEmail = adminEmail?.trim().toLowerCase();
+  return rows
+    .filter((user) => user.id && user.email)
+    // Ẩn tài khoản DỊCH VỤ (giữ static token + đăng nhập quản trị) khỏi danh sách quản lý —
+    // không hiện thì không ai khóa/xóa nhầm được. Chốt hàm cũng đã chặn ở phía thao tác.
+    .filter((user) => !serviceEmail || String(user.email).trim().toLowerCase() !== serviceEmail)
+    .map((user) => ({
+      id: user.id ?? "",
+      email: user.email ?? "",
+      name: [user.first_name, user.last_name].filter(Boolean).join(" ") || user.email || "",
+      firstName: user.first_name ?? "",
+      lastName: user.last_name ?? "",
+      title: user.title ?? "",
+      location: user.location ?? "",
+      description: user.description ?? "",
+      avatarUrl: directusAssetUrl(avatarIdFromUser(user)),
+      status: user.status ?? "",
+      roleId: typeof user.role === "object" ? user.role?.id ?? "" : String(user.role ?? ""),
+      roleName: typeof user.role === "object" ? displayRoleName(user.role?.name ?? "") : "",
+      sections: scopesByUser.get(user.id ?? "") ?? [],
+      canManageAlbums: Boolean(user.can_manage_albums),
+      canManageFaq: Boolean(user.can_manage_faq),
+      canManageSignage: Boolean(user.can_manage_signage)
+    }));
+}
+
+async function listSections() {
+  const token = await login();
+  const rows = await directusGet<SectionRow[]>("/items/fithou_content_sections?fields=id,section_key,name,description,enabled&sort=section_key&limit=200", token);
+  return rows.map((section) => ({
+    id: section.id,
+    key: section.section_key ?? "",
+    name: section.name ?? "",
+    description: section.description ?? "",
+    enabled: section.enabled ?? true
+  }));
+}
+
+async function listHomeBlocks() {
+  const token = await login();
+  const rows = await directusGet<PageBlockRow[]>(
+    "/items/fithou_page_blocks?filter[page_slug][_eq]=home&fields=id,type,sort,enabled,kicker,title,description,action_label,href,image_url,section_key,limit,config&sort=sort&limit=100",
+    token
+  );
+  return rows.map((block) => ({
+    id: block.id,
+    type: block.type ?? "",
+    sort: block.sort ?? 0,
+    enabled: block.enabled ?? true,
+    kicker: block.kicker ?? "",
+    title: block.title ?? "",
+    description: block.description ?? "",
+    actionLabel: block.action_label ?? "",
+    href: block.href ?? "",
+    imageUrl: block.image_url ?? "",
+    sectionKey: block.section_key ?? "",
+    limit: block.limit ?? 0,
+    config: block.config && typeof block.config === "object" ? block.config : {}
+  }));
+}
+
+async function ensureRole(name: string, description: string) {
+  const token = await login();
+  const existing = await directusGet<RoleRow[]>(
+    `/roles?filter[name][_eq]=${encodeURIComponent(name)}&fields=id,name,description&limit=1`,
+    token
+  );
+  if (existing[0]?.id) return existing[0] as { id: string };
+  return directusPost<{ id: string }>("/roles", { name, description, icon: "admin_panel_settings" }, token);
+}
+
+async function ensurePolicy(name: string, description: string, appAccess: boolean) {
+  const token = await login();
+  const existing = await directusGet<Array<{ id?: string }>>(`/policies?filter[name][_eq]=${encodeURIComponent(name)}&fields=id&limit=1`, token);
+  if (existing[0]?.id) return existing[0] as { id: string };
+  return directusPost<{ id: string }>(
+    "/policies",
+    { name, description, icon: "admin_panel_settings", admin_access: false, app_access: appAccess, enforce_tfa: false },
+    token
+  );
+}
+
+async function ensureAccess(roleId: string, policyId: string) {
+  const token = await login();
+  const existing = await directusGet<Array<{ id?: string }>>(
+    `/access?filter[role][_eq]=${roleId}&filter[policy][_eq]=${policyId}&fields=id&limit=1`,
+    token
+  );
+  if (existing[0]?.id) return;
+  await directusPost("/access", { role: roleId, policy: policyId }, token);
+}
+
+async function applyRolePermissions(policyId: string, level: "admin" | "publisher" | "editor") {
+  const token = await login();
+  const collections = ["legacy_articles", "fithou_page_blocks", "fithou_content_sections", "site_settings", "theme_presets"];
+  const actions = level === "admin" ? ["create", "read", "update", "delete"] : level === "publisher" ? ["create", "read", "update"] : ["create", "read"];
+
+  for (const collection of collections) {
+    for (const action of actions) {
+      await ensurePermission(policyId, collection, action, token);
+    }
+  }
+}
+
+async function ensurePermission(policyId: string, collection: string, action: string, token: string) {
+  const existing = await directusGet<Array<{ id?: number }>>(
+    `/permissions?filter[policy][_eq]=${policyId}&filter[collection][_eq]=${collection}&filter[action][_eq]=${action}&fields=id&limit=1`,
+    token
+  );
+  const body = { policy: policyId, collection, action, permissions: {}, fields: ["*"] };
+  if (existing[0]?.id) {
+    await directusPatch(`/permissions/${existing[0].id}`, body, token);
+    return;
+  }
+  await directusPost("/permissions", body, token);
+}
+
+async function upsertAuthorScope(userId: string, section: LegacySectionKey, token: string, canCreate: boolean, canReview: boolean, canPublish: boolean) {
+  const rows = await directusGet<Array<{ id?: number }>>(
+    `/items/fithou_author_scopes?filter[user_id][_eq]=${encodeURIComponent(userId)}&filter[section_key][_eq]=${encodeURIComponent(section)}&fields=id&limit=1`,
+    token
+  );
+  const body = { user_id: userId, section_key: section, can_create: canCreate, can_review: canReview, can_publish: canPublish };
+  if (rows[0]?.id) {
+    await directusPatch(`/items/fithou_author_scopes/${rows[0].id}`, body, token);
+    return;
+  }
+  await directusPost("/items/fithou_author_scopes", body, token);
+}
+
+async function replaceAuthorScopes(
+  userId: string,
+  sections: LegacySectionKey[],
+  token: string,
+  permissions: { canCreate: boolean; canReview: boolean; canPublish: boolean }
+) {
+  const rows = await directusGet<Array<{ id?: number }>>(
+    `/items/fithou_author_scopes?filter[user_id][_eq]=${encodeURIComponent(userId)}&fields=id&limit=5000`,
+    token
+  ).catch(() => []);
+
+  for (const row of rows) {
+    if (row.id) {
+      await directusDelete(`/items/fithou_author_scopes/${row.id}`, token);
+    }
+  }
+
+  for (const section of Array.from(new Set(sections))) {
+    await upsertAuthorScope(userId, section, token, permissions.canCreate, permissions.canReview, permissions.canPublish);
+  }
+}
+
+async function getRoleById(roleId: string, token: string) {
+  return directusGet<RoleRow>(`/roles/${encodeURIComponent(roleId)}?fields=id,name`, token).catch(() => null);
+}
+
+async function upsertSection(key: string, name: string, description: string, token: string) {
+  const rows = await directusGet<Array<{ id?: number }>>(
+    `/items/fithou_content_sections?filter[section_key][_eq]=${encodeURIComponent(key)}&fields=id&limit=1`,
+    token
+  );
+  const body = { section_key: key, name, description, enabled: true };
+  if (rows[0]?.id) {
+    await directusPatch(`/items/fithou_content_sections/${rows[0].id}`, body, token);
+    return;
+  }
+  await directusPost("/items/fithou_content_sections", body, token);
+}
+
+async function disableSection(key: LegacySectionKey, token: string) {
+  const rows = await directusGet<Array<{ id?: number }>>(
+    `/items/fithou_content_sections?filter[section_key][_eq]=${encodeURIComponent(key)}&fields=id&limit=1`,
+    token
+  );
+  if (rows[0]?.id) {
+    await directusPatch(`/items/fithou_content_sections/${rows[0].id}`, { enabled: false }, token);
+  }
+}
+
+async function upsertThemePreset(key: string, name: string, primary: string, accent: string, soft: string, token: string) {
+  const rows = await directusGet<Array<{ id?: number }>>(
+    `/items/theme_presets?filter[preset_key][_eq]=${encodeURIComponent(key)}&fields=id&limit=1`,
+    token
+  );
+  const body = {
+    preset_key: key,
+    name,
+    primary_color: primary,
+    primary_dark_color: primary,
+    accent_color: accent,
+    ink_color: "#17202a",
+    muted_color: "#64748b",
+    surface_color: "#ffffff",
+    soft_color: soft
+  };
+  if (rows[0]?.id) {
+    await directusPatch(`/items/theme_presets/${rows[0].id}`, body, token);
+    return;
+  }
+  await directusPost("/items/theme_presets", body, token);
+}
+
+async function upsertSiteSettings(body: Record<string, unknown>, token: string) {
+  const rows = await directusGet<Array<{ id?: number }>>("/items/site_settings?fields=id&limit=1", token);
+  if (rows[0]?.id) {
+    await directusPatch(`/items/site_settings/${rows[0].id}`, body, token);
+    return;
+  }
+  await directusPost("/items/site_settings", body, token);
+}
+
+async function upsertHomeBlock(type: string, body: Record<string, unknown>, token: string) {
+  const rows = await directusGet<Array<{ id?: number; sort?: number }>>(
+    `/items/fithou_page_blocks?filter[page_slug][_eq]=home&filter[type][_eq]=${encodeURIComponent(type)}&fields=id,sort&limit=1`,
+    token
+  );
+  const payload = { page_slug: "home", type, ...body };
+  if (rows[0]?.id) {
+    await directusPatch(`/items/fithou_page_blocks/${rows[0].id}`, payload, token);
+    return;
+  }
+  const knownBlock = defaultPageBlock(type);
+  await directusPost("/items/fithou_page_blocks", { sort: knownBlock?.sort ?? 20, enabled: true, ...payload }, token);
+}
+
+async function login() {
+  if (!directusUrl || !adminEmail || !adminPassword) {
+    throw new Error("FithouOne chưa được cấu hình kết nối dữ liệu");
+  }
+
+  const response = await fetch(`${directusUrl}/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: adminEmail, password: adminPassword })
+  });
+
+  if (!response.ok) {
+    throw new Error(`Không đăng nhập được tài khoản quản trị dữ liệu: ${response.status}`);
+  }
+
+  return ((await response.json()) as DirectusResponse<{ access_token: string }>).data.access_token;
+}
+
+async function directusGet<T>(path: string, token: string) {
+  const response = await fetch(`${directusUrl}${path}`, {
+    headers: { Authorization: `Bearer ${token}` },
+    cache: "no-store"
+  });
+
+  if (!response.ok) {
+    throw new Error(`Yêu cầu đọc dữ liệu thất bại: ${response.status} ${await response.text()}`);
+  }
+
+  return ((await response.json()) as DirectusResponse<T>).data;
+}
+
+async function directusPost<T>(path: string, body: unknown, token: string) {
+  const response = await fetch(`${directusUrl}${path}`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(body)
+  });
+
+  if (!response.ok) {
+    throw new Error(`Yêu cầu tạo dữ liệu thất bại: ${response.status} ${await response.text()}`);
+  }
+
+  const text = await response.text();
+  return text ? ((JSON.parse(text) as DirectusResponse<T>).data as T) : ({} as T);
+}
+
+async function directusPatch<T = unknown>(path: string, body: Record<string, unknown>, token: string) {
+  const response = await fetch(`${directusUrl}${path}`, {
+    method: "PATCH",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(removeUndefined(body))
+  });
+
+  if (!response.ok) {
+    throw new Error(`Yêu cầu cập nhật dữ liệu thất bại: ${response.status} ${await response.text()}`);
+  }
+
+  const text = await response.text();
+  return text ? ((JSON.parse(text) as DirectusResponse<T>).data as T) : ({} as T);
+}
+
+async function directusUploadFile(fileName: string, mimeType: string, bytes: Uint8Array, token: string) {
+  const form = new FormData();
+  form.append("file", new Blob([bytes], { type: mimeType }), fileName);
+  form.append("title", fileName);
+
+  const response = await fetch(`${directusUrl}/files`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: form
+  });
+
+  if (!response.ok) {
+    throw new Error(`Upload avatar thất bại: ${response.status} ${await response.text()}`);
+  }
+
+  return ((await response.json()) as DirectusResponse<{ id: string }>).data.id;
+}
+
+async function directusDelete(path: string, token: string) {
+  const response = await fetch(`${directusUrl}${path}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` }
+  });
+
+  if (!response.ok) {
+    throw new Error(`Yêu cầu xóa dữ liệu thất bại: ${response.status} ${await response.text()}`);
+  }
+}
+
+function revalidateAdmin() {
+  revalidatePath("/");
+  revalidatePath("/quan-tri");
+  revalidatePath("/quan-tri/nang-cao");
+}
+
+function fallbackRoles(): AdvancedRole[] {
+  return Object.entries(roleNameMap).map(([id, name]) => ({ id, name, description: "" }));
+}
+
+function fallbackSections(): AdvancedSection[] {
+  return legacySections.map((section) => ({
+    key: section.key,
+    name: section.title,
+    description: section.description,
+    enabled: true
+  }));
+}
+
+function cleanText(value: FormDataEntryValue | null, maxLength: number) {
+  return String(value ?? "").trim().slice(0, maxLength);
+}
+
+function cleanList(value: FormDataEntryValue | null, maxItems: number) {
+  return cleanText(value, 2000)
+    .split(/\n+/)
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .slice(0, maxItems);
+}
+
+function avatarIdFromUser(user: Pick<UserRow, "avatar">) {
+  if (!user.avatar) return "";
+  return typeof user.avatar === "string" ? user.avatar : user.avatar.id ?? "";
+}
+
+function directusAssetUrl(fileId: string) {
+  return fileId ? `/api/fithou-auth/avatar-image/${encodeURIComponent(fileId)}` : "";
+}
+
+async function uploadPresetAvatar(preset: string, name: string, token: string) {
+  const palettes: Record<string, [string, string]> = {
+    ocean: ["#0ea5e9", "#075985"],
+    emerald: ["#10b981", "#0f766e"],
+    violet: ["#8b5cf6", "#5b21b6"],
+    amber: ["#f59e0b", "#b45309"]
+  };
+  const [from, to] = palettes[preset] ?? palettes.ocean;
+  const initials =
+    name
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(-2)
+      .map((part) => part[0]?.toUpperCase())
+      .join("") || "F";
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256"><defs><linearGradient id="g" x1="0" x2="1" y1="0" y2="1"><stop stop-color="${from}"/><stop offset="1" stop-color="${to}"/></linearGradient></defs><rect width="256" height="256" rx="64" fill="url(#g)"/><text x="128" y="145" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="82" font-weight="800" fill="#fff">${escapeXml(initials)}</text></svg>`;
+  return directusUploadFile(`fithou-avatar-${preset}-${Date.now()}.svg`, "image/svg+xml", Uint8Array.from(Buffer.from(svg, "utf8")), token);
+}
+
+function escapeXml(value: string) {
+  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+function boundedNumber(value: FormDataEntryValue | null, min: number, max: number, fallback: number) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.min(max, Math.max(min, Math.round(parsed)));
+}
+
+function colorValue(value: FormDataEntryValue | null, fallback: string) {
+  const color = cleanText(value, 20);
+  return /^#[0-9a-fA-F]{6}$/.test(color) ? color : fallback;
+}
+
+function normalizeSection(value: string) {
+  if (value === "all") return "all";
+  const found = legacySections.find((section) => section.key === value);
+  return (found?.key ?? "announcements") as LegacySectionKey | "all";
+}
+
+function normalizeSections(values: FormDataEntryValue[]) {
+  return values
+    .map((value) => normalizeSection(String(value)))
+    .filter((value): value is LegacySectionKey => value !== "all");
+}
+
+function roleKind(name: string): "system_admin" | "content_admin" | "publisher" | "editor" | "contributor" {
+  const normalized = name.toLowerCase();
+  if (normalized.includes("system_admin") || normalized.includes("system admin") || normalized.includes("administrator") || normalized.includes("hệ thống")) return "system_admin";
+  // Gộp "Publisher / chuyên trang" vào "Quản trị nội dung" (content_admin) — cùng quyền đăng+duyệt, đều chọn được chuyên mục.
+  if (
+    normalized.includes("content_admin") || normalized.includes("content admin") || normalized.includes("quản trị nội dung") ||
+    normalized.includes("publisher") || normalized.includes("chuyên trang") || normalized.includes("duyệt")
+  ) return "content_admin";
+  if (normalized.includes("editor") || normalized.includes("biên")) return "editor";
+  return "contributor";
+}
+
+function displayRoleName(name: string) {
+  const normalized = name.toLowerCase();
+  if (normalized.includes("administrator") || normalized.includes("system admin")) return "Quản trị viên hệ thống";
+  if (normalized.includes("content admin") || normalized.includes("publisher") || normalized.includes("chuyên trang")) return "Quản trị nội dung";
+  if (normalized.includes("editor")) return "Biên tập viên";
+  return name;
+}
+
+function scopePermissions(kind: ReturnType<typeof roleKind>) {
+  if (kind === "system_admin" || kind === "content_admin" || kind === "publisher") {
+    return { canCreate: true, canReview: true, canPublish: true };
+  }
+
+  return { canCreate: true, canReview: false, canPublish: false };
+}
+
+function slugKey(value: string) {
+  return value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80);
+}
+
+function permissionLevelFromForm(formData: FormData) {
+  const text = Array.from(formData.values()).join(" ").toLowerCase();
+  if (text.includes("xóa") || text.includes("user") || text.includes("pagebuilder")) return "admin";
+  if (text.includes("xuất bản") || text.includes("duyệt")) return "publisher";
+  return "editor";
+}
+
+function removeUndefined(body: Record<string, unknown>) {
+  return Object.fromEntries(Object.entries(body).filter(([, value]) => value !== undefined));
+}
+
+function defaultPageBlock(type: string) {
+  const defaults: Record<string, { sort: number; title: string; kicker?: string; description?: string; actionLabel?: string; href?: string }> = {
+    hero: { sort: 1, title: "Khoa Công nghệ Thông tin" },
+    "quick-links": { sort: 2, title: "Lối tắt sinh viên" },
+    "tech-showcase": {
+      sort: 3,
+      title: "Hệ sinh thái số của Khoa CNTT",
+      kicker: "Technology showcase",
+      description: "Một khối trình diễn công nghệ gọn, có thể bật/tắt bằng PageBuilder và dùng để nhấn mạnh các trục đào tạo, nghiên cứu, học liệu và kết nối sinh viên.",
+      actionLabel: "Xem nghiên cứu",
+      href: "/nghien-cuu"
+    },
+    "article-list": { sort: 4, title: "Thông báo mới" },
+    "section-grid": { sort: 5, title: "Các mảng thông tin chính" },
+    research: { sort: 6, title: "Nghiên cứu khoa học" },
+    "open-resources": { sort: 7, title: "Tri thức mở cho sinh viên CNTT" },
+    gallery: { sort: 8, title: "Thư viện hình ảnh" }
+  };
+
+  return defaults[type];
+}
