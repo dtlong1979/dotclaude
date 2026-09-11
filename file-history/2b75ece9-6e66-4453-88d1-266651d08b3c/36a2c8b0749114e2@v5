@@ -1,0 +1,192 @@
+# -*- coding: utf-8 -*-
+"""Bảng tổng hợp Excel (vòng 4): điểm, nhận xét chi tiết, minh chứng công bố - ứng dụng."""
+import json, sys, re
+from collections import Counter
+import openpyxl
+from openpyxl import Workbook
+from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+from openpyxl.utils import get_column_letter
+
+sys.path.insert(0, '.')
+import diem, audit, sinh_phieu
+from minhchung import MC, KHONG_DU_DK, KHONG_DU_DK_NAM, KHONG_CHE_TEN, ANDANH, PHU_CB, VANPHONG, CB_LQ, CONG_CB
+
+
+def khac(m):
+    g = []
+    if m in CB_LQ:
+        g.append(f'Công bố liên quan: {CB_LQ[m]} bài (cộng {CONG_CB[m]} điểm Kết quả).')
+    if m in PHU_CB:
+        g.append('Báo cáo - công bố (ghi nhận, không trừ điểm): ' + PHU_CB[m])
+    if m in VANPHONG:
+        g.append(('Văn phong AI (rõ, trừ HT): ' if VANPHONG[m][0] == 'ro' else 'Văn phong (chỉ nhận xét): ') + VANPHONG[m][1])
+    return '\n'.join(g)
+
+
+def dk(m):
+    if m in KHONG_CHE_TEN and m in KHONG_DU_DK_NAM:
+        return 'Không hợp lệ (không che tên; không có CB/UD 2025)'
+    if m in KHONG_CHE_TEN:
+        return 'Không hợp lệ (không che tên)'
+    if m in KHONG_DU_DK_NAM:
+        return 'Không đủ (không có CB/UD 2025)'
+    return 'Đủ'
+
+
+def che(m):
+    return f'{ANDANH[m][0]}: {ANDANH[m][1]}' if m in ANDANH else 'Đã che'
+
+EX = json.load(open('excel.json', encoding='utf-8'))
+LY = json.load(open('lydo.json', encoding='utf-8'))
+OUT = r'D:\HĐ NCKH\6. Bang cham diem - TS Dinh Tuan Long.xlsx'
+SRC = r'D:\HĐ NCKH\5. HĐ 1 Phân công phản biện TS Đinh Tuấn Long.xlsx'
+
+MAU = {'Vào vòng chung khảo': 'C6E0B4', 'Giải Ba': 'DDEBF7', 'Giải Khuyến khích': 'FFF2CC', 'Không đạt giải': 'F2F2F2'}
+VIEN = Border(*[Side(style='thin', color='BFBFBF')] * 4)
+DO = PatternFill('solid', fgColor='F8CBAD')
+
+# Dữ liệu gốc của Bộ (danh sách đề tài)
+BO = {}
+ws = openpyxl.load_workbook(SRC, data_only=True)['HĐ 01']
+for r in ws.iter_rows(min_row=7, values_only=True):
+    if r[6]:
+        BO[str(r[6]).strip()] = [str(x or '').strip() for x in r[9:16]]
+
+
+def sach(s):
+    out = []
+    for d in str(s).splitlines():
+        d = d.strip().lstrip('-').strip()
+        for k in ('⭐', '⚠', '**', '→'):
+            d = d.replace(k, '')
+        d = ' '.join(d.split())
+        if d and not d.startswith('TQ '):
+            out.append('• ' + d)
+    return '\n'.join(out)
+
+
+def tieu_de(ws, dong, cot, mau='305496'):
+    for j, h in enumerate(cot, 1):
+        c = ws.cell(row=dong, column=j, value=h)
+        c.font = Font(bold=True, color='FFFFFF')
+        c.fill = PatternFill('solid', fgColor=mau)
+        c.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+        c.border = VIEN
+    ws.row_dimensions[dong].height = 36
+
+
+def o(ws, r, c, v, giua=False, dam=False, bao=True):
+    x = ws.cell(row=r, column=c, value=v)
+    x.border = VIEN
+    x.alignment = Alignment(vertical='top', wrap_text=bao, horizontal='center' if giua else 'left')
+    if dam:
+        x.font = Font(bold=True)
+    return x
+
+
+wb = Workbook()
+rows = sorted(diem.D, key=lambda m: (-diem.tong(m), m))
+
+# ---------- Sheet 1: bảng chấm ----------
+s1 = wb.active
+s1.title = 'Bảng chấm'
+s1['A1'] = ('BẢNG CHẤM ĐIỂM SƠ KHẢO - Hội đồng 01, Khoa học tự nhiên - TS. Đinh Tuấn Long, Khoa CNTT, '
+            'Trường Đại học Mở Hà Nội. Điều kiện dự giải: ít nhất một trong hai (công bố - gồm báo cáo '
+            'seminar/hội thảo từ cấp khoa - hoặc ứng dụng) thuộc năm 2025, và hồ sơ che tên tác giả. Nhóm có giải: '
+            'hồ sơ hợp lệ đạt từ 70 điểm; mức giải xếp theo thứ hạng, tỷ lệ chung khảo : Ba : Khuyến khích = '
+            '20 : 25 : 40, không tách các đề tài bằng điểm. Không đạt: 55-69 điểm.')
+s1['A1'].font = Font(bold=True)
+s1['A1'].alignment = Alignment(wrap_text=True, vertical='center')
+C1 = ['STT', 'Mã', 'Tên đề tài', 'PB', 'TQ\n(10)', 'ND\n(20)', 'PP\n(15)', 'KQ\n(40)', 'HT\n(5)', 'CB\n(10)',
+      'Tổng', 'Xếp giải', 'Điều kiện\ndự giải', 'Che tên tác giả', 'Báo cáo bao trùm công bố / văn phong', 'Số\ntrang', 'Số\nTLTK',
+      'Nhận xét (nội dung đưa vào phiếu)', 'Căn cứ chấm chi tiết - điểm mạnh, hạn chế (ghi chép khi đọc hồ sơ)']
+s1.merge_cells(start_row=1, start_column=1, end_row=1, end_column=len(C1))
+s1.row_dimensions[1].height = 48
+tieu_de(s1, 2, C1)
+for i, m in enumerate(rows, 3):
+    v, t = diem.D[m], diem.tong(m)
+    xg = diem.xep(t, m)
+    vals = [EX.get(m, {}).get('stt'), m, sinh_phieu.ten_cua(m), 'PB' if m in diem.PB else '',
+            *v[:6], t, xg, dk(m), che(m), khac(m), v[6] or '', v[7],
+            sinh_phieu.y_kien_pl2(m), sach(LY.get(m, ''))]
+    for j, val in enumerate(vals, 1):
+        o(s1, i, j, val, giua=j in (1, 4, 5, 6, 7, 8, 9, 10, 11, 16, 17), dam=j == 11)
+    if m in PHU_CB or (m in VANPHONG and VANPHONG[m][0] == 'ro'):
+        s1.cell(row=i, column=15).fill = PatternFill('solid', fgColor='FFE699')
+    for j in (11, 12):
+        s1.cell(row=i, column=j).fill = PatternFill('solid', fgColor=MAU[xg])
+    if m in KHONG_DU_DK:
+        s1.cell(row=i, column=13).fill = DO
+    if m in ANDANH:
+        s1.cell(row=i, column=14).fill = DO if ANDANH[m][0] == 'A' else PatternFill('solid', fgColor='FFE699')
+    s1.row_dimensions[i].height = 150
+for c, w in zip(range(1, len(C1) + 1), [5, 9, 38, 5, 5, 5, 5, 5, 5, 5, 7, 16, 14, 24, 34, 6, 6, 60, 90]):
+    s1.column_dimensions[get_column_letter(c)].width = w
+s1.freeze_panes = 'D3'
+s1.auto_filter.ref = f'A2:{get_column_letter(len(C1))}{len(rows) + 2}'
+
+# ---------- Sheet 2: minh chứng công bố - ứng dụng ----------
+s2 = wb.create_sheet('Minh chứng CB-UD')
+s2['A1'] = ('TỔNG HỢP MINH CHỨNG CÔNG BỐ VÀ ỨNG DỤNG - đối chiếu với danh sách của Bộ. '
+            'Cột "Đánh giá năm 2025" là kết quả kiểm tra trực tiếp minh chứng trong hồ sơ; '
+            'cột "Bộ ghi" lấy nguyên văn từ danh sách đề tài để tiện đối chiếu, điều chỉnh.')
+s2['A1'].font = Font(bold=True)
+s2['A1'].alignment = Alignment(wrap_text=True, vertical='center')
+C2 = ['Mã', 'Tổng', 'Xếp giải', 'Công bố (chi tiết, thời điểm)', 'Ghi chú thời điểm công bố',
+      'Báo cáo seminar / hội thảo', 'Tổ chức ứng dụng (địa chỉ ứng dụng)', 'Thời gian ứng dụng', 'Ngày ký văn bản',
+      'Đánh giá văn bản ứng dụng', 'Đánh giá: có CB/UD năm 2025', 'Điều kiện dự giải', 'Che tên tác giả',
+      'Bộ ghi: bài báo tạp chí', 'Bộ ghi: kỷ yếu hội nghị, hội thảo', 'Bộ ghi: báo cáo seminar', 'Bộ ghi: ứng dụng',
+      'Bộ ghi: có CB/UD năm 2025']
+s2.merge_cells(start_row=1, start_column=1, end_row=1, end_column=len(C2))
+s2.row_dimensions[1].height = 40
+tieu_de(s2, 2, C2, '375623')
+for i, m in enumerate(rows, 3):
+    sem, org, tg, ky, dg, co = MC[m]
+    bo = BO.get(m, [''] * 7)
+    t = diem.tong(m)
+    vals = [m, t, diem.xep(t, m), audit.CB.get(m, ''), audit.NOTE.get(m, ''), sem, org, tg, ky, dg, co,
+            dk(m), che(m), bo[0], bo[1], bo[2], bo[3], bo[6]]
+    for j, val in enumerate(vals, 1):
+        o(s2, i, j, val, giua=j in (1, 2, 18))
+    if m in KHONG_DU_DK_NAM:
+        s2.cell(row=i, column=11).fill = DO
+    if m in KHONG_DU_DK:
+        s2.cell(row=i, column=12).fill = DO
+    if m in ANDANH:
+        s2.cell(row=i, column=13).fill = DO if ANDANH[m][0] == 'A' else PatternFill('solid', fgColor='FFE699')
+    if (bo[6].lower().startswith('có')) != (m not in KHONG_DU_DK_NAM):
+        s2.cell(row=i, column=18).fill = PatternFill('solid', fgColor='FFE699')
+    s2.row_dimensions[i].height = 110
+for c, w in zip(range(1, len(C2) + 1), [9, 6, 15, 45, 26, 32, 34, 16, 16, 38, 24, 14, 30, 32, 32, 28, 28, 10]):
+    s2.column_dimensions[get_column_letter(c)].width = w
+s2.freeze_panes = 'B3'
+s2.auto_filter.ref = f'A2:{get_column_letter(len(C2))}{len(rows) + 2}'
+
+# ---------- Sheet 3: thống kê ----------
+s3 = wb.create_sheet('Thống kê')
+n = len(diem.D)
+c = Counter(diem.xep(diem.tong(m), m) for m in diem.D)
+TK = [('Tổng số đề tài', n, '', ''),
+      ('Vào vòng chung khảo', c['Vào vòng chung khảo'], f'{c["Vào vòng chung khảo"]/n*100:.1f}%', 'tối đa 20%'),
+      ('Giải Ba', c['Giải Ba'], f'{c["Giải Ba"]/n*100:.1f}%', 'tối đa 25%'),
+      ('Giải Khuyến khích', c['Giải Khuyến khích'], f'{c["Giải Khuyến khích"]/n*100:.1f}%', 'tối đa 40%'),
+      ('Không đạt giải', c['Không đạt giải'], f'{c["Không đạt giải"]/n*100:.1f}%', 'phần còn lại; điểm 55-69'),
+      ('  trong đó không hợp lệ / không đủ điều kiện', len(KHONG_DU_DK), f'{len(KHONG_DU_DK)/n*100:.1f}%', ''),
+      ('    - không che tên tác giả', len(KHONG_CHE_TEN), '', ', '.join(sorted(KHONG_CHE_TEN))),
+      ('    - không có công bố/ứng dụng năm 2025', len(KHONG_DU_DK_NAM), '', ', '.join(sorted(KHONG_DU_DK_NAM))),
+      ('  Có nhiều công bố liên quan (cộng điểm Kết quả)', len(CB_LQ), '', ', '.join(f'{m} (+{CONG_CB[m]})' for m in sorted(CB_LQ))),
+      ('  Báo cáo chưa trình bày một số công bố (chỉ ghi nhận)', len(PHU_CB), '', ', '.join(sorted(PHU_CB))),
+      ('  Văn phong AI rõ (trừ Hình thức)', sum(1 for v in VANPHONG.values() if v[0] == 'ro'), '',
+       ', '.join(sorted(m for m, v in VANPHONG.items() if v[0] == 'ro'))),
+      ('  Che tên chưa kín (trừ điểm, vẫn xét)', sum(1 for v in ANDANH.values() if v[0] == 'B'), '',
+       ', '.join(sorted(m for m, v in ANDANH.items() if v[0] == 'B'))),
+      ('Phổ điểm', f'{min(map(diem.tong, diem.D))}-{max(map(diem.tong, diem.D))}', '', '')]
+tieu_de(s3, 1, ['Chỉ tiêu', 'Số lượng', 'Tỷ lệ', 'Định mức / ghi chú'])
+for i, r in enumerate(TK, 2):
+    for j, val in enumerate(r, 1):
+        o(s3, i, j, val, giua=j in (2, 3))
+for col, w in zip('ABCD', [36, 10, 9, 80]):
+    s3.column_dimensions[col].width = w
+
+wb.save(OUT)
+print('Đã lưu', OUT)

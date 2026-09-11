@@ -1,0 +1,159 @@
+# -*- coding: utf-8 -*-
+"""Bảng tổng hợp minh chứng (vòng 4): công bố, báo cáo seminar/hội thảo, ứng dụng.
+Quy tắc điều kiện: ít nhất một trong hai (công bố - gồm cả báo cáo seminar/hội thảo
+từ cấp khoa trở lên - hoặc ứng dụng) thuộc NĂM 2025. Văn bản sai/thiếu ngày ký,
+bỏ trống nội dung đánh giá: vẫn chấp nhận nhưng trừ điểm."""
+
+# ma: (seminar/hội thảo, tổ chức ứng dụng, thời gian ứng dụng, ngày ký, đánh giá văn bản, có trong 2025)
+MC = {
+ '1-103': ('', 'Mẫu 05 (phần II: GVHD); Trường CNTT&TT - ĐH Bách khoa HN; NLP@UIT - ĐH CNTT ĐHQG-HCM; URA - ĐH Bách khoa ĐHQG-HCM; Youthdev',
+           'từ 05/2025; từ 06/2025', '29/05/2026; 03/06/2026; 01/06/2026; 20/05/2026',
+           'Đạt. Phần II của Mẫu 05 chỉ có tiêu đề, không có nội dung.', 'Có - công bố 2025; ứng dụng 2025'),
+ '19-103': ('Seminar nhóm AVITECH - Viện Trí tuệ nhân tạo, 19/05/2025 (giấy ký 03/06/2026)', '', '', '', '', 'Có - seminar 2025'),
+ '22-101': ('', '', '', '', '', 'Có - bài chấp nhận, xuất bản trực tuyến 2025'),
+ '39-102': ('', 'Công ty CP Hệ thống Mạng Thông tin Tích hợp Tối ưu (i3 Network System)', 'từ 03/2025', '10/03/2025',
+            'Có nội dung, chữ ký, dấu. Ngày ký 10/03/2025 không thống nhất với nội dung (dẫn bài báo số 06/2025, năm học 2025-2026).',
+            'Có - công bố 06/2025; ứng dụng 2025'),
+ '67-102': ('Hội nghị Khoa học trẻ lần 7 - ĐH Công nghiệp TP.HCM, 01/11/2025 (giấy ký 21/08/2026)', '', '', '', '', 'Có - hội nghị 2025'),
+ '68-103': ('Hội nghị Khoa học trẻ lần 7 - ĐH Công nghiệp TP.HCM, 01/11/2025 (giấy ký 21/08/2026)', '', '', '', '', 'Có - hội nghị 2025'),
+ '71-103': ('', 'Trung tâm ngoại ngữ Nancy Doan', 'bỏ trống', '20/06/2026',
+            'Không đạt: bỏ trống thời gian ứng dụng và nội dung xác nhận.', 'Không'),
+ '77-101': ('Seminar Khoa Toán - Tin, ĐHSP - ĐH Đà Nẵng, 17/12/2025', '', '', '', '', 'Có - seminar 2025'),
+ '101-103': ('Hội thảo (theo danh mục của Bộ)', 'Công ty CP Công nghệ Stackway', 'từ 04/2025', '02/06/2026',
+             'Đạt. Mục cơ quan chủ quản bỏ trống.', 'Có - ứng dụng 2025'),
+ '102-103': ('', 'Công ty TNHH MTV Phần mềm RIC', '04/2025-05/2026', '27/05/2026',
+             'Phần xác nhận chỉ nêu "có khả năng ứng dụng", không xác nhận đã ứng dụng.', 'Có - ứng dụng 2025'),
+ '134-102': ('Chứng nhận tham dự hội thảo Khoa CNTT - ĐH Nghệ An, đề ngày 08/12/2015 (không phù hợp sinh viên khóa 2023)', '', '', '', '',
+             'Có (theo Bộ) - ngày trên giấy có sai sót'),
+ '150-103': ('', 'Trường ĐH Công nghệ Kỹ thuật TP.HCM (chỉ cơ quan chủ quản)', 'từ 10/2025', '.../06/2026 (ngày viết tay không đọc được)',
+             'Không có phần II của tổ chức ứng dụng; mục cơ quan chủ quản không ghi tên.', 'Có - công bố 2025; ứng dụng 2025'),
+ '151-103': ('', 'Trường ĐH Công nghệ Kỹ thuật TP.HCM (chỉ cơ quan chủ quản)', 'từ 10/2025', '17/06/2026',
+             'Không có phần II của tổ chức ứng dụng.', 'Có - công bố 2025; ứng dụng 2025'),
+ '157-103': ('', 'Trường ĐH Công nghệ Kỹ thuật TP.HCM (chỉ cơ quan chủ quản)', 'từ 10/2025', '18/06/2026',
+             'Không có phần II của tổ chức ứng dụng.', 'Có - công bố 04/2025'),
+ '174-103': ('', 'Viện Nghiên cứu Ứng dụng Công nghệ CMC (ATI)', 'Bộ ghi 11/2025-06/2026', '20/05/2026',
+             'Không đạt: nội dung là cho phép sinh viên sử dụng kết quả nghiên cứu thử nghiệm của Viện, không phải xác nhận đã ứng dụng.',
+             'Không - văn bản không phải xác nhận ứng dụng'),
+ '176-103': ('Seminar Khoa CNTT - ĐH Công nghệ TP.HCM, 29/05/2025', '', '', '', '', 'Có - seminar 2025'),
+ '177-103': ('Seminar Khoa CNTT - ĐH Công nghệ TP.HCM, 29/05/2025', '', '', '', '', 'Có - seminar 2025'),
+ '178-103': ('Seminar Khoa CNTT - ĐH Công nghệ TP.HCM, 29/05/2025', '', '', '', '', 'Có - seminar 2025'),
+ '192-102': ('Báo cáo L-PINN; biên bản hội đồng cấp trường 27/05/2026', '', '', '', '', 'Không'),
+ '193-102': ('EAI RAIDS 2026 (10-12/03/2026); biên bản hội đồng cấp trường 27/05/2026', '', '', '', '', 'Không - 2026'),
+ '197-102': ('Báo cáo khoa học tháng 6/2024 (xác nhận ký 22/06/2026)', '', '', '', '', 'Không - công bố và báo cáo đều năm 2024'),
+ '205-102': ('Giấy xác nhận tham gia hội nghị cấp khoa', 'Trường ĐH Quốc tế Sài Gòn (SIU) - cơ sở đào tạo của nhóm', '2025-2026', '',
+             'Có nội dung (triển khai, thử nghiệm trong phạm vi nghiên cứu); mục I.6 bỏ trống.', 'Có - ứng dụng 2025-2026'),
+ '215-103': ('', '', '', '', '', 'Không - minh chứng là bản thảo; Bộ ghi xuất bản 2026'),
+ '219-102': ('Seminar Khoa Khoa học tự nhiên, 28/11/2025', '', '', '', '', 'Có - seminar 2025'),
+ '241-102': ('Seminar cấp khoa (3 biên bản)', 'Công ty TNHH MTV TM-DV và Công nghệ An Phát; Công ty CP Công nghệ số Meduteech (Tuyên Quang)',
+             '11/2025-18/05/2026', '20/05/2026', 'Đạt. Hai doanh nghiệp có nội dung, chữ ký, dấu.', 'Có - ứng dụng 2025'),
+ '261-103': ('Hội thảo Khoa CNTT - ĐH Xây dựng Hà Nội', 'Công ty TNHH Epic Sight (theo danh mục của Bộ)', '', '', '', 'Có - VNICT 2025'),
+ '267-103': ('', 'Trường ĐH Đà Lạt', '', '', 'Không đạt: chỉ nêu tiềm năng ứng dụng, dự kiến triển khai trong tương lai.', 'Không'),
+ '279-102': ('Tọa đàm Khoa CNTT - ĐHSP TP.HCM, 28/06/2025 (giấy xác nhận đề ngày 28/12/2024, trước ngày tổ chức)', '', '', '', '',
+             'Có - tọa đàm 2025 (giấy có sai sót ngày)'),
+ '310-102': ('Báo cáo khoa học tháng 10/2025 (xác nhận ký 18/06/2026)', '', '', '', '', 'Có - báo cáo 2025'),
+ '315-103': ('Báo cáo khoa học tháng 12/2025 (xác nhận ký 18/06/2026)', '', '', '', '', 'Có - báo cáo 2025'),
+ '369-102': ('', 'Trường ĐH Duy Tân', '20/05/2026', '', 'Thời gian ứng dụng năm 2026.', 'Không'),
+ '370-102': ('', 'ĐH Duy Tân - Khoa Đào tạo quốc tế', '01/2026-04/2026', '20/06/2026',
+             'Phần II chỉ một dòng; mục I.6 bỏ trống.', 'Không - ứng dụng 2026'),
+ '387-101': ('', 'Trường THPT (tên bị che)', 'từ 12/2024', '17/06/2026', 'Đạt.', 'Có - ứng dụng 2025'),
+ '388-101': ('Kỷ yếu HT "Lý thuyết Lie, lý thuyết điểm bất động và một số vấn đề liên quan", 06/12/2025', '', '', '', '', 'Có - kỷ yếu 2025'),
+ '395-103': ('', 'Cơ sở đào tạo của nhóm tác giả', 'từ 05/2025', '25/06/2026', 'Đạt.', 'Có - công bố 2025; ứng dụng 2025'),
+ '404-102': ('Giấy xác nhận tham dự hội thảo của trường', 'Trường CNTT&TT (Lab1602); Công ty CP Dịch vụ và Công nghệ HP',
+             '05-08/2026; 06-09/2026', '24/06/2025; 25/06/2025', 'Ngày ký trước thời gian ứng dụng một năm; ngày ký không thống nhất với nội dung.',
+             'Có - AETA 2025'),
+ '405-103': ('Seminar quốc tế "Các mô hình TTNT lai và ứng dụng", 24/06/2025 (giấy không ghi ngày, tháng ký)', '', '', '', '',
+             'Có - seminar 2025 (giấy không ghi ngày ký)'),
+ '425-102': ('', 'Trường ĐH Sư phạm Hà Nội', 'từ 07/2025', '24/06/2025',
+             'Ký trước ngày bắt đầu ứng dụng; dòng "Nội dung đã ứng dụng" bỏ trống.', 'Có - KSE 2025; ứng dụng 2025'),
+ '454-103': ('', 'Trường ĐH Hà Nội (Phòng QLKH)', '06/2025-06/2026', '16/06/2026', 'Đạt.', 'Có - ứng dụng 2025'),
+ '456-103': ('', 'Trường ĐH Hà Nội', '05/2025-06/2026', '27/06/2024', 'Ngày ký trước thời gian ứng dụng.', 'Có - ứng dụng 2025'),
+ '459-103': ('', 'Trường ĐH Hà Nội - Khoa CNTT', '01/06/2025-10/06/2026 (phần I); 08/2025-08/2026 (phần II)', '29/06/2026',
+             'Hai thời gian ứng dụng mâu thuẫn; mục lĩnh vực bỏ trống.', 'Có - ứng dụng 2025'),
+ '466-103': ('', 'Trường ĐH CNTT - ĐHQG-HCM (chỉ cơ quan chủ quản)', '09/2025 - nay', '29/06/2026',
+             'Không có phần II của tổ chức ứng dụng.', 'Có - công bố 2025; ứng dụng 2025'),
+ '467-102': ('', 'Trường ĐH CNTT - ĐHQG-HCM', '08/2025 - nay', '29/06/2026', 'Có nội dung.', 'Có - ứng dụng 2025'),
+ '495-103': ('', 'Công an xã Thanh An; Công an xã Núa Ngam (Điện Biên)', '10/2025-12/2025', '25/05/2026',
+             'Hai văn bản nội dung giống nhau; văn bản của CA xã Núa Ngam ghi ứng dụng tại CA xã Thanh An; một số mục thông tin bỏ trống.',
+             'Có - ứng dụng 2025'),
+ '567-102': ('Bộ ghi "Seminar cấp khoa" - hồ sơ không có minh chứng', '', '', '', '', 'Không - SCI-2026 (04/2026)'),
+ '591-103': ('', 'Công ty TNHH Phần mềm Quốc Bảo; Công ty TNHH DVKT Nguyên Đạt', 'từ 05/06/2025', '20/06/2026', 'Đạt.', 'Có - ứng dụng 2025'),
+ '592-103': ('', 'Công ty CP Tin học Đại Phát', 'từ 06/2025', '24/06/2026', 'Đạt.', 'Có - ứng dụng 2025'),
+ '593-103': ('', 'Công ty TNHH Phần mềm Quốc Bảo; Công ty TNHH DVKT Nguyên Đạt', 'từ 06/2025', '24/06/2026',
+             'Đạt. Trùng đơn vị và người ký với hồ sơ 591-103.', 'Có - ứng dụng 2025'),
+ '603-103': ('', 'Trường THPT Marie Curie (TP.HCM)', 'từ 05/2025', '03/06/2026', 'Đạt; nội dung cụ thể.', 'Có - ứng dụng 2025'),
+ '607-103': ('', '', '', '', '', 'Không - kỷ yếu năm 2024'),
+ '613-103': ('', '', '', '', '', 'Có - bài Q2 năm 2025'),
+ '615-103': ('', '', '', '', '', 'Có - DEFI 2025'),
+ '626-103': ('', '', '', '', '', 'Có - JVCIR, NCA chấp nhận 2025'),
+ '631-103': ('', '', '', '', '', 'Có - Neurocomputing 09/2025'),
+ '643-103': ('', '', '', '', '', 'Có - PSET 2025; JASE chấp nhận 10/2025'),
+ '645-101': ('Seminar Khoa Toán - Tin, ĐH Bách khoa HN, 16/12/2025', '', '', '', '', 'Có - seminar 2025'),
+ '649-103': ('Student Research Symposium 2025 (06/2025); Hội thảo KHQG (12/2025)', 'Khoa CNTT - Trường Công nghệ, ĐH Kinh tế Quốc dân',
+             'từ 05/03/2026', '16/03/2026', 'Phần xác nhận ký tay, không đóng dấu.', 'Có - hội thảo 2025'),
+ '676-101': ('', 'Trường ĐH Khoa học - ĐH Thái Nguyên (cơ quan chủ quản)', 'từ 10/2025', '26/05/2026',
+             'Phần II không có chữ ký, họ tên người xác nhận.', 'Có - ứng dụng 2025'),
+ '708-103': ('', '', '', '', '', 'Có - ICIT 2025'),
+}
+
+# 197-102: dòng của đề tài trên giấy xác nhận ghi "Tháng 6/2024", các dòng khác đều 6/2025
+# (văn bản ký 22/6/2026) - chấp nhận là năm 2025 theo quyết định của thành viên hội đồng.
+MC['197-102'] = ('Báo cáo khoa học tại trường - văn bản ghi "Tháng 6/2024" cho đề tài này, các dòng khác ghi 6/2025 (ký 22/06/2026)',
+                 '', '', '', '', 'Có - báo cáo khoa học 2025 (văn bản ghi sai năm)')
+
+# Kiểm tra che tên tác giả (Khoản 2 Điều 7, Điều 10 Thông tư 45).
+# 'A' = không che tên tác giả/người hướng dẫn -> hồ sơ không hợp lệ; 'B' = che chưa kín -> trừ điểm.
+ANDANH = {
+ '77-101':  ('A', 'Không che tên tác giả: bài báo ghi tên và email tác giả; giấy xác nhận seminar ghi tên sinh viên.'),
+ '177-103': ('A', 'Không che tên tác giả: bản thảo và thư của tạp chí ghi tên, email tác giả liên hệ.'),
+ '178-103': ('A', 'Không che tên: bìa báo cáo tổng kết ghi tên người hướng dẫn.'),
+ '192-102': ('A', 'Không che tên: biên bản hội đồng ghi tên chủ nhiệm đề tài.'),
+ '193-102': ('A', 'Không che tên: biên bản hội đồng ghi tên chủ nhiệm đề tài; giấy chứng nhận hội nghị ghi tên tác giả.'),
+ '279-102': ('A', 'Không che tên tác giả: bài báo ghi email kèm tên tác giả; giấy xác nhận tọa đàm ghi tên sinh viên và người hướng dẫn.'),
+ '315-103': ('A', 'Không che tên: bìa báo cáo tổng kết ghi tên người hướng dẫn.'),
+ '395-103': ('A', 'Không che tên tác giả: văn bản xác nhận ứng dụng ghi họ tên, số CCCD, email sinh viên; các bài báo ghi danh sách tác giả và email.'),
+ '405-103': ('A', 'Không che tên tác giả: trang 1 bài báo ghi email và tên tác giả liên hệ.'),
+ '456-103': ('A', 'Không che tên tác giả: thư chấp nhận và giấy chứng nhận trình bày ghi tên, email sinh viên.'),
+ '466-103': ('A', 'Không che tên tác giả: các bài báo ghi danh sách tác giả.'),
+ '1-103':   ('B', 'Che tên chưa kín: tiêu đề trang của ba bài hội nghị còn tên tác giả.'),
+ '19-103':  ('B', 'Che tên chưa kín: tên sinh viên trên giấy xác nhận seminar bị gạch nhưng còn đọc được.'),
+ '310-102': ('B', 'Che tên chưa kín: tiêu đề trang của bài tạp chí còn tên tác giả.'),
+ '404-102': ('B', 'Che tên chưa kín: tiêu đề trang của bài hội nghị còn tên tác giả.'),
+}
+for _m in ('101-103', '102-103', '150-103', '151-103', '157-103', '205-102', '267-103'):
+    ANDANH[_m] = ('B', 'Che tên chưa kín: văn bản xác nhận ứng dụng che họ tên nhưng còn số CCCD, ngày sinh, địa chỉ.')
+
+# Báo cáo có bao trùm các công bố không (đối chiếu tên mô hình, nội dung từng bài trong toàn văn).
+PHU_CB = {
+ '626-103': 'Báo cáo chỉ trình bày nội dung bài UFR-GAN; các bài QaMatch (đánh giá chất lượng ảnh) và Night Vision (phát hiện đối tượng trong điều kiện thiếu sáng) không được trình bày; bài trên Neural Computing and Applications chỉ xuất hiện trong danh mục tài liệu tham khảo.',
+ '631-103': 'Bài CBSSNet (phân đoạn ảnh y tế) không thuộc chủ đề đề tài và không được trình bày trong báo cáo.',
+ '643-103': 'Bài dự báo công suất điện mặt trời (năm 2024) không thuộc chủ đề dự báo tốc độ gió và không được trình bày trong báo cáo.',
+ '613-103': 'Bài về phân tử nhỏ quá lạnh và bài dự đoán tính chất nhiệt bằng mô hình ngôn ngữ nhỏ không được trình bày, chỉ xuất hiện trong danh mục tài liệu tham khảo hoặc danh mục viết tắt.',
+ '425-102': 'Hai công bố về chứng khó đọc không thuộc trọng tâm đề tài (trẻ khó học toán); báo cáo chỉ nhắc chứng khó đọc ở phần tổng quan.',
+ '310-102': 'Bài NEDA-KAN (phân lớp văn bản bằng mạng KAN) không được trình bày; báo cáo dùng FastText cho khâu phân lớp.',
+ '279-102': 'Bài PMI-Net và bài nhận dạng hành động theo bộ phận cơ thể (IEA/AIE 2026) không được trình bày trong báo cáo.',
+ '649-103': 'Báo cáo không nêu công bố RAG-PRISMA, dù cùng hướng hệ thống.',
+}
+
+# Số công bố chính thức (tạp chí, kỷ yếu; đã đăng hoặc đã chấp nhận) LIÊN QUAN tới đề tài.
+# Quy tắc: có >= 1 công bố liên quan là đạt; nhiều công bố liên quan được cộng điểm Kết quả
+# (2 bài: +1; từ 3 bài: +2). Không cộng cho bài đang phản biện, báo cáo seminar.
+CB_LQ = {
+ '1-103': 5, '615-103': 3, '626-103': 4, '631-103': 3, '643-103': 3, '613-103': 5, '101-103': 3,
+ '102-103': 3, '310-102': 3, '388-101': 3, '67-102': 2, '241-102': 2, '261-103': 2, '425-102': 2,
+}
+CONG_CB = {m: (2 if n >= 3 else 1) for m, n in CB_LQ.items()}
+
+# Văn phong có dấu hiệu dùng công cụ AI tạo sinh ('ro' = rõ, trừ điểm Hình thức; 'vua' = chỉ nhận xét).
+VANPHONG = {
+ '607-103': ('ro', 'Văn phong nhiều đoạn mang giọng hội thoại, xưng hô với người đọc (“bạn có thể nhìn vào bảng…”), có dấu hiệu dùng công cụ AI tạo sinh chưa biên tập.'),
+ '456-103': ('ro', 'Văn phong nhiều đoạn hùng biện khuôn mẫu (“sự hội tụ không thể đảo ngược”, “làn sóng hội tụ”), có dấu hiệu dùng công cụ AI tạo sinh chưa biên tập.'),
+ '567-102': ('ro', 'Văn phong phần mở đầu khuôn mẫu, dày đặc gạch đầu dòng dạng “nhãn: nội dung”, có dấu hiệu dùng công cụ AI tạo sinh chưa biên tập.'),
+ '267-103': ('ro', 'Văn phong nhiều nhận định khuôn mẫu, tuyệt đối hóa (“khẳng định sự vượt trội hoàn toàn”), có dấu hiệu dùng công cụ AI tạo sinh chưa biên tập.'),
+ '369-102': ('ro', 'Văn phong dày đặc gạch đầu dòng dạng “nhãn: nội dung”, có dấu hiệu dùng công cụ AI tạo sinh chưa biên tập.'),
+}
+for _m in ('39-102', '454-103', '22-101', '643-103', '102-103'):
+    VANPHONG[_m] = ('vua', 'Văn phong một số đoạn mang tính khuôn mẫu, sáo ngữ.')
+
+KHONG_DU_DK_NAM = {m for m, v in MC.items() if v[5].startswith('Không')}
+KHONG_CHE_TEN = {m for m, v in ANDANH.items() if v[0] == 'A'}
+KHONG_DU_DK = KHONG_DU_DK_NAM | KHONG_CHE_TEN

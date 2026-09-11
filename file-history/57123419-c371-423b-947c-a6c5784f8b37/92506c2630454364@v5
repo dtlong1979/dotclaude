@@ -1,0 +1,199 @@
+# Ngữ cảnh hay phương thức: trục nào mang tín hiệu?
+
+Xuất phát từ một quan sát của người đọc: con người đọc *một câu* cũng thường không xác
+định nổi cảm xúc của nó, nên thứ mang tín hiệu có thể không phải thêm một kênh, mà là
+cuộc hội thoại xung quanh. Và sắc hơn: ngữ cảnh **cố định nghĩa** — một câu gằn giọng
+giữa cuộc trò chuyện vui thường là đùa; kênh âm thanh và hình ảnh đọc *bề mặt*, bỏ phiếu
+cho "giận dữ", và kéo hệ hợp nhất ra khỏi câu trả lời mà ngữ cảnh đã chốt.
+
+Đó là một giả thuyết dự đoán được **dấu**, nên đo được. Mã:
+`experiments/context_vs_modality.py`, `experiments/iemocap_context.py`,
+`experiments/meld_context.py`.
+
+> **Cập nhật 2026-09-11.** Làm lại trên đặc trưng sạch (mục cuối): phát hiện 1 đứng vững
+> và mạnh lên; **phát hiện 2 ("hai trục thay thế nhau") không đứng vững trên IEMOCAP** —
+> dấu âm đến từ kênh video nhiễm bẩn, không từ việc thêm kênh; phát hiện 3 được MELD củng
+> cố.
+
+---
+
+## Phép đo
+
+Cùng một lưới 2×2 trên ba corpus: {chỉ text, ba kênh} × {có ngữ cảnh, không ngữ cảnh}.
+
+    H_phương thức = (ba kênh − chỉ text)   ở một mức ngữ cảnh cố định
+    H_ngữ cảnh    = (có ngữ cảnh − không)  ở một mức phương thức cố định
+
+**Phép cắt ngữ cảnh là chính xác, không xấp xỉ.** Bỏ ngữ cảnh không đổi mô hình, số tham
+số, optimizer hay lịch học: cùng một bi-LSTM, mỗi phát ngôn được nạp như một chuỗi dài 1.
+Thứ duy nhất bị lấy đi là quyền nhìn sang phát ngôn lân cận, nên chênh lệch giữa hai cột
+không thể là hiệu ứng kiến trúc.
+
+---
+
+## Kết quả: ba corpus, ba câu trả lời khác nhau
+
+3 seed, t-test ghép cặp, accuracy.
+
+| corpus | loại dữ liệu | H_ngữ cảnh (text) | H_phương thức (không ngữ cảnh) | H_phương thức (có ngữ cảnh) |
+|---|---|---|---|---|
+| **IEMOCAP** | đối thoại đôi, 47 lượt/hội thoại | **+8.81** (p=0.0002) | +2.85 (p=0.029) | **−2.30** (p=0.052) |
+| **MOSI** | độc thoại mạch lạc | **+4.83** (p=0.0006) | +1.02 (p=0.013) | −1.29 (p=0.20) |
+| **MOSEI** | clip ngắn rời rạc | −0.20 (p=0.0088) | +0.05 (p=0.70) | +0.72 (p=0.052) |
+
+Ba điều đọc ra được:
+
+**1. Ngữ cảnh đáng giá gấp 3–4 lần phương thức, ở nơi nó tồn tại.** Trên IEMOCAP +8.81
+so với +2.85; trên MOSI +4.83 so với +1.02.
+
+**2. ~~Hai trục là thứ *thay thế* nhau, không bổ sung nhau.~~ Không đứng vững trên
+IEMOCAP** — với text sạch và chỉ audio, thêm kênh giúp *như nhau* ở cả hai cột (+1.21 và
++1.07); mức hại đến từ video nhiễm bẩn (mục cuối). MOSI chưa kiểm được: đặc trưng của nó
+cũng học có giám sát. Lập luận gốc, giữ lại để thấy nó sai ở đâu: trên cả IEMOCAP lẫn MOSI, thêm kênh **giúp** khi mô hình mù ngữ cảnh
+(+2.85, +1.02) và **làm hại** khi mô hình đã có ngữ cảnh (−2.30, −1.29). Nếu kênh phụ chỉ
+đơn thuần là nhiễu, nó phải làm hại *như nhau* ở cả hai cột. Việc đổi dấu đúng theo sự có
+mặt của ngữ cảnh là hình dạng mà giả thuyết "tín hiệu bề mặt mâu thuẫn với ngữ cảnh" dự
+đoán, chứ không phải giả thuyết "kênh yếu".
+
+**3. Lượng tín hiệu ngữ cảnh là thuộc tính của *cách corpus được ghi*, không phải của bài
+toán.** MOSEI gom hàng nghìn clip YouTube ngắn không liên quan vào một "video"; cái gom
+đó không mang trạng thái nào, và H_ngữ cảnh ở đó là **âm**. Đây là song ánh chính xác của
+phát hiện về H_phương thức: cả hai đại lượng đều phụ thuộc corpus, và cả hai đều bị báo
+cáo như thể không.
+
+---
+
+## IEMOCAP: phần lớn bài toán do cấu trúc hội thoại gánh
+
+151 hội thoại đôi, 5.810/1.623 phát ngôn, 6 lớp, nhãn người nói từng lượt, đủ ba phương
+thức (text 100-d, audio 100-d, visual 512-d).
+
+**Các mốc chỉ dùng nhãn** — không đọc chữ, không nghe tiếng, không nhìn hình:
+
+| bộ dự đoán | acc | wF1 | macro F1 | κ |
+|---|---|---|---|---|
+| hằng số (lớp đa số huấn luyện) | 23.48 | 8.93 | 6.34 | 0.0000 |
+| lặp lại lượt ngay trước, ai nói cũng được | 56.07 | 56.18 | 58.07 | 0.4589 |
+| **lặp lại lượt trước của *chính người nói đó*** | **71.35** | **71.50** | **71.22** | **0.6465** |
+
+**Và các mô hình đã huấn luyện:**
+
+| cấu hình | acc | wF1 | macro F1 | κ |
+|---|---|---|---|---|
+| text, không ngữ cảnh | 50.73 | 50.50 | 49.53 | 0.395 |
+| text, có ngữ cảnh | **59.54** | 59.25 | 58.16 | 0.500 |
+| ba kênh, không ngữ cảnh | 53.58 | 53.75 | 53.32 | 0.432 |
+| ba kênh, có ngữ cảnh | 57.24 | 57.60 | 57.18 | 0.475 |
+
+**Mô hình tốt nhất đạt 59.54; mốc chỉ-dùng-nhãn đạt 71.35.** Chênh **11.81 điểm
+accuracy** và **0.15 κ**. Một bộ dự đoán bỏ qua toàn bộ ba phương thức, chỉ cần biết cảm
+xúc lượt trước của cùng người nói, vượt xa mọi hệ được huấn luyện ở đây.
+
+Khác biệt giữa hai dòng mốc cũng đáng chú ý: "ai vừa nói cũng được" chỉ 56.07, "chính
+người đó" 71.35. **Ngữ cảnh có điều kiện theo người nói** — trùng với MELD (cùng người
+0.5441 vs khác người 0.3583, trên sàn 0.4715).
+
+---
+
+## Năm dè dặt, và một trần không gỡ được
+
+1. **Mốc 71.35 là oracle.** Nó cần nhãn *thật* của lượt trước, nên không triển khai được
+   — cùng địa vị với sàn hằng số. Nó không phải "hệ thống tốt hơn"; nó là thước đo lượng
+   thông tin nằm trong cấu trúc hội thoại.
+2. **IEMOCAP cắt ngược lại.** Các cảnh được dàn dựng để *duy trì* một cảm xúc, nên tín
+   hiệu ngữ cảnh ở đó nhiều khả năng mạnh hơn hội thoại tự nhiên. Đó là ảnh gương của vấn
+   đề độc thoại: MOSI/MOSEI đo thiếu, IEMOCAP có thể đo thừa. Vì vậy ba corpus được báo
+   cáo **cạnh nhau, không gộp**.
+3. **Bi-LSTM đọc cả tương lai.** Đây là đánh giá offline. Muốn tuyên bố dùng thời gian
+   thực phải có đối chứng nhân quả chỉ đọc quá khứ.
+4. **Đặc trưng đời 2017.** Cùng giới hạn đã ghi ở §7.4 của bài chính — và nó không chỉ
+   là giới hạn: trên IEMOCAP nó đã sinh ra một phát hiện sai (mục cuối).
+5. **3 seed.** Các hiệu ứng ngữ cảnh mạnh vì biên độ lớn so với phương sai, không vì n lớn.
+   Các phép đo làm lại ở mục cuối dùng 5 seed.
+
+**Và trần không gỡ được.** Ví dụ mà người đọc đưa ra — "tối qua bị bồ đá, hôm sau làm sao
+nói gì vui được" — chỉ ra rằng với độc thoại, ngữ cảnh quyết định nghĩa thường nằm **ngoài
+mọi bản ghi**, trong lịch sử của người nói. Không corpus nào ở đây chứa nó. Điều đó đặt
+một trần cứng lên những gì bất kỳ hệ thống nào đạt được, và trần đó không phải vấn đề
+kiến trúc. Nó bao trùm **cả hai** trục: hợp nhất và ngữ cảnh chỉ khai thác được phần ngữ
+cảnh *có trong dữ liệu*.
+
+---
+
+## Điều này đổi gì cho bài báo
+
+Bài hiện đo một trục và kết luận "hợp nhất đáng ít". Số liệu ở đây nói thêm: **ở nơi ngữ
+cảnh tồn tại, nó đáng giá gấp nhiều lần một kênh phụ** — trên đặc trưng sạch của IEMOCAP
+khoảng mười lần. ~~Và trên hai trong ba corpus hợp nhất còn *phá* trục kia~~ — không đứng
+vững (mục cuối). Kèm theo đó là một mốc mới cùng họ với sàn lớp đa số — mốc
+chỉ-dùng-nhãn-hội-thoại — mà lĩnh vực không báo cáo; trên IEMOCAP mốc đó vượt mô hình
+tốt nhất ở đây 11.8 điểm với đặc trưng phát hành, và 6.1 điểm với đặc trưng sạch.
+
+---
+
+## Làm lại với đặc trưng sạch (2026-09-11)
+
+Text của IEMOCAP được thay bằng BERT-base **đóng băng** (chưa từng thấy nhãn IEMOCAP; xem
+`docs/ro-ri-dac-trung-iemocap.md`); audio giữ nguyên (mô tả âm học không giám sát); video
+3D-CNN phát hành **vẫn nhiễm bẩn** (chênh phiên 4/phiên 5 là +16.79). MELD dùng BERT đóng
+băng trên transcript chính thức và WavLM-base-plus đóng băng trên audio tách từ clip gốc
+(`scripts/extract_meld_frozen.py`; 2 trên 13.708 clip thiếu).
+5 seed, t-test ghép cặp, accuracy:
+
+| corpus · text | kênh ghép | H_ngữ cảnh (text) | H_phương thức (không NC) | H_phương thức (có NC) |
+|---|---|---|---|---|
+| IEMOCAP · CNN phát hành | audio + video | +7.91 (p=0.0001) | +2.77 (p=0.005) | −1.45 (p=0.023) |
+| IEMOCAP · BERT đóng băng | audio + video | **+10.98** (p<0.0001) | −3.40 (p=0.002) | −6.51 (p=0.0001) |
+| IEMOCAP · BERT đóng băng | **chỉ audio** | +10.98 | **+1.21** (p=0.029) | **+1.07** (p=0.002) |
+| IEMOCAP · BERT đóng băng | chỉ video | +10.98 | −6.22 (p=0.0002) | −8.59 (p<0.0001) |
+| MELD · BERT đóng băng | audio (WavLM, nối đặc trưng) | **+0.67** (p=0.021) | −0.81 (p=0.049) | −0.38 (p=0.33) |
+
+File: `results/iemocap_context_{released_5seeds,bert,bert_text+audio,bert_text+video}.json`,
+`results/meld_context_{bert,bert_wavlm}.json`.
+
+**Mức hại khi ghép ba kênh là của video.** Audio sạch giúp một chút và giúp *như nhau* dù
+có ngữ cảnh hay không; video làm hại 6–9 điểm. Điều đó nhất quán với nhiễm bẩn: đặc trưng
+video đã "thấy" phiên 1–4 nên gần như hoàn hảo trên dữ liệu huấn luyện, mô hình dựa vào
+nó, rồi nó hỏng trên phiên 5. Chưa loại trừ riêng một yếu tố: video có 512 chiều, audio
+100. Phép thử dứt khoát là trích lại video bằng encoder đóng băng — cần video thô.
+
+**Phát hiện 1 mạnh lên.** Ngữ cảnh +10.84 trên text+audio so với phương thức +1.07: gần
+mười lần, không phải 3–4 lần.
+
+**Phát hiện 3 được MELD củng cố.** Hội thoại nhiều người trong phim truyền hình: ngữ cảnh
+chỉ thêm +0.67 accuracy và **không** thêm gì cho macro F1 (−0.02, p=0.98). Các mốc chỉ
+dùng nhãn cũng yếu: lặp lại lượt trước của chính người nói chỉ đạt 47.51, thấp hơn cả
+lớp đa số 48.12 (IEMOCAP: 71.35 so với 23.48). Cảnh diễn được dựng để *duy trì* một cảm
+xúc là nơi ngữ cảnh đáng giá; hội thoại cắt dựng thì không.
+
+**MELD: audio sạch gần như không thêm gì.** Nối WavLM vào BERT cho −0.81 accuracy khi
+không có ngữ cảnh (p=0.049) và −0.38 khi có (p=0.33). Đo đúng giao thức MOSI/MOSEI — ba
+kiểu hợp nhất, kiểu và kênh đơn chọn trên validation (`experiments/meld_headroom.py`,
+`results/meld_headroom.json`) — kiểu mid (encoder riêng từng kênh, đúng kiểu bcLSTM)
+thắng rõ trên validation (64.20, so với early 63.78 và late 62.27):
+
+| độ đo | text | text + audio (mid) | H | KTC 95% | p |
+|---|---|---|---|---|---|
+| weighted F1 | 61.32 | 61.73 | **+0.41** | [−0.51, +1.33] | 0.28 |
+| accuracy | 64.31 | 64.90 | +0.58 | [+0.09, +1.07] | 0.030 |
+
+Bài chính đọc MELD từ Poria et al. (bcLSTM): text 56.44 → text + audio 59.25, **H +2.81**
+weighted F1. Trên đặc trưng đóng băng, text một mình đã cao hơn hệ hợp nhất đó hơn 2
+điểm, và H chỉ còn khoảng một phần bảy. Không phải so sánh khớp (đặc trưng khác), nên nó
+không vào bảng H của bài; nhưng nó là dấu hiệu rằng một phần H của MELD trong tài liệu
+đến từ text đời 2019 yếu.
+
+Khác MOSI (validation 99 so với test 80), trên đặc trưng sạch validation và test của MELD
+gần như bằng nhau (64.23 / 64.31): việc chọn kiểu hợp nhất ở đây có nghĩa, và chọn trên
+test cũng ra đúng kiểu đó.
+
+**Video (CLIP cả khung hình) không mang tín hiệu.** CLIP ViT-B/16 đóng băng, trung bình 8
+khung hình mỗi clip (`results/meld_headroom_tav.json`): video một mình đạt 48.42 accuracy
+/ 32.77 weighted F1 — đúng mức lớp đa số (48.12 / 31.27). Thêm nó vào, H weighted F1 còn
++0.07 (p = 0.83); trong lưới ngữ cảnh, ghép ba kênh làm hại nhẹ (−0.81 weighted F1 khi có
+ngữ cảnh, p = 0.034; `results/meld_context_bert_wavlm_clip.json`). Cảnh MELD thường nhiều
+người và không có nhãn ai đang nói, nên đây là giới hạn của encoder cả khung hình, chưa
+phải kết luận về kênh hình ảnh; encoder khuôn mặt chưa thử.
+
+Giới hạn: một kiến trúc (bi-LSTM trên vector phát ngôn), offline (đọc cả tương lai);
+video MELD mới là CLIP cả khung hình.
