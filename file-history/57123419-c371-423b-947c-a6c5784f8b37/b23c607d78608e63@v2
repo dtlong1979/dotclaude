@@ -1,0 +1,61 @@
+#!/usr/bin/env python3
+"""Figure for the FJCAI paper: rank of each feature configuration under the standard split
+and under leave-one-session-out.
+
+Reads results/iemocap_ranking.json (experiments/iemocap_ranking.py). Blue lines are
+configurations containing a label-fit released block (text or visual), orange lines those
+without -- Word's theme accents 1 and 2.
+
+    python scripts/plot_rank_fig.py --out paper/fjcai/fig_rank.pdf
+"""
+from __future__ import annotations
+
+import argparse
+import json
+from pathlib import Path
+
+import matplotlib
+
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt  # noqa: E402
+
+BLUE, ORANGE, INK = "#4472C4", "#ED7D31", "#1f1f1f"
+LABEL_FIT = {"released text", "released visual", "released text+audio+visual",
+             "MMGCN text+audio+visual"}
+SHORT = {"released text+audio+visual": "released T+A+V",
+         "MMGCN text+audio+visual": "MMGCN T+A+V",
+         "frozen BERT + released audio": "BERT + rel. audio",
+         "frozen RoBERTa": "RoBERTa", "frozen BERT": "BERT", "frozen DeBERTa-v3": "DeBERTa-v3"}
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--data", type=Path, default=Path("results/iemocap_ranking.json"))
+    ap.add_argument("--out", type=Path, default=Path("paper/fjcai/fig_rank.pdf"))
+    args = ap.parse_args()
+    rows = json.loads(args.data.read_text())["rows"]
+
+    plt.rcParams.update({"font.size": 6.5, "font.family": "serif"})
+    fig, ax = plt.subplots(figsize=(3.4, 2.5))
+    for name, r in rows.items():
+        color = BLUE if name in LABEL_FIT else ORANGE
+        a, b = r["rank_standard"], r["rank_loso"]
+        short = SHORT.get(name, name)
+        ax.plot([0, 1], [a, b], color=color, lw=1.6, marker="o", ms=3.5, mec="white",
+                mew=0.5, zorder=3 if color == BLUE else 2)
+        ax.text(-0.04, a, f"{short}  {a}", ha="right", va="center", color=INK)
+        ax.text(1.04, b, f"{b}  {short}", ha="left", va="center", color=INK)
+    ax.text(0, 0.1, "standard split", ha="center", va="bottom", fontsize=7, weight="bold")
+    ax.text(1, 0.1, "LOSO", ha="center", va="bottom", fontsize=7, weight="bold")
+    ax.set_ylim(11.6, -0.4)
+    ax.set_xlim(-1.05, 2.05)
+    ax.axis("off")
+    fig.tight_layout(pad=0.2)
+    args.out.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(args.out)
+    fig.savefig(args.out.with_suffix(".png"), dpi=200)
+    print(f"written {args.out}")
+
+
+if __name__ == "__main__":
+    main()
