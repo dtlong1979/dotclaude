@@ -1,0 +1,243 @@
+# -*- coding: utf-8 -*-
+"""Phụ lục 1 - 19 đề tài phản biện. Văn phong: không chủ ngữ, trung tính, ngắn gọn.
+Câu tổng điểm và đề nghị xếp giải được sinh tự động từ diem.py."""
+
+K = 'Không có.'
+
+PL1 = {
+
+'67-102': dict(
+a="Nêu được bối cảnh quá tải thông tin, hạn chế của lọc cộng tác với dữ liệu thưa và vai trò của đồ thị tri thức. Tổng quan gộp trong mục 1.1; các công trình gần nhất (KGAT, CKAN, KGNN-LS) chỉ được nêu tên; khoảng trống nghiên cứu phát biểu chung.",
+b="Đồ thị tri thức cộng tác, embedding theo TransR, lan truyền có chú ý, ba hàm tổng hợp, hàm mất mát kết hợp KG và BPR. Phần lớn thành phần trùng với KGAT (2019); khác biệt ở công thức hệ số chú ý và cách chuẩn hóa ma trận kề, chưa có lập luận về sự cần thiết.",
+c="Bốn độ đo phù hợp bài toán gợi ý top-K; có khảo sát bốn thành phần thiết kế. Thiếu siêu tham số của cấu hình chính, không nêu nguồn số liệu của mô hình đối chứng, không có kiểm định thống kê và phân tích độ phức tạp.",
+d="Bốn tập dữ liệu chuẩn, có bảng chi phí huấn luyện và số tham số. Mức cải thiện nhỏ (Precision 0,014 so với 0,013 trên Amazon-Book) không kèm kiểm định; kết quả CKAN thấp bất thường so với công bố gốc; Bảng 7 (46,28 MB) mâu thuẫn với Bảng 5 (7.252 MB so với 2.435 MB); Bảng 4 chỉ chạy lặp cho mô hình đề xuất.",
+e="Báo cáo 41 trang, 43 tài liệu tham khảo; bố cục hợp lý. Bản PDF lỗi phông, mất dấu cách; số trang mục lục lệch nội dung.",
+f="01 bài tạp chí quốc tế (SCIE) và 01 bài báo cáo tại hội nghị.",
+f1="Báo cáo tại Hội nghị Khoa học trẻ lần 7 - ĐH Công nghiệp TP.HCM (01/11/2025); giấy xác nhận đề ngày 21/08/2026.",
+f2="“KGRec: A knowledge graph attention-based model for recommender system”, PLoS One 21(3): e0344585 (SCIE). Ghi chú: công bố 03/2026.",
+f3=K,
+kl="Thực nghiệm tương đối đầy đủ, có công bố SCIE. Tính mới ở mức cải tiến nhỏ trên nền KGAT; chưa kiểm định thống kê; số liệu bộ nhớ mâu thuẫn giữa hai bảng; báo cáo 41 trang chưa tương xứng với công bố. Không có văn bản xác nhận ứng dụng.",
+),
+
+'134-102': dict(
+a="Có mô tả tình hình phát triển thể loại trò chơi ẩn nấp. Chưa khảo sát công trình khoa học về học tập qua trò chơi; chưa có câu hỏi nghiên cứu, giả thuyết, khoảng trống khoa học. Lĩnh vực đăng ký là Khoa học giáo dục.",
+b="Quy trình thiết kế, lập trình trò chơi 2D trên Unity, có lồng ghép câu hỏi từ truyện cổ tích Việt Nam. Nội dung ở mức đồ án phát triển phần mềm, chưa hình thành vấn đề nghiên cứu khoa học.",
+c="Không có thiết kế thực nghiệm, nhóm đối chứng, đo trước và sau. Tài liệu tham khảo gồm 05 trang hướng dẫn lập trình, trong đó 03 mục (ASP.NET, SQL Server) không liên quan; không có tài liệu khoa học.",
+d="Sản phẩm phần mềm vận hành ổn định. Đánh giá dựa trên 51 phiếu khảo sát ý kiến, không đối chứng, không đo kiến thức; chưa đủ căn cứ kết luận về giá trị giáo dục.",
+e="Báo cáo 77 trang, có phụ lục khảo sát. Xưng hô chưa nhất quán; danh mục tài liệu tham khảo không đạt chuẩn học thuật.",
+f="Không có bài báo, bài kỷ yếu. Minh chứng gồm tệp mã nguồn trò chơi và giấy chứng nhận tham dự hội thảo cấp khoa ghi ngày 08/12/2015, không phù hợp với khóa học của sinh viên. Không có văn bản xác nhận ứng dụng.",
+f1=K, f2=K, f3=K,
+kl="Sản phẩm phần mềm hoàn chỉnh, có ý tưởng lồng ghép văn hóa dân gian. Chưa hình thành vấn đề nghiên cứu khoa học; phương pháp đánh giá và tài liệu tham khảo chưa đạt yêu cầu; minh chứng hội thảo ghi sai ngày.",
+),
+
+'177-103': dict(
+a="Dẫn số liệu dịch tễ bệnh tim bẩm sinh; xác định đúng khó khăn của siêu âm tim thai tuần 12-14 (cấu trúc chưa hoàn thiện, biến thiên lớn theo góc đầu dò).",
+b="Khung học ba giai đoạn theo độ phức tạp ảnh, kết hợp chưng cất tri thức, DenseNet-201 tăng cường CBAM và focal loss; các thành phần phối hợp hợp lý.",
+c="Huấn luyện lại mô hình cơ sở trên cùng phiên bản dữ liệu công bố để bảo đảm so sánh công bằng; báo cáo trung bình và độ lệch chuẩn qua năm lần chạy.",
+d="Cải thiện ở lớp khó và thiểu số: V-sign Precision 0,9398 → 0,9572; Aorta 0,8048 → 0,8330; Other Recall 0,9199 → 0,9399. Có phân tích theo lớp; độ lệch chuẩn lớp Aorta còn cao.",
+e="Báo cáo 42 trang, 23 tài liệu tham khảo, không có chương kết luận; nội dung chủ yếu diễn đạt lại bài báo, chưa tương xứng với công bố kèm theo.",
+f="01 bài tạp chí quốc tế (SCIE) đã có thông báo chấp nhận; 01 báo cáo seminar cấp khoa.",
+f1="Báo cáo tại seminar Khoa CNTT - ĐH Công nghệ TP.HCM (29/05/2025).",
+f2="“Three-Phase Learning Framework for Fetal Echocardiography Classification Using Knowledge Distillation and CBAM-DenseNet”, Biomedical Signal Processing and Control (SCIE), chấp nhận 29/06/2026. Ghi chú: công bố 06/2026.",
+f3=K,
+kl="Vấn đề có ý nghĩa lâm sàng; thực nghiệm chặt chẽ; cải thiện đúng vào lớp khó. Báo cáo 42 trang, 23 tài liệu tham khảo, thiếu chương kết luận, chưa tương xứng với công bố SCIE. Không có văn bản xác nhận ứng dụng.",
+),
+
+'192-102': dict(
+a="Nêu được vai trò của cấu trúc lưới trong chế tạo bồi đắp và nút thắt khi dựng hình bằng phần mềm thiết kế truyền thống. Tổng quan dựa trên 08 tài liệu, chưa khảo sát công cụ đã có.",
+b="Tiện ích Blender (Python) sinh cấu trúc lưới TPMS bằng hàm ẩn và Marching Cubes, điều khiển theo tham số. Công thức Gyroid (phương trình 3) viết sai: sin(x)cos(y) + sin(y)cos(x) + sin(z)cos(z) thay cho sin(x)cos(y) + sin(y)cos(z) + sin(z)cos(x).",
+c="Đo thời gian sinh ở mười mức tần số, mỗi mức 100 lần, có độ lệch chuẩn. Độ chính xác hình học, hiệu năng cơ học, độ xốp, khả năng chế tạo được nêu nhưng không có phương pháp đánh giá; không so sánh với công cụ hiện có.",
+d="Công cụ hoạt động, có minh họa trên mô hình xương đùi. Chỉ có một bảng thời gian (1,12 s đến 113,32 s); không có phân tích phần tử hữu hạn, đo độ xốp, in mẫu, kiểm tra tính kín lưới.",
+e="Báo cáo 27 trang, 01 bảng, 04 hình, 08 tài liệu tham khảo; mục 2.2 và 2.3 trùng tiêu đề; gọi công trình là luận văn.",
+f="Không có công bố. Minh chứng là biên bản hội đồng xét đề tài cấp trường (27/05/2026). Không có văn bản xác nhận ứng dụng.",
+f1=K, f2=K, f3=K,
+kl="Công cụ đáp ứng nhu cầu thực tiễn; phần đo thời gian thực hiện nghiêm túc. Khoảng cách lớn giữa phạm vi tuyên bố và bằng chứng; sai công thức Gyroid; báo cáo 27 trang. Không có công bố hoặc ứng dụng trong năm 2025.",
+),
+
+'197-102': dict(
+a="Dẫn số liệu FAO về lãng phí thực phẩm; tổng quan các hướng phát hiện, nhận dạng ngày hết hạn đầy đủ; xác định khoảng trống dữ liệu cho bao bì tại Việt Nam.",
+b="Mô hình phát hiện, nhận dạng ngày hết hạn; thuật toán gợi ý món ăn; ứng dụng di động có cảnh báo; bộ dữ liệu ngày hết hạn trên bao bì Việt Nam.",
+c="Kiến trúc kỹ thuật hợp lý. Không nêu cách chia dữ liệu, độ đo từng mô-đun, quy trình so sánh với mô hình đã khảo sát.",
+d="Ứng dụng hoàn chỉnh. Chương kết quả không có bảng số liệu; số liệu định lượng chỉ có trong bài báo; hợp phần gợi ý món ăn chưa được đánh giá; kết luận dùng cách diễn đạt quảng bá (“hiệu suất vượt trội”, “độ chính xác tuyệt đối”).",
+e="Báo cáo 51 trang, 17 tài liệu tham khảo; bố cục rõ.",
+f="01 bài kỷ yếu hội nghị quốc tế và 01 báo cáo khoa học tại trường.",
+f1="“VNExpirationDate: A Novel Expiration Date Dataset and A Robust Framework for Expiration Date Recognition on Complex Packaging in Vietnam”, kỷ yếu RIVF 2024 (IEEE). Báo cáo khoa học tại trường: văn bản xác nhận (ký 22/06/2026) ghi thời gian “Tháng 6/2024” cho đề tài, các đề tài khác cùng văn bản ghi tháng 6/2025. Ghi chú: công bố năm 2024, trước thời gian thực hiện đề tài.",
+f2=K, f3=K,
+kl="Vấn đề thực tiễn rõ, có bộ dữ liệu riêng và ứng dụng hoàn chỉnh. Báo cáo thiếu số liệu thực nghiệm và so sánh; văn phong kết luận chưa khách quan. Công bố năm 2024; văn bản xác nhận báo cáo khoa học ghi sai năm (6/2024 thay vì 6/2025). Không có văn bản xác nhận ứng dụng.",
+),
+
+'205-102': dict(
+a="Tổng quan bốn mạch (tác động sức khỏe, cảm biến chi phí thấp và kiểm soát chất lượng, hệ IoT quan trắc, dự báo bụi mịn); chỉ ra hạn chế của cảm biến quang học làm căn cứ cho lớp kiểm soát chất lượng.",
+b="Hệ khép kín: nút đo biên ESP32, MQTT, InfluxDB/MongoDB, chuỗi kiểm soát chất lượng và phát hiện sự kiện, mô hình CNN-LSTM, lớp cảnh báo; triển khai thực địa với hai nền tảng phần cứng song song.",
+c="Hai thực nghiệm tách bạch: đối sánh sáu mô hình trên dữ liệu mở; đánh giá ngoài mẫu tại thực địa trên tập đồng vị trí để đo tác động của lớp kiểm soát chất lượng.",
+d="CNN-LSTM: MAE 1,471, RMSE 1,843, R² 0,902 (MAE giảm 11,9% so với LSTM). Lớp kiểm soát chất lượng: RMSE giảm 18,4%, R² 0,872 → 0,915; MAPE tăng 16,47% → 17,06% được nêu rõ; kết luận giới hạn ở mức bằng chứng bước đầu.",
+e="Báo cáo 106 trang, 27 tài liệu tham khảo; bố cục mạch lạc; mục hạn chế cụ thể.",
+f="Không có bài báo, bài kỷ yếu; có giấy xác nhận tham gia hội nghị cấp khoa và văn bản xác nhận ứng dụng.",
+f1="Văn bản xác nhận ứng dụng của Trường ĐH Quốc tế Sài Gòn, thời gian ứng dụng 2025-2026; nội dung là triển khai, thử nghiệm trong phạm vi nghiên cứu; mục I.6 bỏ trống.",
+f2=K, f3=K,
+kl="Hệ thống khép kín, thiết kế thực nghiệm tách bạch, diễn giải kết quả tiết chế; báo cáo đầy đủ. Không có bài báo nên không được tính điểm công bố; văn bản ứng dụng do cơ sở đào tạo của nhóm xác nhận, mục I.6 bỏ trống.",
+),
+
+'219-102': dict(
+a="Tổng quan về chuyển đổi số quản lý đất đai, cập nhật Luật Đất đai 2024, Thông tư 25/2024, 01/2023. Ít liên hệ trực tiếp với bài toán nhận dạng ký tự quang học.",
+b="Quy trình tự động bốn bước: chuẩn hóa tệp quét, đổi tên theo quy định, nhập liệu tự động vào phần mềm đang vận hành, kiểm tra hai lớp; giải pháp mã nguồn mở, chi phí thấp.",
+c="Dữ liệu thật gần 10.000 giấy chứng nhận; quy trình chuẩn bị dữ liệu mô tả chi tiết. Không so sánh với công cụ OCR tiếng Việt khác.",
+d="Tỷ lệ nhận dạng 94,4% trên 9.978 tệp, lỗi thuật toán 1,2%, có phân tích loại lỗi. Bốn con số khác nhau cho cùng phép so sánh thời gian (58 ngày; 41-42 giờ; 33-56 giờ; 180 ngày); mốc đối chứng thủ công là ước lượng.",
+e="Báo cáo 76 trang, 29 tài liệu tham khảo; bố cục rõ.",
+f="01 bài tạp chí khoa học trong nước; 01 báo cáo seminar cấp khoa.",
+f1="Bài đăng Tạp chí Khoa học Tài nguyên và Môi trường, số 61/2026; báo cáo seminar Khoa Khoa học tự nhiên (28/11/2025). Ghi chú: công bố năm 2026.",
+f2=K, f3=K,
+kl="Giá trị thực tiễn rõ, dữ liệu thật quy mô lớn, có phân tích loại lỗi. Số liệu so sánh thời gian không nhất quán; đối chứng thủ công là ước lượng; đóng góp chủ yếu ở quy trình nghiệp vụ. Không có văn bản xác nhận ứng dụng.",
+),
+
+'241-102': dict(
+a="Xuất phát từ nhu cầu định vị đồ vật của người khiếm thị; hướng hệ tọa độ gắn trên mặt bàn. Tổng quan chủ yếu là kiến thức nền, chưa phân tích công trình gần nhất.",
+b="Bộ dữ liệu RGB-D tự thu; phát hiện, nhận dạng đối tượng; định vị 3D. Nhiệm vụ định vị 3D chưa được triển khai tương xứng.",
+c="Kiểm chứng chéo và bốn tỷ lệ chia dữ liệu; bốn độ đo phù hợp. Không so sánh với mô hình khác.",
+d="mAP@0,5 đạt 99,496%; chênh lệch giữa năm lần chia khoảng 0,005%, dấu hiệu khung hình gần trùng ở cả tập huấn luyện và kiểm tra. Bảng 3.1, 3.2 chỉ đo phát hiện 2D; không có kết quả định vị 3D, sai số vị trí, điểm cầm nắm.",
+e="Báo cáo 100 trang, 43 tài liệu tham khảo; trang bìa bỏ trống tên đề tài và bị lặp.",
+f="01 bài tạp chí và 01 bài hội nghị quốc tế đã được chấp nhận; báo cáo seminar cấp khoa; văn bản xác nhận ứng dụng.",
+f1="“Improving Loss Function of Deep Learning for 3D Object Detection on Indoor Scene Point Cloud”, ICISPC 2026 (chấp nhận); “TQU-GraspingObject” (chấp nhận). Ghi chú: công bố năm 2026.",
+f2=K, f3=K,
+kl="Bài toán có ý nghĩa xã hội, dữ liệu tự thu. Nghi vấn rò rỉ dữ liệu giữa tập huấn luyện và kiểm tra; định vị 3D chưa có đánh giá; chưa so sánh mô hình khác. Hai văn bản xác nhận ứng dụng của doanh nghiệp (An Phát, Meduteech), thời gian 11/2025-05/2026, có nội dung.",
+),
+
+'279-102': dict(
+a="Dẫn số liệu bạo lực học đường nhiều năm, gắn định hướng chính sách; hướng tới dấu hiệu tiền bạo lực, xác lập khoảng trống cụ thể.",
+b="Hai kiến trúc: hợp nhất thị giác - tư thế có cơ chế che khôi phục khớp bị che khuất và chú ý chéo; mở rộng ba nguồn thị giác - tư thế - biểu cảm với tương tác phân cấp. Bộ dữ liệu bạo lực học đường tự xây dựng.",
+c="Bốn bộ dữ liệu, bốn độ đo có lập luận cho dữ liệu mất cân bằng, 8-9 phương pháp đối chứng mỗi bộ gồm cả nhóm ảnh màu và nhóm khung xương.",
+d="Bộ tự xây dựng: accuracy 94,66%, F1 95,70%, hơn phương pháp đứng sau 5,06 điểm; bộ thứ hai 90,96% so với 86,34%; hai bộ chuẩn còn lại 98,50% và 98,10%. Nêu rõ trường hợp phương pháp khác nhỉnh hơn; mục hạn chế cụ thể.",
+e="Báo cáo 67 trang, 55 tài liệu tham khảo; bố cục chặt chẽ, trích dẫn đầy đủ.",
+f="01 bài tạp chí quốc tế SCIE đã xuất bản; 01 bài tạp chí trong nước và 01 bài hội nghị quốc tế đã chấp nhận; 01 báo cáo tọa đàm cấp khoa.",
+f1="“PMI-Net”, Tạp chí Khoa học ĐHSP TP.HCM (chấp nhận); bài tại IEA/AIE 2026 (chấp nhận); báo cáo tại tọa đàm Khoa CNTT ngày 28/06/2025, giấy xác nhận đề ngày 28/12/2024 (trước ngày tổ chức).",
+f2="“Hierarchical multimodal cross-interactive learning for school violence detection”, Applied Soft Computing (SCIE). Ghi chú: công bố 06/2026.",
+f3=K,
+kl="Vấn đề cấp thiết; hai kiến trúc có thiết kế bài bản; thực nghiệm rộng, kết quả ổn định trên bốn bộ dữ liệu; báo cáo tương xứng với công bố. Giấy xác nhận tọa đàm ghi ngày trước ngày tổ chức. Không có văn bản xác nhận ứng dụng.",
+),
+
+'310-102': dict(
+a="Trình bày mạch phát triển NLP đến LLM; bối cảnh tư vấn quy chế học vụ rõ. Chương tổng quan thiên về kiến thức nền, chưa định vị khoảng trống so với các hệ hỏi đáp học vụ đã có.",
+b="Hợp nhất truy hồi dày đặc với suy luận trên đồ thị tri thức phân cấp ba tầng; phân lớp ý định định tuyến truy vấn tới đồ thị con và phân vùng chỉ mục; tri thức từ văn bản quy chế chính thức.",
+c="Quy trình lặp; dữ liệu câu hỏi từ ba nguồn; NER và mô hình biểu diễn chuyên cho tiếng Việt.",
+d="Phân lớp ý định 97,97%, sáu chủ đề 95,75%; có ma trận nhầm lẫn; so sánh truy hồi qua nhiều ngưỡng, thời gian chạy trung bình mười lần, chi phí tính toán. Kiểm chứng trong một cơ sở đào tạo.",
+e="Báo cáo 105 trang, 52 tài liệu tham khảo; bảng biểu, hình vẽ phong phú.",
+f="03 công bố, trong đó 01 bài tạp chí quốc tế SCIE; báo cáo khoa học cấp trường.",
+f1="“NEDA-KAN” và “REBot” tại hội nghị quốc tế có phản biện (2026); báo cáo khoa học tháng 10/2025.",
+f2="“CRANE: a five-stage category-routed advising framework”, Applied Intelligence (SCIE). Ghi chú: công bố năm 2026.",
+f3=K,
+kl="Nhu cầu thực tế rõ, chiều sâu kỹ thuật, đánh giá đầy đủ hai khâu; báo cáo tương xứng với các công bố. Tổng quan dài phần kiến thức nền; kiểm chứng giới hạn trong một cơ sở. Không có văn bản xác nhận ứng dụng.",
+),
+
+'370-102': dict(
+a="Dẫn hướng dẫn NIST; phân biệt ba hướng phát hiện xâm nhập; xác định khoảng trống: tối ưu mô hình đơn theo F1 không phù hợp kiến trúc phân cấp vì mẫu bị bỏ sót ở tầng sàng lọc không được phát hiện ở tầng sau.",
+b="Khung ba tầng: autoencoder sàng lọc, LightGBM xác nhận, stacking phân loại; tách quyết định bất thường với quyết định cảnh báo; định tuyến ba vùng, tiền xử lý chống rò rỉ, lọc đặc trưng bằng SHAP.",
+c="Hai giao thức tách bạch: đối sánh ngoại tuyến trên CIC-IDS-2017 và tái đánh giá cảnh báo trên hệ thử nghiệm ảo hóa (Suricata, Zeek); không gộp chỉ số giữa hai giao thức.",
+d="504.151 luồng kiểm tra: accuracy 0,9984, macro-F1 0,9712, FPR 0,0799%. Hệ thử nghiệm: giữ toàn bộ cảnh báo tấn công thật, dương tính giả giảm 12,4 → 2,1 mỗi lượt (83,1%). Nêu rõ lớp Bot F1 0,7363 và phạm vi hiệu lực của từng con số.",
+e="Báo cáo 43 trang, 17 tài liệu tham khảo, viết bằng tiếng Anh.",
+f="Không có bài báo, bài kỷ yếu; có chứng nhận giải thưởng cấp trường và văn bản xác nhận ứng dụng.",
+f1="Văn bản xác nhận ứng dụng ký 20/06/2026, thời gian ứng dụng 01/2026-04/2026; phần xác nhận của tổ chức (Khoa Đào tạo quốc tế, ĐH Duy Tân) chỉ một dòng; mục I.6 bỏ trống.",
+f2=K, f3=K,
+kl="Đặt vấn đề đúng, thiết kế ba tầng, hai giao thức đánh giá tách bạch, báo cáo kết quả tiết chế. Báo cáo 43 trang, 17 tài liệu tham khảo. Không có công bố; thời gian ứng dụng năm 2026.",
+),
+
+'405-103': dict(
+a="Hệ thống hóa các hướng dự đoán quan hệ vi khuẩn - thuốc; chỉ ra ba nguyên nhân khó khăn (mạng tương tác chưa đủ, dữ liệu thiếu, hạn chế mô hình đơn mạng) làm căn cứ cho ba đóng góp.",
+b="Ba đóng góp: tầng KAGAT (B-spline học được trong chú ý đồ thị); hai góc nhìn đồ thị kết hợp qua cổng chú ý theo nút; khởi tạo đặc trưng lai ChemBERTa, DNABERT và điền khuyết K-NN, xử lý 16-25% thực thể thiếu dữ liệu.",
+c="Kiểm định t theo cặp trên 30 lần chạy; nghiên cứu cắt giảm; độ nhạy siêu tham số; nhiều hạt giống lấy mẫu âm; kiểm chứng bỏ qua.",
+d="Vượt 7 phương pháp đối chứng: AUC 0,9682, AUPR 0,9652 (MDAD); 0,9774 và 0,9719 (aBiofilm); cải thiện có ý nghĩa thống kê. Nêu rõ đóng góp riêng của KAGAT (0,29 và 0,89 điểm %) kèm chi phí. 7/10 dự đoán hàng đầu được tài liệu xác nhận.",
+e="Báo cáo 66 trang, 40 tài liệu tham khảo; danh mục ký hiệu đầy đủ.",
+f="01 bài tạp chí quốc tế đã chấp nhận; 01 báo cáo seminar khoa học quốc tế.",
+f1="Báo cáo tại seminar “Các mô hình Trí tuệ nhân tạo lai và Ứng dụng” (24/06/2025); giấy chứng nhận không ghi ngày, tháng ký.",
+f2="“KAMDA: A multi-view Kolmogorov-Arnold Network integrating pre-trained BERT embeddings and similarity-based imputation for microbe-drug association prediction”, Intelligence-Based Medicine (Elsevier, Scopus). Ghi chú: công bố 03/2026.",
+f3=K,
+kl="Ba đóng góp rõ, gắn với khó khăn cụ thể; đánh giá chặt chẽ với kiểm định thống kê và kiểm chứng ngoài mô hình; báo cáo tương xứng với công bố. Giấy chứng nhận seminar không ghi ngày ký. Không có văn bản xác nhận ứng dụng.",
+),
+
+'456-103': dict(
+a="Đặt vấn đề chuyển phân tích học tập từ tương quan sang nhân quả, có dẫn chứng.",
+b="Quy trình ba tầng: ICA-LiNGAM khám phá cấu trúc nhân quả, DoWhy ước lượng tác động, học sâu dự đoán; đồ thị nhân quả dùng để điều hướng mô hình học sâu.",
+c="Nêu giới hạn của giả định tuyến tính, phi chu trình. Thiếu mô tả tiền xử lý, cách xác định biến can thiệp và kết quả, số lần chạy, cách chia dữ liệu.",
+d="Mục tiêu nêu hơn 17 triệu bản ghi, thực nghiệm dùng 509.957 bản ghi. ATE, ATT, CATE lần lượt 1,996; 1,996; 1,993 được diễn giải là nhất quán cao, trong khi điều này làm mất cơ sở của mục tiêu cá nhân hóa. Mức cải thiện nêu ước lượng, không kèm bảng số liệu; mốc thời gian trong báo cáo chưa nhất quán.",
+e="Báo cáo 36 trang, 19 tài liệu tham khảo; cấu trúc gần với thuyết minh nhiệm vụ.",
+f="01 bài kỷ yếu hội nghị quốc tế; văn bản xác nhận ứng dụng.",
+f1="Bài tại Hội nghị quốc tế SCI-2026 (28-29/04/2026), kỷ yếu Springer. Văn bản xác nhận ứng dụng của Trường ĐH Hà Nội, thời gian 05/2025-06/2026, ký ngày 27/06/2024. Ghi chú: công bố 04/2026.",
+f2=K, f3=K,
+kl="Hướng nghiên cứu có giá trị. Mâu thuẫn quy mô dữ liệu; diễn giải ATE ≈ ATT ≈ CATE chưa đúng; thiếu bảng số liệu đối chiếu; báo cáo 36 trang. Văn bản xác nhận ứng dụng ghi ngày ký trước thời gian ứng dụng.",
+),
+
+'459-103': dict(
+a="Xác định ba thách thức của nhận diện cảm xúc từ giọng nói trong lớp học trực tuyến (nhiễu nền, ghi âm dài, đa dạng giọng). Khảo sát công trình liên quan còn ngắn.",
+b="Lấy mẫu lại, lọc nhiễu phổ, phân đoạn cửa sổ trượt chồng lấn; tinh chỉnh Wav2Vec2 cho tám cảm xúc; ứng dụng thử nghiệm có giao diện.",
+c="Cắt bỏ năm bậc tách được đóng góp từng bước; khảo sát đánh đổi kích thước khối, độ chồng lấp, tốc độ suy luận.",
+d="Độ chính xác có trọng số 85,41% → 91,32%; bảy/tám cảm xúc F1 trên 0,90, lớp buồn 0,807 có giải thích. Toàn bộ số liệu định lượng trên RAVDESS (1.440 mẫu, 24 người nói, thu trong phòng thu); dữ liệu lớp học thực chỉ mô tả định tính, không nhãn, không chỉ số.",
+e="Báo cáo 24 trang; bảng biểu, hình minh họa đầy đủ.",
+f="01 bài được chấp nhận trình bày tại hội nghị quốc tế; phần mềm; văn bản xác nhận ứng dụng.",
+f1="Bài tại ICMSCE 2026 (09-10/07/2026), thư chấp nhận. Văn bản xác nhận ứng dụng của Trường ĐH Hà Nội ký 29/06/2026: phần I ghi 01/06/2025-10/06/2026, phần II ghi 08/2025-08/2026. Ghi chú: hội nghị diễn ra sau thời điểm nộp hồ sơ.",
+f2=K, f3=K,
+kl="Thiết kế kỹ thuật gọn, phân tích thành phần và phân tích lỗi tốt. Chưa có bằng chứng định lượng cho môi trường lớp học; báo cáo 24 trang. Văn bản xác nhận ứng dụng ghi hai thời gian ứng dụng không thống nhất.",
+),
+
+'467-102': dict(
+a="Khảo sát có hệ thống tấn công đầu độc, cửa hậu trong học liên kết; mô hình hiểm họa rõ; khoảng trống trong bối cảnh dữ liệu không đồng nhất.",
+b="Vector dò đường làm neo tin cậy toàn cục, không cần dữ liệu sạch tại máy chủ; kiến trúc đa lớp (lọc độ lớn, nén cosin, đồng thuận ba thuật toán gom cụm, điểm nghi ngờ tích lũy); có chứng minh giới hạn lý thuyết.",
+c="Cấu hình đầy đủ; đối sánh với không phòng vệ và hai cơ chế phòng vệ; hai bộ dữ liệu IoT, ba mức không đồng nhất; trung bình, độ lệch chuẩn, kiểm định thống kê, cắt giảm, độ nhạy, chi phí thời gian.",
+d="Bảy kịch bản: khi không phòng vệ độ chính xác còn 9,80%, cơ chế đề xuất duy trì khoảng 90%, vượt hai cơ chế đối chứng. Mục 4.1 còn giữ tiêu đề “kết quả mong đợi”, viết ở thì tương lai.",
+e="Báo cáo 38 trang, 10 tài liệu tham khảo, chưa tương xứng với công bố kèm theo; bản PDF còn ký tự định dạng chưa biên dịch.",
+f="01 bài tạp chí quốc tế SCIE đã chấp nhận; văn bản xác nhận ứng dụng.",
+f1="Văn bản xác nhận ứng dụng của Trường ĐH CNTT - ĐHQG-HCM ký 29/06/2026, thời gian từ 08/2025.",
+f2="“P4P: A probe-guided anti-poisoning defense for federated learning-based intrusion detection in IoT networks under non-IID data”, Journal of Network and Computer Applications (SCIE). Ghi chú: công bố 05/2026.",
+f3=K,
+kl="Ý tưởng giải đúng điểm nghẽn; kiến trúc mạch lạc; thực nghiệm rộng có kiểm định. Báo cáo 38 trang, 10 tài liệu tham khảo, mỏng hơn nội dung bài báo; còn lỗi định dạng.",
+),
+
+'567-102': dict(
+a="Trình bày sự chuyển dịch sang mô hình phát triển tích hợp bảo mật; nêu vấn đề lỗ hổng phát hiện muộn. Chưa xác lập khoảng trống khoa học.",
+b="Mô hình hóa mối đe dọa, hệ thống quản lý đào tạo ba lớp, quy trình CI/CD bảy giai đoạn với sáu công cụ bảo mật. Áp dụng bộ công cụ có sẵn theo quy trình chuẩn hóa, chưa có phương pháp hay thuật toán mới.",
+c="Số liệu lấy từ đầu ra công cụ. Không có nhóm đối chứng thực tế; mốc quy trình truyền thống là ước lượng; tỷ lệ cải thiện 65%, 70%, 73% thiếu cơ sở.",
+d="120 lỗi mã nguồn (35 nghiêm trọng còn 12), 19 lỗ hổng xử lý trước triển khai, độ phủ mã 85%, pipeline 10 phút, triển khai thành công 98%. Thử nghiệm 65 người dùng trên hệ giả lập; mức giảm 70% chi phí không nêu cách tính.",
+e="Báo cáo 24 trang, 16 tài liệu tham khảo; tài liệu tham khảo sắp theo nhóm văn bản pháp quy.",
+f="01 bài hội nghị quốc tế, được trao giải Best Paper.",
+f1="“Applying DevSecOps for Secure Software Deployment in Cloud Computing Environments”, SCI-2026 (28-29/04/2026). Hai giấy chứng nhận ghi hai cơ quan công tác khác nhau. Ghi chú: công bố 04/2026.",
+f2=K, f3=K,
+kl="Hệ thống hoàn chỉnh, số liệu đo lường phong phú. Chưa có đóng góp phương pháp; so sánh không có đối chứng thực tế; báo cáo 24 trang. Công bố năm 2026; không có minh chứng báo cáo seminar, không có văn bản xác nhận ứng dụng.",
+),
+
+'615-103': dict(
+a="Xác định cụ thể hai hạn chế: công cụ tự động hóa phân tích bỏ qua dữ liệu phân cấp; hệ một tác nhân thiếu ổn định do tính ngẫu nhiên của LLM.",
+b="Khung điều phối - thực thi đa tác nhân theo giai đoạn (lập hồ sơ dữ liệu, khám phá, mô hình hóa, suy luận); vòng lặp tự sửa lỗi; tác nhân kiểm chứng tính nhất quán.",
+c="Ba LLM nền; giá trị p cho mọi so sánh; trung bình và độ lệch chuẩn; bốn phương pháp đối chứng và chuyên gia; thí nghiệm riêng đa tác nhân so với một tác nhân; chỉ số hồi quy cho nhãn thứ bậc.",
+d="MSE 0,093 so với 0,213 (p < 0,001), R² 0,901; tập 191 lớp lá, trên 300.000 mẫu: F1 86,72 ± 1,56 so với 77,37 ± 11,72. Chỉ ra nghịch lý độ chính xác (86,82% nhưng F1 34,22%).",
+e="Báo cáo 76 trang, 41 tài liệu tham khảo; có đánh giá định tính báo cáo đầu ra.",
+f="03 công bố, trong đó 01 bài tạp chí quốc tế đã xuất bản.",
+f1="“LLMGreenRec”, DEFI 2025 (đã trình bày); “ReflexRAG”, CITA 2026 (chấp nhận).",
+f2="“AutoMind: Automated Insight Discovery via Multi-Agent Navigation”, IEEE Access (SCIE). Ghi chú: công bố 02/2026.",
+f3=K,
+kl="Vấn đề xác định cụ thể; kiến trúc giải đúng hạn chế đã nêu; thực nghiệm chặt chẽ; kết quả vượt trội và ổn định; báo cáo tương xứng với công bố. Không có văn bản xác nhận ứng dụng.",
+),
+
+'626-103': dict(
+a="Khảo sát từ mô hình tạo sinh thế hệ trước đến GAN, Transformer, miền tần số, học tương phản; xác định hai thách thức: bền vững trước suy giảm đồng thời và hiệu quả tính toán.",
+b="Dịch ảnh hai chiều kiểu CycleGAN, lõi Restormer, nhánh miền tần số và học tương phản; xử lý không cần biết trước loại suy giảm; thiết lập đánh giá chung bảy loại suy giảm.",
+c="Độ đo chất lượng ảnh, cắt bỏ thành phần, kiểm chứng tác vụ hạ nguồn (mAP phát hiện phương tiện YOLOv11 trước và sau phục hồi), phân tích theo từng loại suy giảm.",
+d="PSNR 26,87, SSIM 0,83, 45,40 triệu tham số. Cắt bỏ: 23,05 → 23,91 (miền tần số) → 26,87 (học tương phản miền tần số). Mục hạn chế nêu độ trễ, chưa đáp ứng thời gian thực. Chưa phân tích đánh đổi với mô hình chuyên biệt.",
+e="Báo cáo 41 trang, 44 tài liệu tham khảo, chưa bao quát nội dung bốn công bố kèm theo; danh mục bảng bị lặp.",
+f="04 công bố, trong đó 03 bài tạp chí quốc tế.",
+f1="“Night Vision: Enhance Object Detection in Low-Light Condition Baseline”, kỷ yếu FAIR 2024. Ghi chú: công bố năm 2024, trước thời gian thực hiện đề tài.",
+f2="Neural Computing and Applications (Springer, chấp nhận 10/2025); Pattern Recognition Letters (Elsevier, chấp nhận 06/2026); Journal of Visual Communication and Image Representation (Elsevier, chấp nhận 08/2025).",
+f3=K,
+kl="Thiết kế có lý do, cắt bỏ chứng minh bằng số liệu, có kiểm chứng tác vụ hạ nguồn; hệ thống công bố mạnh. Báo cáo 41 trang chưa tương xứng với bốn công bố. Không có văn bản xác nhận ứng dụng.",
+),
+
+'708-103': dict(
+a="Tổng quan mạch lạc về phát hiện cộng đồng và tối ưu bầy đàn; phân tích ba hạn chế của thuật toán nền làm căn cứ cải tiến.",
+b="Hai giải thuật: tăng khám phá (đột biến khai thác cấu trúc mạng, hợp nhất cộng đồng toàn quần thể); tăng khai thác (tìm kiếm cục bộ nhiều mức, điều chỉnh đa dạng quần thể). Có phân tích độ phức tạp, phần mềm trực quan hóa.",
+c="Không có kiểm định thống kê, không nêu số lần chạy, độ lệch chuẩn; chỉ dùng modularity cho cả mục tiêu và đánh giá, không dùng NMI dù bốn trên sáu bộ dữ liệu có cấu trúc tham chiếu.",
+d="Sáu bộ dữ liệu, ba phương pháp đối chứng; phân tích thời gian tốt. Kết quả chủ yếu duy trì chất lượng so với thuật toán nền; nhận định ưu thế theo quy mô mạng chưa dẫn số liệu; dữ liệu là mạng cổ điển quy mô nhỏ.",
+e="Báo cáo 45 trang, 22 tài liệu tham khảo; một mục đánh trùng số; còn lỗi diễn đạt, chính tả.",
+f="01 bài kỷ yếu hội nghị quốc tế có phản biện.",
+f1="“IEP-WOCD: An Improved Whale Optimization Algorithm for Community Detection with Enhanced Population Diversity”, ICIT 2025, Springer LNDECT tập 281, tr. 13-23. Ghi chú: công bố trực tuyến 04/2026.",
+f2=K, f3=K,
+kl="Đặt vấn đề tốt, cải tiến tương ứng từng hạn chế, phát biểu kết quả thận trọng. Đóng góp chưa được chứng minh: thiếu kiểm định thống kê, thiếu số liệu cho nhận định theo quy mô, dữ liệu nhỏ. Không có văn bản xác nhận ứng dụng.",
+),
+
+}
