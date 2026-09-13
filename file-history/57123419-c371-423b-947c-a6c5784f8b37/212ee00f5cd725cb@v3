@@ -1,0 +1,91 @@
+#!/usr/bin/env python3
+"""Figure for the FJCAI paper: accuracy of each held-out session under LOSO.
+
+Two panels drawn from results/iemocap_loso/*.json: the released feature blocks and the
+frozen-encoder blocks. Colour carries the paper's one distinction -- blue for feature
+blocks fitted to IEMOCAP labels, orange for blocks that never saw them -- using Word's
+theme accents 1 and 2, the only Office pair that passes the dataviz validator. Within a
+colour, series differ by marker and line style and are labelled directly.
+
+    python scripts/plot_loso_fig.py --out paper/fjcai/fig_loso.pdf
+"""
+from __future__ import annotations
+
+import argparse
+import json
+from pathlib import Path
+
+import matplotlib
+
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt  # noqa: E402
+from matplotlib.lines import Line2D  # noqa: E402
+
+INK, MUTED, BAND, GRID = "#1f1f1f", "#6b6b6b", "#efefef", "#d9d9d9"
+BLUE, ORANGE = "#4472C4", "#ED7D31"
+SESSIONS = ("01", "02", "03", "04", "05")
+PANELS = (
+    ("Released features", (("released-text", "text", BLUE, "o", "-"),
+                           ("released-tav", "text+audio+video", BLUE, "s", "--"),
+                           ("released-video", "video", BLUE, "^", ":"),
+                           ("released-audio", "audio", ORANGE, "D", "-"))),
+    ("Frozen-encoder features", (("bert+audio", "BERT+audio", ORANGE, "s", "-"),
+                                 ("roberta", "RoBERTa", ORANGE, "o", "--"),
+                                 ("bert", "BERT", ORANGE, "^", "-."),
+                                 ("deberta", "DeBERTa-v3", ORANGE, "D", ":"))),
+)
+
+
+def dodge(ys: list[float], gap: float) -> list[float]:
+    """Label positions at least `gap` apart, in the original order."""
+    order = sorted(range(len(ys)), key=lambda i: ys[i])
+    placed = {}
+    last = None
+    for i in order:
+        y = ys[i] if last is None else max(ys[i], last + gap)
+        placed[i] = last = y
+    return [placed[i] for i in range(len(ys))]
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--results", type=Path, default=Path("results/iemocap_loso"))
+    ap.add_argument("--out", type=Path, default=Path("paper/fjcai/fig_loso.pdf"))
+    args = ap.parse_args()
+
+    plt.rcParams.update({"font.size": 7, "font.family": "serif", "axes.linewidth": 0.6})
+    fig, axes = plt.subplots(1, 2, figsize=(7.0, 2.3), sharey=True)
+    for ax, (title, series) in zip(axes, PANELS):
+        ax.axvspan(3.6, 4.4, color=BAND, zorder=0)
+        ax.text(4.0, 95, "standard split", ha="center", va="top", fontsize=6, color=MUTED)
+        ends = []
+        for key, label, color, marker, style in series:
+            folds = json.loads((args.results / f"{key}.json").read_text())["folds"]
+            ys = [folds[s]["acc"]["mean"] * 100 for s in SESSIONS]
+            ax.plot(range(5), ys, style, color=color, lw=1.4, marker=marker, ms=4.5,
+                    mec="white", mew=0.6, zorder=3)
+            ends.append((ys[-1], label))
+        for (y, label), y_text in zip(ends, dodge([e[0] for e in ends], 3.2)):
+            ax.annotate(label, (4, y), xytext=(4.25, y_text), textcoords="data",
+                        va="center", fontsize=6, color=INK)
+        ax.set_title(title, fontsize=7.5)
+        ax.set_xticks(range(5), [f"S{int(s)}" for s in SESSIONS])
+        ax.set_xlim(-0.3, 5.6)
+        ax.set_ylim(25, 97)
+        ax.grid(axis="y", color=GRID, lw=0.5)
+        for s in ("top", "right"):
+            ax.spines[s].set_visible(False)
+        ax.set_xlabel("held-out session")
+    axes[0].set_ylabel("accuracy (%)")
+    handles = [Line2D([], [], color=BLUE, lw=1.4, label="fitted to IEMOCAP labels"),
+               Line2D([], [], color=ORANGE, lw=1.4, label="never trained on IEMOCAP labels")]
+    axes[1].legend(handles=handles, loc="lower left", frameon=False, fontsize=6)
+    fig.tight_layout()
+    args.out.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(args.out)
+    fig.savefig(args.out.with_suffix(".png"), dpi=200)
+    print(f"written {args.out}")
+
+
+if __name__ == "__main__":
+    main()
