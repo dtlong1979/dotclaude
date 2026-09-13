@@ -1,0 +1,89 @@
+#!/usr/bin/env python3
+"""Figure for the ICEIR paper: what collapse toward the prior does to weighted F1 and kappa.
+
+Replays experiments/theory_check.py's garbling experiment -- the same random confusion
+matrices over MELD's test prior, the same seed, lambda = 0.9 -- and plots, for every matrix
+with positive kappa, the change in kappa against the change in weighted F1. The figure
+therefore shows exactly the 9,261 cases the paper counts: none moves right of zero (kappa
+never rises), and most move up (weighted F1 rises). One colour only, because the zero line
+already separates the two groups and the counts are annotated.
+
+    python scripts/plot_garbling_fig.py --out paper/iceir/fig_garbling.pdf
+"""
+from __future__ import annotations
+
+import argparse
+import importlib.util
+import json
+from pathlib import Path
+
+import matplotlib
+import numpy as np
+
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt  # noqa: E402
+
+ROOT = Path(__file__).resolve().parents[1]
+BLUE, ORANGE, INK, MUTED, GRID = "#4472C4", "#ED7D31", "#1f1f1f", "#6b6b6b", "#d9d9d9"
+
+_spec = importlib.util.spec_from_file_location("theory", ROOT / "experiments" / "theory_check.py")
+T = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(T)
+
+
+def deltas(pi: np.ndarray, lam: float = 0.9, n: int = 20_000, seed: int = 0):
+    """theory_check.garbling_experiment, returning the changes instead of counts."""
+    rng = np.random.default_rng(seed)
+    star = int(pi.argmax())
+    dk, dw = [], []
+    for _ in range(n):
+        c = rng.dirichlet(np.ones(len(pi)) * rng.uniform(0.2, 4.0), size=len(pi))
+        k1 = T.kappa_from_confusion(pi, c)
+        if not k1 > 0:
+            continue
+        g = T.garble(c, lam, star)
+        dk.append(T.kappa_from_confusion(pi, g) - k1)
+        dw.append(T.metrics_from_confusion(pi, g)["w_f1"] - T.metrics_from_confusion(pi, c)["w_f1"])
+    return np.array(dk), np.array(dw)
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--out", type=Path, default=Path("paper/iceir/fig_garbling.pdf"))
+    args = ap.parse_args()
+
+    meld = json.loads((ROOT / "src/uacmd/data/meld_priors.json").read_text())["test"]
+    counts = np.array([meld[e] for e in T.EMOTIONS], dtype=float)
+    dk, dw = deltas(counts / counts.sum())
+    up = dw > 1e-12
+    print(f"usable {len(dk):,}; kappa raised {int((dk > 1e-12).sum())}; "
+          f"weighted F1 raised {int(up.sum()):,} ({100 * up.mean():.1f}%)")
+
+    plt.rcParams.update({"font.size": 8, "font.family": "serif", "axes.linewidth": 0.6})
+    fig, ax = plt.subplots(figsize=(4.8, 2.6))
+    ax.axhline(0, color=MUTED, lw=0.8, zorder=1)
+    ax.axvline(0, color=MUTED, lw=0.8, zorder=1)
+    # One colour only: the zero line already separates the two groups, so colour would
+    # carry a third meaning here and the figure has to survive greyscale printing.
+    ax.scatter(100 * dk, 100 * dw, s=3, color=ORANGE, alpha=0.4, lw=0, zorder=2)
+    box = {"facecolor": "white", "edgecolor": "none", "pad": 1.0}
+    ax.annotate(f"weighted F1 rises: {up.sum():,}", (0.98, 0.72), xycoords="axes fraction",
+                ha="right", fontsize=7, color=INK, bbox=box)
+    ax.annotate(f"weighted F1 falls: {(~up).sum():,}", (0.98, 0.06), xycoords="axes fraction",
+                ha="right", fontsize=7, color=INK, bbox=box)
+    ax.set_xlabel(r"change in kappa ($\times 100$) under collapse toward the prior")
+    ax.set_ylabel(r"change in weighted F1 ($\times 100$)")
+    ax.grid(color=GRID, lw=0.5)
+    for s in ("top", "right"):
+        ax.spines[s].set_visible(False)
+    ax.text(0.02, 0.98, "no point lies right of zero:\nkappa never rises",
+            transform=ax.transAxes, va="top", fontsize=7, color=INK)
+    fig.tight_layout()
+    args.out.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(args.out)
+    fig.savefig(args.out.with_suffix(".png"), dpi=200)
+    print(f"written {args.out}")
+
+
+if __name__ == "__main__":
+    main()

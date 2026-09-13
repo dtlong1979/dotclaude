@@ -1,0 +1,93 @@
+#!/usr/bin/env python3
+"""Figure for the ICEIR paper: what the MELD headroom looks like once the unimodal
+baseline is re-measured with encoders that never saw a MELD label.
+
+Three dumbbells on one weighted-F1 axis: the two published rows (best single modality to
+fused, read from docs/headroom-data.json) and our frozen-encoder row (read from
+results/meld_headroom.json, with the 95% interval of H on the fused end). The point the
+figure makes is that the baseline moved, not the fused system: frozen text alone lands to
+the right of both published fused systems. Blue circles are read from published tables,
+orange diamonds measured here -- Word's theme accents 1 and 2, with marker shape repeating
+the colour so the figure survives greyscale printing.
+
+    python scripts/plot_meld_frozen_fig.py --out paper/iceir/fig_meld_frozen.pdf
+"""
+from __future__ import annotations
+
+import argparse
+import json
+from pathlib import Path
+
+import matplotlib
+
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt  # noqa: E402
+
+BLUE, ORANGE, INK, MUTED, GRID = "#4472C4", "#ED7D31", "#1f1f1f", "#6b6b6b", "#d9d9d9"
+PUBLISHED = (("MELD (DialogueRNN)", "DialogueRNN, published"),
+             ("MELD (bcLSTM)", "bc-LSTM, published"))
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--data", type=Path, default=Path("docs/headroom-data.json"))
+    ap.add_argument("--meld", type=Path, default=Path("results/meld_headroom.json"))
+    ap.add_argument("--out", type=Path, default=Path("paper/iceir/fig_meld_frozen.pdf"))
+    args = ap.parse_args()
+
+    entries = {e["corpus"]: e for e in json.loads(args.data.read_text(encoding="utf-8"))["entries"]}
+    meld = json.loads(args.meld.read_text())
+    h = meld["headroom"]["w_f1"]
+    rows = []
+    for key, label in PUBLISHED:
+        e = entries[key]
+        single = max(e["modalities"].values())
+        rows.append({"label": label, "single": single, "fused": e["fused"],
+                     "H": e["fused"] - single, "measured": False})
+    rows.append({"label": "frozen BERT + WavLM, this work",
+                 "single": h["best_unimodal_value"] * 100,
+                 "fused": h["fused_value"] * 100, "H": h["H"] * 100, "measured": True,
+                 "ci": [(h["fused_value"] + c) * 100 for c in h["ci95"]]})
+
+    plt.rcParams.update({"font.size": 8, "font.family": "serif", "axes.linewidth": 0.6})
+    fig, ax = plt.subplots(figsize=(4.8, 1.9))
+    ax.axvline(rows[-1]["single"], color=MUTED, lw=0.8, ls=(0, (3, 2)), zorder=1)
+    ax.annotate("frozen text alone", (rows[-1]["single"], -0.72), ha="center", va="bottom",
+                fontsize=7, color=MUTED, annotation_clip=False)
+    for y, r in enumerate(rows):
+        color = ORANGE if r["measured"] else BLUE
+        marker = "D" if r["measured"] else "o"
+        ax.plot([r["single"], r["fused"]], [y, y], color=color, lw=2.0,
+                solid_capstyle="round", zorder=2)
+        if r["measured"]:
+            # The 95% interval of H, drawn on the fused end: it still covers zero gain.
+            ax.plot(r["ci"], [y, y], color=color, lw=0.9, zorder=2)
+            for x in r["ci"]:
+                ax.plot([x, x], [y - 0.13, y + 0.13], color=color, lw=0.9, zorder=2)
+        ax.plot(r["single"], y, marker, ms=6, mfc="white", mec=color, mew=1.4, zorder=3)
+        ax.plot(r["fused"], y, marker, ms=6, color=color, mec="white", mew=0.8, zorder=3)
+        right = max(r["single"], r["fused"], *(r["ci"] if r["measured"] else ()))
+        ax.annotate(f"$H={r['H']:+.2f}$", (right, y), xytext=(8, 0),
+                    textcoords="offset points", va="center", fontsize=7.5, color=INK)
+    ax.set_yticks(range(len(rows)), [r["label"] for r in rows])
+    ax.invert_yaxis()
+    ax.set_xlabel("weighted F1 on the MELD test split (%)")
+    ax.set_xlim(54, 66)
+    ax.set_xticks(range(54, 67, 2))
+    ax.grid(axis="x", color=GRID, lw=0.5)
+    for s in ("top", "right", "left"):
+        ax.spines[s].set_visible(False)
+    ax.tick_params(axis="y", length=0)
+    # No legend: with three rows there is no free corner, and the caption says what the
+    # open and filled markers are.
+    fig.tight_layout()
+    args.out.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(args.out)
+    fig.savefig(args.out.with_suffix(".png"), dpi=200)
+    print("\n".join(f"{r['label']:32s} {r['single']:6.2f} -> {r['fused']:6.2f}  "
+                    f"H={r['H']:+.2f}" for r in rows))
+    print(f"written {args.out}")
+
+
+if __name__ == "__main__":
+    main()

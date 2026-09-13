@@ -1,0 +1,76 @@
+#!/usr/bin/env python3
+"""Figure for the FJCAI paper: nearest-neighbour label agreement per session.
+
+Reads results/iemocap_knn_diagnostic.json (experiments/iemocap_knn_diagnostic.py). Blue
+for blocks fitted to IEMOCAP labels, orange for blocks that never saw them -- Word's theme
+accents 1 and 2; line style and direct labels carry identity within a colour.
+
+    python scripts/plot_knn_fig.py --out paper/fjcai/fig_knn.pdf
+"""
+from __future__ import annotations
+
+import argparse
+import json
+from pathlib import Path
+
+import matplotlib
+
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt  # noqa: E402
+
+BLUE, ORANGE, MUTED, GRID = "#4472C4", "#ED7D31", "#6b6b6b", "#d9d9d9"
+SERIES = (("released text", "released text", BLUE, "-", "o"),
+          ("released visual", "released visual", BLUE, "--", "s"),
+          ("released audio", "released audio", ORANGE, "-.", "D"),
+          ("frozen bert", "frozen BERT text", ORANGE, "-", "o"),
+          ("MMGCN visual", "MMGCN visual", ORANGE, ":", "^"))
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--data", type=Path, default=Path("results/iemocap_knn_diagnostic.json"))
+    ap.add_argument("--stats", type=Path, default=Path("results/iemocap_session_stats.json"))
+    ap.add_argument("--out", type=Path, default=Path("paper/fjcai/fig_knn.pdf"))
+    args = ap.parse_args()
+    blocks = json.loads(args.data.read_text())["blocks"]
+    stats = json.loads(args.stats.read_text())
+
+    plt.rcParams.update({"font.size": 7, "font.family": "serif", "axes.linewidth": 0.6})
+    fig, ax = plt.subplots(figsize=(3.4, 2.1))
+    ax.axvspan(4.6, 5.4, color=GRID, alpha=0.5, lw=0, zorder=0)
+    xs = [1, 2, 3, 4, 5]
+    floor = [stats[f"0{s}"]["majority_share"] * 100 for s in xs]
+    ax.plot(xs, floor, color=MUTED, lw=0.8, ls=(0, (1, 1.5)), zorder=1)
+    ax.annotate("majority-class floor", (1, floor[0]), xytext=(0.85, 17.5),
+                textcoords="data", fontsize=6.5, color=MUTED)
+    ends = []
+    for key, label, color, ls, mk in SERIES:
+        per = blocks[key]["per_session"]
+        ys = [per[f"0{s}"] * 100 for s in xs]
+        ax.plot(xs, ys, color=color, ls=ls, lw=1.6, marker=mk, ms=4, mec="white", mew=0.5,
+                zorder=3)
+        ends.append([ys[-1], ys[-1], label])
+    ends.sort(key=lambda e: e[0])
+    for i in range(1, len(ends)):
+        ends[i][1] = max(ends[i][1], ends[i - 1][1] + 3.8)
+    for y_true, y_text, label in ends:
+        ax.annotate(label, (5, y_true), xytext=(5.45, y_text), textcoords="data",
+                    va="center", fontsize=7, color=MUTED,
+                    arrowprops={"arrowstyle": "-", "color": MUTED, "lw": 0.6})
+    ax.set_xticks(xs, [f"S{s}" for s in xs])
+    ax.set_xlim(0.7, 7.2)
+    ax.set_ylim(15, 95)
+    ax.set_ylabel("10-NN label agreement (%)")
+    ax.set_xlabel("session (S5 unseen by the released extractors)")
+    ax.grid(axis="y", color=GRID, lw=0.5)
+    for s in ("top", "right"):
+        ax.spines[s].set_visible(False)
+    fig.tight_layout(pad=0.3)
+    args.out.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(args.out)
+    fig.savefig(args.out.with_suffix(".png"), dpi=200)
+    print(f"written {args.out}")
+
+
+if __name__ == "__main__":
+    main()
