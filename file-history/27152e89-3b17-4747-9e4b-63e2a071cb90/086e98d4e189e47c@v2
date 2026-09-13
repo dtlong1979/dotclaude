@@ -1,0 +1,708 @@
+import { createHmac, timingSafeEqual } from "crypto";
+import { cookies } from "next/headers";
+import type { LegacySectionKey } from "@/lib/legacy-sections";
+import type { EditorArticlePayload } from "@/lib/fithou-editor";
+
+type DirectusResponse<T> = {
+  data: T;
+};
+
+type DirectusUser = {
+  id: string;
+  email: string;
+  first_name?: string | null;
+  last_name?: string | null;
+  title?: string | null;
+  location?: string | null;
+  description?: string | null;
+  avatar?: string | { id?: string } | null;
+  status?: string;
+  can_manage_albums?: boolean | null;
+  can_manage_faq?: boolean | null;
+  can_manage_signage?: boolean | null;
+  role?: {
+    id?: string;
+    name?: string;
+  } | null;
+};
+
+type DirectusScope = {
+  section_key?: LegacySectionKey;
+  can_create?: boolean;
+  can_review?: boolean;
+  can_publish?: boolean;
+};
+
+export type FithouRole = "system_admin" | "content_admin" | "publisher" | "editor" | "contributor";
+
+export type FithouSessionUser = {
+  id: string;
+  email: string;
+  name: string;
+  firstName?: string;
+  lastName?: string;
+  title?: string;
+  location?: string;
+  description?: string;
+  avatarId?: string;
+  avatarUrl?: string;
+  role: FithouRole;
+  roleName: string;
+  sections: LegacySectionKey[];
+  scopes: DirectusScope[];
+  canManageAlbums?: boolean;
+  canManageFaq?: boolean;
+  canManageSignage?: boolean;
+};
+
+const cookieName = "fithou_admin_session";
+const sessionAgeMs = 8 * 60 * 60 * 1000;
+const directusUrl = process.env.DIRECTUS_URL?.replace(/\/$/, "");
+const adminEmail = process.env.DIRECTUS_ADMIN_EMAIL;
+const adminPassword = process.env.DIRECTUS_ADMIN_PASSWORD;
+
+const roleMap: Record<string, FithouRole> = {
+  Administrator: "system_admin",
+  "Fithou System Admin": "system_admin",
+  "Fithou Content Admin": "content_admin",
+  "Fithou Publisher": "content_admin",
+  "Fithou Editor": "editor",
+  "Fithou Contributor": "contributor"
+};
+
+export const fithouSessionCookieOptions = {
+  httpOnly: true,
+  sameSite: "lax" as const,
+  secure: process.env.NODE_ENV === "production",
+  path: "/",
+  maxAge: sessionAgeMs / 1000
+};
+
+export function canUseFithouAuth() {
+  return Boolean(directusUrl && adminEmail && adminPassword);
+}
+
+export async function createFithouSession(email: string, password: string) {
+  if (!directusUrl) {
+    throw new Error("Directus is not configured");
+  }
+
+  const loginResponse = await fetch(`${directusUrl}/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password })
+  });
+
+  if (!loginResponse.ok) {
+    throw new Error("Sai email hoặc mật khẩu");
+  }
+
+  const loginData = (await loginResponse.json()) as DirectusResponse<{ access_token: string }>;
+  // Sau khi xác thực mật khẩu, đọc hồ sơ + role bằng TOKEN ADMIN thay vì token của chính user.
+  // Lý do: policy của biên tập viên có thể KHÔNG cho token user đọc role.name/các field (đặc biệt khi
+  // tắt App Access để chặn Studio) -> Directus lược bỏ hết field khiến đăng nhập hỏng. Token admin luôn
+  // đọc được, nên đăng nhập website độc lập hoàn toàn với quyền Directus của user.
+  const userFields =
+    "?fields=id,email,first_name,last_name,title,location,description,avatar,status,role.id,role.name";
+  const adminToken = await loginAsAdmin();
+  let userId: string | undefined;
+  try {
+    // endpoint "me" luôn trả về id của chính mình dù quyền bị hạn chế
+    userId = (await directusGetAsUser<{ id?: string }>("/users/me?fields=id", loginData.data.access_token))?.id;
+  } catch {
+    /* bỏ qua, tra theo email bằng token admin bên dưới */
+  }
+  const directusUser = userId
+    ? await directusGetAsUser<DirectusUser>(`/users/${userId}${userFields}`, adminToken)
+    : (
+        await directusGetAsUser<DirectusUser[]>(
+          `/users${userFields}&filter[email][_eq]=${encodeURIComponent(email.trim())}&limit=1`,
+          adminToken
+        )
+      )?.[0];
+
+  if (!directusUser) {
+    throw new Error("Không đọc được thông tin tài khoản");
+  }
+
+  if (directusUser.status && directusUser.status !== "active") {
+    throw new Error("Tài khoản chưa được kích hoạt");
+  }
+
+  const roleName = directusUser.role?.name ?? "";
+  const role = roleMap[roleName];
+
+  if (!role) {
+    throw new Error("Tài khoản này chưa được cấp quyền Fithou Admin");
+  }
+
+  const scopes = await getUserScopes(directusUser.id);
+  const sections = sectionsForRole(role, scopes);
+  const albumFlag = await getUserAlbumFlag(directusUser.id);
+  const faqFlag = await getUserFaqFlag(directusUser.id);
+  const signageFlag = await getUserSignageFlag(directusUser.id);
+
+  const user: FithouSessionUser = {
+    id: directusUser.id,
+    email: directusUser.email,
+    firstName: directusUser.first_name ?? "",
+    lastName: directusUser.last_name ?? "",
+    title: directusUser.title ?? "",
+    location: directusUser.location ?? "",
+    description: directusUser.description ?? "",
+    avatarId: avatarIdFromUser(directusUser),
+    avatarUrl: avatarUrlFromUser(directusUser),
+    name: [directusUser.first_name, directusUser.last_name].filter(Boolean).join(" ") || directusUser.email,
+    role,
+    roleName,
+    sections: sections as LegacySectionKey[],
+    scopes,
+    canManageAlbums: albumFlag,
+    canManageFaq: faqFlag,
+    canManageSignage: signageFlag
+  };
+
+  return {
+    cookieValue: signSession({
+      user,
+      expiresAt: Date.now() + sessionAgeMs
+    }),
+    user
+  };
+}
+
+export async function getCurrentFithouUser() {
+  const store = await cookies();
+  const value = store.get(cookieName)?.value;
+  const user = readUserFromCookie(value);
+
+  if (!user) {
+    return null;
+  }
+
+  return refreshFithouSessionUser(user).catch(() => user);
+}
+
+export async function requireFithouUser() {
+  const user = await getCurrentFithouUser();
+
+  if (!user) {
+    throw new Error("UNAUTHORIZED");
+  }
+
+  return user;
+}
+
+export async function updateFithouProfile(
+  user: FithouSessionUser,
+  input: { firstName: string; lastName: string; title: string; location: string; description: string }
+) {
+  const firstName = input.firstName.trim().slice(0, 80);
+  const lastName = input.lastName.trim().slice(0, 80);
+  const title = input.title.trim().slice(0, 120);
+  const location = input.location.trim().slice(0, 120);
+  const description = input.description.trim().slice(0, 600);
+
+  if (!firstName && !lastName) {
+    throw new Error("Vui lòng nhập họ hoặc tên hiển thị");
+  }
+
+  const token = await loginAsAdmin();
+  const updated = await directusPatchAsUser<DirectusUser>(
+    `/users/${encodeURIComponent(user.id)}`,
+    {
+      first_name: firstName,
+      last_name: lastName,
+      title,
+      location,
+      description
+    },
+    token
+  );
+  const nextUser: FithouSessionUser = {
+    ...user,
+    firstName: updated.first_name ?? firstName,
+    lastName: updated.last_name ?? lastName,
+    title: updated.title ?? title,
+    location: updated.location ?? location,
+    description: updated.description ?? description,
+    name: [updated.first_name ?? firstName, updated.last_name ?? lastName].filter(Boolean).join(" ") || user.email
+  };
+
+  return {
+    user: nextUser,
+    cookieValue: signSession({ user: nextUser, expiresAt: Date.now() + sessionAgeMs })
+  };
+}
+
+export async function updateFithouAvatar(user: FithouSessionUser, input: { dataUrl?: string; preset?: string }) {
+  const token = await loginAsAdmin();
+  const fileName = input.preset ? `fithou-avatar-${input.preset}.svg` : `fithou-avatar-${user.id}.png`;
+  const { bytes, mimeType } = input.preset ? presetAvatarBytes(input.preset, user.name) : dataUrlToFile(input.dataUrl ?? "");
+  const fileId = await directusUploadFile(fileName, mimeType, bytes, token);
+  const updated = await directusPatchAsUser<DirectusUser>(
+    `/users/${encodeURIComponent(user.id)}`,
+    { avatar: fileId },
+    token
+  );
+  const nextUser: FithouSessionUser = {
+    ...user,
+    avatarId: avatarIdFromUser(updated) || fileId,
+    avatarUrl: directusAssetUrl(avatarIdFromUser(updated) || fileId)
+  };
+
+  return {
+    user: nextUser,
+    cookieValue: signSession({ user: nextUser, expiresAt: Date.now() + sessionAgeMs })
+  };
+}
+
+export async function changeFithouPassword(user: FithouSessionUser, currentPassword: string, newPassword: string) {
+  if (newPassword.length < 10) {
+    throw new Error("Mật khẩu mới cần có ít nhất 10 ký tự");
+  }
+
+  if (currentPassword === newPassword) {
+    throw new Error("Mật khẩu mới cần khác mật khẩu hiện tại");
+  }
+
+  await verifyDirectusPassword(user.email, currentPassword);
+  const token = await loginAsAdmin();
+  await directusPatchAsUser<DirectusUser>(
+    `/users/${encodeURIComponent(user.id)}`,
+    {
+      password: newPassword
+    },
+    token
+  );
+}
+
+export async function resetFithouPasswordByEmail(email: string, newPassword: string) {
+  if (newPassword.length < 10) {
+    throw new Error("Mật khẩu mới cần có ít nhất 10 ký tự");
+  }
+
+  const token = await loginAsAdmin();
+  const users = await directusGetAsUser<Array<{ id?: string; email?: string; status?: string }>>(
+    `/users?filter[email][_eq]=${encodeURIComponent(email)}&fields=id,email,status&limit=1`,
+    token
+  );
+  const user = users[0];
+
+  if (!user?.id || user.status === "suspended" || user.status === "archived") {
+    throw new Error("Không tìm thấy tài khoản hợp lệ");
+  }
+
+  await directusPatchAsUser<DirectusUser>(
+    `/users/${encodeURIComponent(user.id)}`,
+    {
+      password: newPassword
+    },
+    token
+  );
+}
+
+export function clearFithouSessionCookie(response: { cookies: { set: (name: string, value: string, options: object) => void } }) {
+  response.cookies.set(cookieName, "", { ...fithouSessionCookieOptions, maxAge: 0 });
+}
+
+export function setFithouSessionCookie(
+  response: { cookies: { set: (name: string, value: string, options: object) => void } },
+  value: string
+) {
+  response.cookies.set(cookieName, value, fithouSessionCookieOptions);
+}
+
+export async function setCurrentFithouSessionCookie(value: string) {
+  const store = await cookies();
+  store.set(cookieName, value, fithouSessionCookieOptions);
+}
+
+export function canPublish(user: FithouSessionUser, section: LegacySectionKey) {
+  if (!["system_admin", "content_admin", "publisher"].includes(user.role)) {
+    return false;
+  }
+
+  return hasScopedPermission(user, section, "can_publish");
+}
+
+export function canDelete(user: FithouSessionUser) {
+  return user.role === "system_admin" || user.role === "content_admin" || user.role === "publisher";
+}
+
+// Quyền quản lý album ảnh thư viện: admin hệ thống/nội dung luôn có; user thường phải được cấp
+// cờ can_manage_albums trong hồ sơ Directus (bật ở Quản trị nâng cao → tab User).
+export function canManageAlbums(user: FithouSessionUser) {
+  return user.role === "system_admin" || user.role === "content_admin" || Boolean(user.canManageAlbums);
+}
+
+// Quyền quản lý FAQ sinh viên: admin hệ thống/nội dung luôn có; cán bộ khác phải được cấp cờ
+// can_manage_faq trong hồ sơ Directus (bật ở Quản trị nâng cao → tab User).
+export function canManageFaq(user: FithouSessionUser) {
+  return user.role === "system_admin" || user.role === "content_admin" || Boolean(user.canManageFaq);
+}
+
+// Quyền quản lý TRÌNH CHIẾU (signage): admin hệ thống/nội dung luôn có; tài khoản khác (kể cả
+// người phụ trách là sinh viên) phải được cấp cờ can_manage_signage trong hồ sơ Directus
+// (bật ở Quản trị nâng cao → tab User). Cho phép giao trang trình chiếu mà KHÔNG cần quyền cán bộ.
+export function canManageSignage(user: FithouSessionUser) {
+  return user.role === "system_admin" || user.role === "content_admin" || Boolean(user.canManageSignage);
+}
+
+// Có quyền BIÊN TẬP/QUẢN TRỊ BÀI VIẾT: admin hệ thống/nội dung, hoặc có ít nhất 1 chuyên mục.
+// Tài khoản 0 chuyên mục (vd chỉ quản lý Gallery) sẽ KHÔNG thấy chức năng bài viết.
+export function canEditContent(user: FithouSessionUser) {
+  return user.role === "system_admin" || user.role === "content_admin" || user.sections.length > 0;
+}
+
+// Quyền quản lý nguồn Tri thức mở (fithou_open_resources): dành cho admin hệ thống/nội dung.
+export function canManageOpenResources(user: FithouSessionUser) {
+  return user.role === "system_admin" || user.role === "content_admin";
+}
+
+export function assertCanSaveArticle(user: FithouSessionUser, payload: EditorArticlePayload) {
+  if (!hasScopedPermission(user, payload.categoryKey, "can_create")) {
+    throw new Error("Bạn chưa được phân quyền đăng bài trong chuyên mục này");
+  }
+
+  if (payload.status === "published" && !canPublish(user, payload.categoryKey)) {
+    throw new Error("Bạn chưa có quyền xuất bản bài viết");
+  }
+}
+
+function hasScopedPermission(user: FithouSessionUser, section: LegacySectionKey, field: keyof DirectusScope) {
+  // Chỉ admin hệ thống là toàn quyền mọi chuyên mục. Quản trị nội dung/biên tập viên theo scope đã cấp.
+  if (user.role === "system_admin") {
+    return true;
+  }
+
+  if (!user.scopes.length) {
+    if (field === "can_publish") {
+      return user.role === "publisher";
+    }
+
+    if (field === "can_review") {
+      return user.role === "publisher";
+    }
+
+    return user.role === "publisher" || user.role === "editor";
+  }
+
+  const scope = user.scopes.find((item) => item.section_key === section);
+  return Boolean(scope?.[field]);
+}
+
+function readUserFromCookie(value?: string) {
+  if (!value) {
+    return null;
+  }
+
+  const [payload, signature] = value.split(".");
+
+  if (!payload || !signature || !verifySignature(payload, signature)) {
+    return null;
+  }
+
+  try {
+    const session = JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as {
+      user: FithouSessionUser;
+      expiresAt: number;
+    };
+
+    if (!session.expiresAt || session.expiresAt < Date.now()) {
+      return null;
+    }
+
+    return session.user;
+  } catch {
+    return null;
+  }
+}
+
+function signSession(session: { user: FithouSessionUser; expiresAt: number }) {
+  const payload = Buffer.from(JSON.stringify(session), "utf8").toString("base64url");
+  return `${payload}.${createSignature(payload)}`;
+}
+
+function createSignature(payload: string) {
+  return createHmac("sha256", sessionSecret()).update(payload).digest("base64url");
+}
+
+function verifySignature(payload: string, signature: string) {
+  const expected = Buffer.from(createSignature(payload));
+  const actual = Buffer.from(signature);
+
+  return expected.length === actual.length && timingSafeEqual(expected, actual);
+}
+
+function sessionSecret() {
+  const explicit = process.env.FITHOU_AUTH_SECRET || process.env.AUTH_SECRET;
+  if (explicit) return explicit;
+  // Bắt buộc đặt khóa ký phiên ngẫu nhiên ở production — KHÔNG fallback về mật khẩu admin/hằng số
+  // (tránh giả mạo cookie phiên quản trị).
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("Thiếu FITHOU_AUTH_SECRET: phải đặt khóa ký phiên ngẫu nhiên ở production.");
+  }
+  return "fithou-local-dev-secret"; // chỉ dùng cho dev local
+}
+
+async function getUserScopes(userId: string) {
+  if (!canUseFithouAuth()) {
+    return [];
+  }
+
+  const token = await loginAsAdmin();
+
+  return directusGetAsUser<DirectusScope[]>(
+    `/items/fithou_author_scopes?filter[user_id][_eq]=${encodeURIComponent(userId)}&fields=section_key,can_create,can_review,can_publish`,
+    token
+  ).catch(() => []);
+}
+
+async function getUserAlbumFlag(userId: string) {
+  if (!canUseFithouAuth()) {
+    return false;
+  }
+
+  const token = await loginAsAdmin();
+
+  return directusGetAsUser<{ can_manage_albums?: boolean | null }>(
+    `/users/${encodeURIComponent(userId)}?fields=can_manage_albums`,
+    token
+  )
+    .then((row) => Boolean(row.can_manage_albums))
+    .catch(() => false);
+}
+
+async function getUserFaqFlag(userId: string) {
+  if (!canUseFithouAuth()) {
+    return false;
+  }
+  const token = await loginAsAdmin();
+  return directusGetAsUser<{ can_manage_faq?: boolean | null }>(`/users/${encodeURIComponent(userId)}?fields=can_manage_faq`, token)
+    .then((row) => Boolean(row.can_manage_faq))
+    .catch(() => false);
+}
+
+async function getUserSignageFlag(userId: string) {
+  if (!canUseFithouAuth()) {
+    return false;
+  }
+  const token = await loginAsAdmin();
+  return directusGetAsUser<{ can_manage_signage?: boolean | null }>(`/users/${encodeURIComponent(userId)}?fields=can_manage_signage`, token)
+    .then((row) => Boolean(row.can_manage_signage))
+    .catch(() => false);
+}
+
+async function refreshFithouSessionUser(user: FithouSessionUser) {
+  if (!canUseFithouAuth()) {
+    return user;
+  }
+
+  const token = await loginAsAdmin();
+  const directusUser = await directusGetAsUser<DirectusUser>(
+    `/users/${encodeURIComponent(user.id)}?fields=id,email,first_name,last_name,title,location,description,avatar,status,can_manage_albums,can_manage_faq,can_manage_signage,role.id,role.name`,
+    token
+  );
+
+  if (directusUser.status && directusUser.status !== "active") {
+    return null;
+  }
+
+  const roleName = directusUser.role?.name ?? user.roleName;
+  const role = roleMap[roleName] ?? user.role;
+  const scopes = await directusGetAsUser<DirectusScope[]>(
+    `/items/fithou_author_scopes?filter[user_id][_eq]=${encodeURIComponent(user.id)}&fields=section_key,can_create,can_review,can_publish`,
+    token
+  ).catch(() => user.scopes);
+
+  return {
+    ...user,
+    email: directusUser.email ?? user.email,
+    firstName: directusUser.first_name ?? "",
+    lastName: directusUser.last_name ?? "",
+    title: directusUser.title ?? "",
+    location: directusUser.location ?? "",
+    description: directusUser.description ?? "",
+    avatarId: avatarIdFromUser(directusUser),
+    avatarUrl: avatarUrlFromUser(directusUser),
+    name: [directusUser.first_name, directusUser.last_name].filter(Boolean).join(" ") || directusUser.email || user.name,
+    role,
+    roleName,
+    scopes,
+    sections: sectionsForRole(role, scopes) as LegacySectionKey[],
+    canManageAlbums: Boolean(directusUser.can_manage_albums),
+    canManageFaq: Boolean(directusUser.can_manage_faq),
+    canManageSignage: Boolean(directusUser.can_manage_signage)
+  };
+}
+
+function sectionsForRole(role: FithouRole, scopes: DirectusScope[]) {
+  const scopedSections = scopes.map((scope) => scope.section_key).filter(Boolean);
+  if (scopedSections.length || role === "contributor") {
+    return scopedSections;
+  }
+
+  return ["announcements", "activities", "admissions", "graduation", "careers", "documents", "research"];
+}
+
+// Cache token admin trong bộ nhớ tiến trình + GỘP các lần gọi đồng thời thành MỘT login.
+// Trước đây mỗi thao tác (kể cả mỗi lượt người dùng đăng nhập) đều login admin lại — bcrypt nặng,
+// và khi tải cao sinh "bão" hàng trăm login/phút. Nay: dùng lại token tới sát hạn, và mọi request
+// đồng thời chờ chung một promise login duy nhất.
+let _adminTokenCache: { token: string; expiresAt: number } | null = null;
+let _adminTokenInflight: Promise<string> | null = null;
+
+async function fetchAdminToken(): Promise<string> {
+  const response = await fetch(`${directusUrl}/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: adminEmail, password: adminPassword })
+  });
+  if (!response.ok) {
+    throw new Error(`Directus admin login failed: ${response.status}`);
+  }
+  const data = (await response.json()) as DirectusResponse<{ access_token: string; expires?: number }>;
+  const token = data.data.access_token;
+  // `expires` (ms) do Directus trả; mặc định ACCESS_TOKEN_TTL ~15 phút. Trừ hao 60s để không dùng sát hạn.
+  const ttlMs = typeof data.data.expires === "number" && data.data.expires > 0 ? data.data.expires : 15 * 60 * 1000;
+  _adminTokenCache = { token, expiresAt: Date.now() + Math.max(30_000, ttlMs - 60_000) };
+  return token;
+}
+
+async function loginAsAdmin(force = false): Promise<string> {
+  if (!force && _adminTokenCache && _adminTokenCache.expiresAt > Date.now()) {
+    return _adminTokenCache.token;
+  }
+  if (_adminTokenInflight) return _adminTokenInflight; // gộp các request đồng thời -> 1 login duy nhất
+  _adminTokenInflight = fetchAdminToken().finally(() => {
+    _adminTokenInflight = null;
+  });
+  return _adminTokenInflight;
+}
+
+/** Buộc làm mới token admin (dùng khi một token đã cache bị 401 giữa chừng). */
+export function invalidateAdminToken() {
+  _adminTokenCache = null;
+}
+
+async function verifyDirectusPassword(email: string, password: string) {
+  const response = await fetch(`${directusUrl}/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password })
+  });
+
+  if (!response.ok) {
+    throw new Error("Mật khẩu hiện tại không đúng");
+  }
+}
+
+// Gọi Directus, và nếu token vừa thất bại (401/403) ĐÚNG là token admin đang cache thì làm mới token
+// admin rồi thử lại MỘT lần. Không đụng token của người dùng (token khác cache -> không retry).
+async function directusFetchWithAdminRetry(doFetch: (token: string) => Promise<Response>, token: string): Promise<Response> {
+  let response = await doFetch(token);
+  if ((response.status === 401 || response.status === 403) && _adminTokenCache && token === _adminTokenCache.token) {
+    invalidateAdminToken();
+    const fresh = await loginAsAdmin(true);
+    response = await doFetch(fresh);
+  }
+  return response;
+}
+
+async function directusGetAsUser<T>(path: string, token: string) {
+  const response = await directusFetchWithAdminRetry(
+    (t) => fetch(`${directusUrl}${path}`, { headers: { Authorization: `Bearer ${t}` }, cache: "no-store" }),
+    token
+  );
+
+  if (!response.ok) {
+    throw new Error(`Directus GET failed: ${response.status} ${await response.text()}`);
+  }
+
+  return ((await response.json()) as DirectusResponse<T>).data;
+}
+
+async function directusPatchAsUser<T>(path: string, body: Record<string, unknown>, token: string) {
+  const response = await directusFetchWithAdminRetry(
+    (t) =>
+      fetch(`${directusUrl}${path}`, {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${t}`, "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      }),
+    token
+  );
+
+  if (!response.ok) {
+    throw new Error(`Directus PATCH failed: ${response.status} ${await response.text()}`);
+  }
+
+  return ((await response.json()) as DirectusResponse<T>).data;
+}
+
+async function directusUploadFile(fileName: string, mimeType: string, bytes: Uint8Array, token: string) {
+  const buildForm = () => {
+    const form = new FormData();
+    form.append("file", new Blob([bytes], { type: mimeType }), fileName);
+    form.append("title", fileName);
+    return form;
+  };
+
+  const response = await directusFetchWithAdminRetry(
+    (t) => fetch(`${directusUrl}/files`, { method: "POST", headers: { Authorization: `Bearer ${t}` }, body: buildForm() }),
+    token
+  );
+
+  if (!response.ok) {
+    throw new Error(`Directus upload failed: ${response.status} ${await response.text()}`);
+  }
+
+  return ((await response.json()) as DirectusResponse<{ id: string }>).data.id;
+}
+
+function avatarIdFromUser(user: Pick<DirectusUser, "avatar">) {
+  if (!user.avatar) return "";
+  return typeof user.avatar === "string" ? user.avatar : user.avatar.id ?? "";
+}
+
+function avatarUrlFromUser(user: Pick<DirectusUser, "avatar">) {
+  return directusAssetUrl(avatarIdFromUser(user));
+}
+
+function directusAssetUrl(fileId: string) {
+  return fileId ? `/api/fithou-auth/avatar-image/${encodeURIComponent(fileId)}` : "";
+}
+
+function dataUrlToFile(dataUrl: string) {
+  const match = dataUrl.match(/^data:(image\/(?:png|jpeg|webp));base64,(.+)$/);
+  if (!match) {
+    throw new Error("Ảnh avatar không hợp lệ");
+  }
+
+  return {
+    mimeType: match[1],
+    bytes: Uint8Array.from(Buffer.from(match[2], "base64"))
+  };
+}
+
+function presetAvatarBytes(preset: string, name: string) {
+  const palettes: Record<string, [string, string]> = {
+    ocean: ["#0ea5e9", "#075985"],
+    emerald: ["#10b981", "#0f766e"],
+    violet: ["#8b5cf6", "#5b21b6"],
+    amber: ["#f59e0b", "#b45309"]
+  };
+  const [from, to] = palettes[preset] ?? palettes.ocean;
+  const initials = (name || "Fithou")
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(-2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("") || "F";
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"><defs><linearGradient id="g" x1="0" x2="1" y1="0" y2="1"><stop stop-color="${from}"/><stop offset="1" stop-color="${to}"/></linearGradient></defs><rect width="512" height="512" rx="256" fill="url(#g)"/><circle cx="384" cy="130" r="70" fill="rgba(255,255,255,.18)"/><text x="256" y="302" text-anchor="middle" font-family="Arial, sans-serif" font-size="150" font-weight="800" fill="white">${initials}</text></svg>`;
+  return {
+    mimeType: "image/svg+xml",
+    bytes: Uint8Array.from(Buffer.from(svg, "utf8"))
+  };
+}

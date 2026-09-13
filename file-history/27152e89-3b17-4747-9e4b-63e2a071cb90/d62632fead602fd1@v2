@@ -1,0 +1,317 @@
+import "server-only";
+import { spawn } from "node:child_process";
+import { promises as fs } from "node:fs";
+import { existsSync, statSync, readFileSync } from "node:fs";
+import path from "node:path";
+
+// =============================================================================
+//  Engine sao lưu / khôi phục cho phần dữ liệu WEBSITE:
+//    - CSDL Postgres của CMS (fit_hou_cms): toàn bộ bài viết, tài khoản, cấu hình.
+//    - Tệp/ảnh trong MinIO (bucket fithou-cms): tùy chọn (mất thời gian hơn).
+//  Chạy NỀN (spawn detached) + theo dõi tiến độ qua file STATUS/LOG để không bị
+//  timeout HTTP. Khôi phục có bảo vệ: TỰ sao lưu an toàn trước khi ghi đè, ngắt
+//  kết nối cũ để DROP/CREATE chạy được, và reseat lại DIRECTUS_STATIC_TOKEN để
+//  website không mất kết nối sau khi khôi phục.
+//  Chỉ dùng cho system_admin (kiểm soát ở route + trang).
+// =============================================================================
+
+const BACKUP_DIR = process.env.FITHOU_BACKUP_DIR || "/app/backups";
+const PGHOST = process.env.POSTGRES_HOST || "postgres";
+const PGPORT = process.env.POSTGRES_PORT || "5432";
+const PGUSER = process.env.POSTGRES_USER || "";
+const PGDATABASE = process.env.POSTGRES_DB || "";
+const PGPASSWORD = process.env.POSTGRES_PASSWORD || "";
+const S3_ENDPOINT = process.env.S3_ENDPOINT || "http://minio:9000";
+const S3_ACCESS_KEY = process.env.S3_ACCESS_KEY || "";
+const S3_SECRET_KEY = process.env.S3_SECRET_KEY || "";
+const S3_BUCKET = process.env.S3_BUCKET || "fithou-cms";
+
+const STAMP_RE = /^\d{8}-\d{6}(?:-[a-z0-9]+)?$/;
+
+export type BackupJobStatus = "running" | "done" | "error" | "unknown";
+
+export type BackupInfo = {
+  stamp: string;
+  createdAt: string;
+  createdBy: string;
+  note: string;
+  includeMinio: boolean;
+  status: BackupJobStatus;
+  dbBytes: number;
+  minioBytes: number;
+  minioCount: number;
+  restoreStatus: BackupJobStatus | null;
+  isSafety: boolean;
+};
+
+// pg creds là bắt buộc để backup CSDL; MinIO là tùy chọn.
+export function backupConfigured() {
+  return Boolean(PGUSER && PGDATABASE && PGPASSWORD);
+}
+export function minioConfigured() {
+  return Boolean(S3_ACCESS_KEY && S3_SECRET_KEY && S3_BUCKET);
+}
+
+function nowStamp(suffix?: string) {
+  const d = new Date();
+  const p = (n: number) => String(n).padStart(2, "0");
+  const base = `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
+  return suffix ? `${base}-${suffix}` : base;
+}
+
+async function ensureDir() {
+  await fs.mkdir(BACKUP_DIR, { recursive: true });
+}
+
+function readStatusSync(dir: string, file: string): BackupJobStatus | null {
+  try {
+    const p = path.join(dir, file);
+    if (!existsSync(p)) return null;
+    const v = readFileSync(p, "utf8").trim();
+    if (v === "running" || v === "done" || v === "error") return v;
+    return "unknown";
+  } catch {
+    return null;
+  }
+}
+
+function fileBytes(p: string): number {
+  try {
+    return statSync(p).size;
+  } catch {
+    return 0;
+  }
+}
+
+function readIntFile(p: string): number {
+  try {
+    return parseInt(readFileSync(p, "utf8").trim(), 10) || 0;
+  } catch {
+    return 0;
+  }
+}
+
+// ---- Đọc danh sách bản sao lưu --------------------------------------------
+export async function listBackups(): Promise<BackupInfo[]> {
+  await ensureDir();
+  let entries: string[] = [];
+  try {
+    entries = await fs.readdir(BACKUP_DIR);
+  } catch {
+    return [];
+  }
+  const out: BackupInfo[] = [];
+  for (const name of entries) {
+    const dir = path.join(BACKUP_DIR, name);
+    let manifest: Record<string, unknown> = {};
+    const manifestPath = path.join(dir, "MANIFEST.json");
+    if (!existsSync(manifestPath)) continue;
+    try {
+      manifest = JSON.parse(await fs.readFile(manifestPath, "utf8"));
+    } catch {
+      /* manifest hỏng -> vẫn liệt kê với thông tin tối thiểu */
+    }
+    const includeMinio = Boolean(manifest.includeMinio);
+    out.push({
+      stamp: name,
+      createdAt: String(manifest.createdAt ?? ""),
+      createdBy: String(manifest.createdBy ?? ""),
+      note: String(manifest.note ?? ""),
+      includeMinio,
+      status: readStatusSync(dir, "STATUS") ?? "unknown",
+      dbBytes: fileBytes(path.join(dir, "db.sql.gz")),
+      minioBytes: readIntFile(path.join(dir, "minio.size")),
+      minioCount: readIntFile(path.join(dir, "minio.count")),
+      restoreStatus: readStatusSync(dir, "RESTORE_STATUS"),
+      isSafety: Boolean(manifest.isSafety)
+    });
+  }
+  // mới nhất lên đầu
+  out.sort((a, b) => (a.stamp < b.stamp ? 1 : -1));
+  return out;
+}
+
+export async function getBackupLog(stamp: string, kind: "backup" | "restore"): Promise<string> {
+  if (!STAMP_RE.test(stamp)) return "";
+  const p = path.join(BACKUP_DIR, stamp, kind === "restore" ? "RESTORE_LOG" : "LOG");
+  try {
+    const txt = await fs.readFile(p, "utf8");
+    return txt.slice(-8000);
+  } catch {
+    return "";
+  }
+}
+
+const CREATE_SCRIPT = `
+set -o pipefail
+mkdir -p "$_DEST"
+echo running > "$_DEST/STATUS"
+{
+  echo "=== backup start $(date -u +%FT%TZ) db=$POSTGRES_DB minio=$_INCLUDE_MINIO ==="
+  echo "[db] pg_dump"
+  PGPASSWORD="$POSTGRES_PASSWORD" pg_dump -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" -U "$POSTGRES_USER" --clean --if-exists --no-owner --no-privileges "$POSTGRES_DB" | gzip -6 > "$_DEST/db.sql.gz"
+  if [ "$?" != "0" ]; then echo "[db] FAILED"; echo error > "$_DEST/STATUS"; exit 1; fi
+  echo "[db] ok bytes=$(wc -c < "$_DEST/db.sql.gz")"
+  if [ "$_INCLUDE_MINIO" = "1" ]; then
+    echo "[minio] mirror $S3_BUCKET"
+    mc alias set fh "$S3_ENDPOINT" "$S3_ACCESS_KEY" "$S3_SECRET_KEY" >/dev/null 2>&1
+    mkdir -p "$_DEST/minio"
+    if ! mc mirror --overwrite --quiet "fh/$S3_BUCKET" "$_DEST/minio"; then echo "[minio] FAILED"; echo error > "$_DEST/STATUS"; exit 1; fi
+    find "$_DEST/minio" -type f -exec stat -c %s {} + 2>/dev/null | awk '{s+=$1} END{print s+0}' > "$_DEST/minio.size"
+    find "$_DEST/minio" -type f 2>/dev/null | wc -l > "$_DEST/minio.count"
+    echo "[minio] ok objects=$(cat "$_DEST/minio.count" 2>/dev/null)"
+  fi
+  echo "=== backup done $(date -u +%FT%TZ) ==="
+  echo done > "$_DEST/STATUS"
+} >> "$_DEST/LOG" 2>&1
+`;
+
+const RESTORE_SCRIPT = `
+set -o pipefail
+SRC="$_DEST"
+echo running > "$SRC/RESTORE_STATUS"
+{
+  echo "=== restore start $(date -u +%FT%TZ) minio=$_INCLUDE_MINIO ==="
+  # 0) TỰ sao lưu an toàn (DB) trước khi ghi đè
+  echo "[safety] pg_dump -> $_SAFETY"
+  mkdir -p "$_SAFETY"; echo running > "$_SAFETY/STATUS"
+  PGPASSWORD="$POSTGRES_PASSWORD" pg_dump -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" -U "$POSTGRES_USER" --clean --if-exists --no-owner --no-privileges "$POSTGRES_DB" | gzip -6 > "$_SAFETY/db.sql.gz"
+  if [ "$?" != "0" ]; then echo "[safety] FAILED - HỦY khôi phục"; echo error > "$_SAFETY/STATUS"; echo error > "$SRC/RESTORE_STATUS"; exit 1; fi
+  echo done > "$_SAFETY/STATUS"; echo "[safety] ok"
+  # 1) Ngắt kết nối cũ để DROP/CREATE chạy được
+  echo "[db] terminate other connections"
+  PGPASSWORD="$POSTGRES_PASSWORD" psql -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" -U "$POSTGRES_USER" -d postgres -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname='$POSTGRES_DB' AND pid <> pg_backend_pid();" >/dev/null 2>&1 || true
+  # 2) Khôi phục CSDL (tolerant, giống restore.sh)
+  echo "[db] restore"
+  gunzip -c "$SRC/db.sql.gz" | PGPASSWORD="$POSTGRES_PASSWORD" psql -v ON_ERROR_STOP=0 -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" -U "$POSTGRES_USER" -d "$POSTGRES_DB" >/dev/null
+  if [ "$?" != "0" ]; then echo "[db] restore ERROR"; echo error > "$SRC/RESTORE_STATUS"; exit 1; fi
+  echo "[db] restored"
+  # 3) Reseat static token cho TÀI KHOẢN DỊCH VỤ (reader, quyền tối thiểu) để website giữ kết nối.
+  #    KHÔNG gắn về admin@example nữa — token tách khỏi tài khoản admin (xem INFRA: "tách token đọc").
+  #    An toàn với backup CŨ (chưa có reader): chỉ dọn token ở user khác KHI reader đã nhận được token,
+  #    nếu không thì giữ nguyên như bản sao lưu để tránh mồ côi token.
+  _READER_EMAIL="$DIRECTUS_READER_EMAIL"
+  [ -z "$_READER_EMAIL" ] && _READER_EMAIL="svc-website-reader@fit.hou.edu.vn"
+  if [ -n "$DIRECTUS_STATIC_TOKEN" ]; then
+    echo "[token] reseat $_READER_EMAIL"
+    PGPASSWORD="$POSTGRES_PASSWORD" psql -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" -U "$POSTGRES_USER" -d "$POSTGRES_DB" >/dev/null 2>&1 <<SQL || echo "[token] warn reseat failed"
+UPDATE directus_users SET token='$DIRECTUS_STATIC_TOKEN', status='active' WHERE email='$_READER_EMAIL';
+UPDATE directus_users SET token=NULL WHERE token='$DIRECTUS_STATIC_TOKEN' AND email<>'$_READER_EMAIL'
+  AND EXISTS (SELECT 1 FROM directus_users WHERE email='$_READER_EMAIL' AND token='$DIRECTUS_STATIC_TOKEN');
+SQL
+  fi
+  # 4) Khôi phục MinIO (tùy chọn, mirror chính xác)
+  if [ "$_INCLUDE_MINIO" = "1" ] && [ -d "$SRC/minio" ]; then
+    echo "[minio] mirror back (exact)"
+    mc alias set fh "$S3_ENDPOINT" "$S3_ACCESS_KEY" "$S3_SECRET_KEY" >/dev/null 2>&1
+    if ! mc mirror --overwrite --remove --quiet "$SRC/minio" "fh/$S3_BUCKET"; then echo "[minio] restore ERROR"; echo error > "$SRC/RESTORE_STATUS"; exit 1; fi
+    echo "[minio] restored"
+  fi
+  echo "=== restore done $(date -u +%FT%TZ) ==="
+  echo done > "$SRC/RESTORE_STATUS"
+} >> "$SRC/RESTORE_LOG" 2>&1
+`;
+
+function spawnDetached(script: string, env: Record<string, string>) {
+  const child = spawn("sh", ["-c", script], {
+    detached: true,
+    stdio: "ignore",
+    env: { ...process.env, ...env }
+  });
+  child.unref();
+}
+
+// ---- Tạo bản sao lưu (chạy nền) -------------------------------------------
+export async function createBackup(opts: { includeMinio: boolean; actor: string; note?: string }): Promise<{ stamp: string }> {
+  if (!backupConfigured()) throw new Error("Chưa cấu hình kết nối CSDL để sao lưu (POSTGRES_*).");
+  await ensureDir();
+  const includeMinio = opts.includeMinio && minioConfigured();
+  const stamp = nowStamp();
+  const dest = path.join(BACKUP_DIR, stamp);
+  await fs.mkdir(dest, { recursive: true });
+  await fs.writeFile(
+    path.join(dest, "MANIFEST.json"),
+    JSON.stringify(
+      { stamp, createdAt: new Date().toISOString(), createdBy: opts.actor, includeMinio, note: opts.note ?? "", isSafety: false },
+      null,
+      2
+    )
+  );
+  await fs.writeFile(path.join(dest, "STATUS"), "running");
+  spawnDetached(CREATE_SCRIPT, {
+    _DEST: dest,
+    _INCLUDE_MINIO: includeMinio ? "1" : "0",
+    POSTGRES_HOST: PGHOST,
+    POSTGRES_PORT: PGPORT,
+    POSTGRES_USER: PGUSER,
+    POSTGRES_DB: PGDATABASE,
+    POSTGRES_PASSWORD: PGPASSWORD,
+    S3_ENDPOINT,
+    S3_ACCESS_KEY,
+    S3_SECRET_KEY,
+    S3_BUCKET,
+    MC_CONFIG_DIR: "/tmp/mc-config"
+  });
+  return { stamp };
+}
+
+// ---- Khôi phục (chạy nền, có bảo vệ) --------------------------------------
+export async function restoreBackup(stamp: string, opts: { includeMinio: boolean; actor: string }): Promise<{ safetyStamp: string }> {
+  if (!STAMP_RE.test(stamp)) throw new Error("Mã bản sao lưu không hợp lệ.");
+  if (!backupConfigured()) throw new Error("Chưa cấu hình kết nối CSDL để khôi phục.");
+  const src = path.join(BACKUP_DIR, stamp);
+  if (!existsSync(path.join(src, "db.sql.gz"))) throw new Error("Bản sao lưu thiếu tệp CSDL (db.sql.gz).");
+  if (readStatusSync(src, "STATUS") === "running") throw new Error("Bản sao lưu đang được tạo, chưa thể khôi phục.");
+  if (readStatusSync(src, "RESTORE_STATUS") === "running") throw new Error("Đang có tiến trình khôi phục chạy cho bản này.");
+
+  const includeMinio = opts.includeMinio && minioConfigured() && existsSync(path.join(src, "minio"));
+  const safetyStamp = nowStamp("safety");
+  const safetyDir = path.join(BACKUP_DIR, safetyStamp);
+  await fs.mkdir(safetyDir, { recursive: true });
+  await fs.writeFile(
+    path.join(safetyDir, "MANIFEST.json"),
+    JSON.stringify(
+      { stamp: safetyStamp, createdAt: new Date().toISOString(), createdBy: opts.actor, includeMinio: false, note: `Tự sao lưu trước khi khôi phục ${stamp}`, isSafety: true },
+      null,
+      2
+    )
+  );
+  await fs.writeFile(path.join(src, "RESTORE_STATUS"), "running");
+  spawnDetached(RESTORE_SCRIPT, {
+    _DEST: src,
+    _SAFETY: safetyDir,
+    _INCLUDE_MINIO: includeMinio ? "1" : "0",
+    POSTGRES_HOST: PGHOST,
+    POSTGRES_PORT: PGPORT,
+    POSTGRES_USER: PGUSER,
+    POSTGRES_DB: PGDATABASE,
+    POSTGRES_PASSWORD: PGPASSWORD,
+    DIRECTUS_STATIC_TOKEN: process.env.DIRECTUS_STATIC_TOKEN || "",
+    DIRECTUS_ADMIN_EMAIL: process.env.DIRECTUS_ADMIN_EMAIL || "",
+    S3_ENDPOINT,
+    S3_ACCESS_KEY,
+    S3_SECRET_KEY,
+    S3_BUCKET,
+    MC_CONFIG_DIR: "/tmp/mc-config"
+  });
+  return { safetyStamp };
+}
+
+// ---- Xóa bản sao lưu -------------------------------------------------------
+export async function deleteBackup(stamp: string): Promise<void> {
+  if (!STAMP_RE.test(stamp)) throw new Error("Mã bản sao lưu không hợp lệ.");
+  const dir = path.join(BACKUP_DIR, stamp);
+  // an toàn: chỉ xóa trong BACKUP_DIR
+  const resolved = path.resolve(dir);
+  if (!resolved.startsWith(path.resolve(BACKUP_DIR) + path.sep)) throw new Error("Đường dẫn không hợp lệ.");
+  if (readStatusSync(dir, "RESTORE_STATUS") === "running" || readStatusSync(dir, "STATUS") === "running")
+    throw new Error("Không thể xóa khi đang có tiến trình chạy.");
+  await fs.rm(dir, { recursive: true, force: true });
+}
+
+// ---- Lấy đường dẫn tệp CSDL để tải về -------------------------------------
+export function backupDbFilePath(stamp: string): string | null {
+  if (!STAMP_RE.test(stamp)) return null;
+  const p = path.join(BACKUP_DIR, stamp, "db.sql.gz");
+  return existsSync(p) ? p : null;
+}
