@@ -1,0 +1,118 @@
+// Khối `entity-grid` — CHẾ ĐỘ CÔNG KHAI. Bài học của lượt trước: một năng lực chỉ có nghĩa ở trang công khai mà chỉ
+// được kiểm trong Studio là năng lực CHƯA TỪNG CHẠY (BLOCK-MAU.md §4). `emptyState` là đúng loại đó — nó xử sự khác
+// nhau ở hai chế độ, nên phải đo ở CẢ HAI trong cùng một lượt, trên cùng một trang.
+//
+// Dùng: node cong-khai.mjs <ip-caddy> <thư-mục-kết-quả>
+import { moKhung } from './khung-kiem.mjs';
+
+const PAGE = 'luoi-du-lieu';
+const KHUNG = [320, 390, 1280];
+
+// DÀN dùng chung: `_runtime/kiem/khung-kiem.mjs` (ADR QG4-34, QM5-11). `toiThieu` là khẳng định của chính khối.
+const K = await moKhung({ ten: 'entity-grid', trang: PAGE, toiThieu: 11, khungNhin: KHUNG });
+const { page, check, PUB, QT, out, errors } = K;
+
+const soi = () => page.evaluate(() => ({
+  khoi: document.querySelectorAll('section.eg').length,
+  o: document.querySelectorAll('.eg__card').length,
+  trong: document.querySelectorAll('.eg__empty').length,
+  tab: document.querySelectorAll('.eg__tab').length,
+  tran: document.documentElement.scrollWidth,
+  khung: document.documentElement.clientWidth,
+  studioAttr: [...document.querySelectorAll('*')].some((e) => [...e.attributes].some((a) => /^data-qcv-(field|edit|item|index|part-index|variant|studio|label|kind|anchorable|ratio|part-field)$/.test(a.name))),
+  gan: !!document.querySelector('[data-qcv-type="entity-grid"]'),
+}));
+
+for (const w of KHUNG) {
+  await page.setViewportSize({ width: w, height: 900 });
+  const res = await page.goto(`${PUB}/${PAGE}`, { waitUntil: 'networkidle' });
+  const s = await soi();
+  // Từ 2026-09-09 bộ kết xuất giải prop `query` thành bản ghi (`$block->data`), nên trang công khai có **ô thật**:
+  // 8 (lưới lọc danh mục) + 12 (băng chuyền) + 8 (danh mục) + 3 (bài viết) + 3 × 8 (ba tab) = 55.
+  check(`1-${w}`, `${w} px · trang công khai trả 200, năm khối kết xuất và ĐỦ 55 ô thật từ CSDL`,
+    res.status() === 200 && s.khoi === 5 && s.o === 55, `[${res.status()}] khối ${s.khoi} · ô ${s.o}`);
+  check(`2-${w}`, `${w} px · không tràn ngang`, s.tran <= s.khung, `scrollWidth ${s.tran} / khung ${s.khung}`);
+  await page.screenshot({ path: `${out}/cong-khai-${w}.png` });
+}
+
+// Chiều thứ hai — CÙNG trang, chế độ Studio: khối phải CÒN NHÌN THẤY, nếu không người dùng không có cách nào chọn
+// lại để sửa nguồn (HD-02 6.3d(d) chốt v0.13).
+await page.setViewportSize({ width: 1280, height: 900 });
+await page.goto(`${QT}/${PAGE}?__studio=1`, { waitUntil: 'networkidle' });
+const st = await soi();
+check('3a', 'Cùng trang ở chế độ Studio: năm khối vẫn kết xuất, cùng số ô như trang công khai (một bộ kết xuất, hai chế độ)',
+  st.khoi === 5 && st.o === 55 && st.trong === 0, `khối ${st.khoi} · ô ${st.o} · dòng trống ${st.trong} · tab ${st.tab}`);
+check('3b', 'Hàng tab dựng từ nội dung (ba tab) — phần duy nhất của khối không phụ thuộc dữ liệu', st.tab === 3, `tab ${st.tab}`);
+
+// Trang công khai không được mang thuộc tính chỉ của Studio (danh sách đóng HD-02 §3).
+await page.goto(`${PUB}/${PAGE}`, { waitUntil: 'networkidle' });
+const p = await soi();
+check('4a', 'HTML công khai không có thuộc tính chỉ của Studio', !p.studioAttr, '');
+check('5a', 'Không lỗi JS ở trang công khai', errors.length === 0, errors.slice(0, 3).join(' ; '));
+
+// ===== 6. HÀNG NÚT THẲNG dù tên bản ghi dài ngắn khác nhau (kiểu « detail », khối e_04 — 3 bài viết thật) =====
+// `.eg__btn { margin-top: auto }` chỉ đẩy nút xuống đáy CHÍNH `.eg__body` — nếu `.eg__body` không tự giãn theo
+// chiều cao của `.eg__card` (đã giãn bằng ô cao nhất trong hàng nhờ CSS Grid), nút của hàng không thẳng khi một
+// tiêu đề xuống hai dòng còn tiêu đề khác chỉ một dòng. Đo trên DỮ LIỆU THẬT (bài viết từ CSDL), không fixture.
+{
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto(`${PUB}/${PAGE}`, { waitUntil: 'networkidle' });
+  const hang = await page.evaluate(() => {
+    // Gom `.eg__card` CÓ nút theo HÀNG (cùng toạ độ top, làm tròn để tránh sai số subpixel).
+    const nhom = new Map();
+    for (const btn of document.querySelectorAll('.eg__btn')) {
+      const card = btn.closest('.eg__card');
+      const top = Math.round(card.getBoundingClientRect().top);
+      if (!nhom.has(top)) nhom.set(top, []);
+      nhom.get(top).push({ ten: (card.querySelector('.eg__ten')?.textContent ?? '').trim(), cardDuoi: Math.round(card.getBoundingClientRect().bottom), nutDuoi: Math.round(btn.getBoundingClientRect().bottom) });
+    }
+    return [...nhom.values()].filter((h) => h.length >= 2);
+  });
+  const lechNut = hang.map((h) => Math.max(...h.map((x) => x.nutDuoi)) - Math.min(...h.map((x) => x.nutDuoi)));
+  const coDoDaiKhac = hang.some((h) => new Set(h.map((x) => x.ten.length)).size > 1);
+  if (hang.length === 0 || !coDoDaiKhac) {
+    K.ghiThieu('6b', 'không dựng được ca « tiêu đề dài ngắn khác nhau trong cùng hàng »',
+      'dữ liệu bài viết/sản phẩm hạt trong site thử hôm nay tình cờ cùng độ dài tiêu đề trong mọi hàng có nút — không phải lỗi của khối, nhưng phép kiểm 6a không chứng minh được gì thêm ngoài đo trên trang mau-dottie thật (đã đo tay: 8 ô hàng cuối lệch tên 12–30 ký tự, mép dưới nút lệch 0 px).');
+  } else {
+    check('6a', 'Mỗi hàng ≥ 2 thẻ có nút: nút thẳng hàng (mép dưới lệch ≤ 1 px) dù tiêu đề dài ngắn khác nhau',
+      lechNut.every((d) => d <= 1), `hàng: ${JSON.stringify(hang)} · lệch ${lechNut.join(',')}`);
+  }
+}
+
+// ===== 7. ĐIỂM 3 — hiệu ứng khi rê chuột: đo bằng getComputedStyle SAU KHI CHỦ ĐỘNG rê chuột, không đọc DOM ở
+// trạng thái mặc định (bài học đã ghi trong yêu cầu: đo ở mặc định sẽ ĐẠT GIẢ với mọi thứ gắn `:hover`). =====
+{
+  await page.setViewportSize({ width: 1280, height: 1100 });
+  await page.goto(`${PUB}/${PAGE}`, { waitUntil: 'networkidle' });
+  const the = page.locator('.eg__card:has(.eg__img)').first();
+  await the.scrollIntoViewIfNeeded();
+  const truoc = await page.evaluate(() => getComputedStyle(document.querySelector('.eg__card .eg__img')).transform);
+  const hopTruoc = await the.boundingBox();
+  await the.hover();
+  await page.waitForTimeout(250);
+  const coHoverTruoc = await page.evaluate(() => !!document.querySelector('.eg__card:hover'));
+  const dang = coHoverTruoc ? await page.evaluate(() => getComputedStyle(document.querySelector('.eg__card:hover .eg__img')).transform) : '(không bắt được :hover)';
+  const hopDang = await the.boundingBox();
+  const box = hopTruoc;
+  check('7a', 'điểm 3 · TRƯỚC khi rê chuột, ảnh KHÔNG phóng (`transform: none`)', truoc === 'none', truoc);
+  check('7b', 'điểm 3 · ĐANG rê chuột vào ô, ảnh phóng nhẹ (`transform: matrix(1.045, …)`) — đo SAU khi chủ động di chuột, không đọc mặc định',
+    dang !== 'none' && dang !== truoc, dang);
+  check('7c', 'điểm 3 · phóng ảnh KHÔNG đổi kích thước HỘP của ô (dùng `transform`, không `width`/`height`) — không xô layout ô cạnh',
+    Math.abs(hopDang.width - hopTruoc.width) < 0.5 && Math.abs(hopDang.height - hopTruoc.height) < 0.5 && Math.abs(hopDang.x - hopTruoc.x) < 0.5,
+    `hộp trước ${JSON.stringify(hopTruoc)} · đang rê ${JSON.stringify(hopDang)}`);
+  await page.screenshot({ path: `${out}/hover-dang-re.png` });
+
+  // NGƯỢC: prefers-reduced-motion: reduce → rê chuột KHÔNG được phóng ảnh (ràng buộc bắt buộc của điểm 3).
+  await page.mouse.move(box.x - 40, box.y - 40);
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.waitForTimeout(100);
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.waitForTimeout(250);
+  const coHover = await page.evaluate(() => !!document.querySelector('.eg__card:hover'));
+  const dangReduced = coHover ? await page.evaluate(() => getComputedStyle(document.querySelector('.eg__card:hover .eg__img')).transform) : '(không bắt được :hover)';
+  check('7d', 'điểm 3 · NGƯỢC · `prefers-reduced-motion: reduce` → rê chuột KHÔNG phóng ảnh (`transform: none`), phép kiểm 7b có thể ĐỎ ở đây nếu quy tắc reduced-motion bị bỏ',
+    coHover && dangReduced === 'none', dangReduced);
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+}
+
+await K.ketThuc();

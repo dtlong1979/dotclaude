@@ -1,0 +1,108 @@
+/*
+ * CỔNG `tai-san` — tài sản trong `apps/site/public/assets/blocks/` phải KHỚP mã nguồn trong `packages/blocks/`.
+ *
+ * VÌ SAO CÓ CỔNG NÀY (BLOCK-MAU.md §7 mục 62). Cây tài sản dựng ra KHÔNG nằm trong git và trước lượt này không
+ * cổng nào canh nó. Bộ kiểm của mỗi khối TỰ DỰNG LẠI trước khi chạy, nên nó luôn xanh; site thật thì đọc thẳng
+ * `public/assets/blocks/<type>.css` và tiếp tục phục vụ bản CŨ cho tới khi có ai đó nhớ dựng lại. Ngày
+ * 2026-09-10 điều phối viên đã báo « đã sửa » menu con và sai vì đúng chuyện này: nguồn có ba dòng
+ * `position: absolute`, bản dựng có 0, bộ kiểm của khối xanh, trang thật vẫn hỏng. Kiểm chứng qua đường CÓ dựng
+ * lại rồi kết luận cho đường KHÔNG dựng lại.
+ *
+ * VÌ SAO KHÔNG DỰNG LẠI RỒI SO. Một cổng dựng lại là một cổng GHI vào `apps/site/public/assets` — cây dùng
+ * chung. Cổng `tat-dinh` đã trả giá đúng chỗ này (V14-1b): chỉ cần một `npm run build` chạy song song là cổng đỏ
+ * mà không ai hỏng gì, và cây git bẩn đúng lúc cổng đỏ. Nên cổng này chỉ ĐỌC, và tự suy ra bản-đáng-lẽ-phải-có
+ * từ nguồn bằng CHÍNH phép biến đổi mà bước build dùng (`bo-chu-thich.mjs`, một chỗ, hai bên gọi chung).
+ * Hệ quả tốt: cổng chạy dưới một giây và chạy được cả khi không có Docker.
+ *
+ * NÓ KHÔNG CANH: bản dựng của Studio (`assets/studio`, `assets/quan-tri`) — đó là đầu ra của Vite, không phải
+ * một phép chép, nên chỉ so được bằng cách dựng hai lần (`kiem-tat-dinh.sh --day-du`). Cổng này canh đúng
+ * phần ĐI THẲNG RA TRANG CÔNG KHAI, tức phần mà một lần quên dựng lại là người xem thấy bản cũ.
+ *
+ * Dùng: node packages/blocks/_runtime/kiem-tai-san.mjs
+ */
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { banChep, TEP_BO_CHU_THICH } from './bo-chu-thich.mjs';
+
+const GOC = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
+const NGUON = join(GOC, 'packages', 'blocks');
+const RA = join(GOC, 'apps', 'site', 'public', 'assets', 'blocks');
+
+/** Chép nguyên văn: tài sản dùng chung cấp bộ kết xuất. Đi cùng danh sách trong `vite.studio.config.ts`. */
+const CHEP_NGUYEN_VAN = ['qcv-runtime.js', 'decor.css', 'chung.css', 'icons.svg', 'brands.svg'];
+
+let dat = 0;
+const loi = [];
+const thieu = [];
+
+/** So một cặp (nguồn → bản dựng) theo BYTE. `mong` là nội dung đáng lẽ phải có. */
+function so(nhan, duongRa, mong) {
+  if (!existsSync(duongRa)) { loi.push(`${nhan}: KHÔNG CÓ tệp dựng \`${duongRa.slice(GOC.length + 1)}\``); return; }
+  const co = readFileSync(duongRa);
+  const can = Buffer.from(mong, 'utf8');
+  if (co.equals(can)) { dat += 1; return; }
+  // Nói LỆCH Ở ĐÂU, không chỉ "khác": người đọc lúc 11 giờ đêm cần biết ngay là quên dựng lại hay là chuyện khác.
+  const a = co.toString('utf8').split('\n');
+  const b = can.toString('utf8').split('\n');
+  let i = 0;
+  while (i < a.length && i < b.length && a[i] === b[i]) i += 1;
+  loi.push(`${nhan}: LỆCH — bản dựng ${co.length} B, nguồn ${can.length} B, khác từ dòng ${i + 1}\n`
+    + `    dựng : ${(a[i] ?? '(hết tệp)').trim().slice(0, 100)}\n`
+    + `    nguồn: ${(b[i] ?? '(hết tệp)').trim().slice(0, 100)}`);
+}
+
+// ---------------------------------------------------------------- 1. tài sản dùng chung của `_runtime`
+for (const f of CHEP_NGUYEN_VAN) {
+  const n = join(NGUON, '_runtime', f);
+  if (!existsSync(n)) { thieu.push(`_runtime/${f} không có trong nguồn`); continue; }
+  so(`_runtime/${f}`, join(RA, f), readFileSync(n, 'utf8'));
+}
+for (const f of TEP_BO_CHU_THICH) {
+  const n = join(NGUON, '_runtime', f);
+  if (!existsSync(n)) { thieu.push(`_runtime/${f} không có trong nguồn`); continue; }
+  so(`_runtime/${f} (bỏ chú thích)`, join(RA, f), banChep(f, readFileSync(n, 'utf8')));
+}
+
+// ---------------------------------------------------------------- 2. CSS và JS của từng khối
+// Tên tệp ra theo `type` trong `block.json`, KHÔNG theo tên thư mục — cùng luật với bước chép; hai tên lệch nhau
+// là khối không có CSS/JS mà không ai báo.
+const daRa = new Set();
+let soKhoi = 0;
+for (const d of readdirSync(NGUON, { withFileTypes: true })) {
+  if (!d.isDirectory() || d.name === '_runtime') continue;
+  const mf = join(NGUON, d.name, 'block.json');
+  if (!existsSync(mf)) continue;
+  soKhoi += 1;
+  const type = JSON.parse(readFileSync(mf, 'utf8')).type ?? d.name;
+  for (const [src, ext] of [['style.css', 'css'], ['frontend.js', 'js']]) {
+    const n = join(NGUON, d.name, src);
+    if (!existsSync(n)) continue;
+    daRa.add(`${type}.${ext}`);
+    so(`${d.name}/${src} → ${type}.${ext}`, join(RA, `${type}.${ext}`), readFileSync(n, 'utf8'));
+  }
+}
+
+// ---------------------------------------------------------------- 3. tệp THỪA trong cây dựng
+// Một khối bị xoá hoặc đổi `type` để lại tệp mồ côi; nó vẫn được phục vụ, và ngày ai đó khai lại đúng tên ấy thì
+// trang nạp một tệp không ai còn nguồn. Đây là chiều NGƯỢC của cùng câu hỏi, nên nó thuộc cùng cổng.
+const duocPhep = new Set([...CHEP_NGUYEN_VAN, ...TEP_BO_CHU_THICH, ...daRa]);
+const thua = existsSync(RA)
+  ? readdirSync(RA).filter((f) => statSync(join(RA, f)).isFile() && !duocPhep.has(f))
+  : [];
+for (const f of thua) loi.push(`${f}: THỪA trong cây dựng — không khối nào trong nguồn sinh ra tệp này`);
+
+// ---------------------------------------------------------------- kết quả
+if (!existsSync(RA)) {
+  console.log('  HỎNG cây tài sản chưa được dựng lần nào: `apps/site/public/assets/blocks/` không có.');
+  console.log('  CHẠY: docker compose run --rm node npm run build:studio');
+  process.exit(1);
+}
+for (const t of thieu) console.log(`  THIẾU ${t}`);
+for (const l of loi) console.log(`  HỎNG ${l}`);
+console.log(`  ${soKhoi} khối · ${dat} tệp khớp byte · ${loi.length} lệch/thiếu/thừa`);
+if (loi.length > 0) {
+  console.log('  CHẠY: docker compose run --rm node npm run build:studio   (rồi chạy lại cổng này)');
+  process.exit(1);
+}
+process.exit(0);

@@ -1,0 +1,112 @@
+/* Khối `footer` — namespace `.footer`, CHỈ token của HD-11 §8 (`--color-*`, `--radius`, `--space-unit`,
+   `--container-max`, `--text-*`). Không mã màu ghi cứng, kể cả trong giá trị dự phòng của `var()`; màu chính
+   thức của bảy nhãn hiệu nằm trong `brands.svg` (QG4-15), không ở đây.
+   Khối KHÔNG khai `features: decor` (§2.1b liệt kê đúng sáu khối nhận trang trí, chân trang không có), nên không
+   có vùng neo và không có ràng buộc lint 9/10 về `position`/`z-index` — tệp này vẫn không dùng cả hai.
+   Tông nền và khoảng cách trên/dưới: `_runtime/chung.css` (HD-11 8.6b); khối không khai lại `.qcv-tone-*` (lint 8).
+   Hình dáng ô nhập, nút gửi, mặt tiền khung nhúng: `_runtime/khoi-chung.css` (lớp `.qcvk-*`), khai trong
+   `block.json.assets` — chân trang là khối thứ ba dùng chúng, nên ở đây chỉ còn CHỖ ĐỨNG của các cụm ấy. */
+
+.footer { display: block; }
+
+.footer__inner {
+  max-width: var(--container-max); margin: 0 auto;
+  padding: 0 calc(var(--space-unit) * 3);
+  display: grid; gap: calc(var(--space-unit) * 4);
+}
+
+/* ---------- cụm giới thiệu ---------- */
+.footer__ten { margin: 0 0 calc(var(--space-unit) * 1); font-size: var(--text-lg, 1.125rem); font-weight: 700; }
+.footer__mo-ta { color: var(--color-muted); }
+.footer__mo-ta:empty, .footer__ten:empty { display: none; }
+.footer__lien-he, .footer__ds, .footer__social, .footer__badges { list-style: none; margin: 0; padding: 0; }
+.footer__lien-he { display: grid; gap: calc(var(--space-unit) * 1); margin-top: calc(var(--space-unit) * 2); }
+.footer__lh-a { color: inherit; text-decoration: none; }
+.footer__lh-a:hover { text-decoration: underline; }
+
+/* ---------- mạng xã hội (gói brands@1) ---------- */
+/* Nền TRUNG TÍNH cho mọi nút: logo nhiều màu của bảy hãng phải đứng trên nền sáng của site, không trên
+   `--color-primary`. Chân trang hay ở tông nghịch (`dark`), và ở tông ấy `--color-bg` chính là màu chữ sáng —
+   nên nền lấy `--color-bg` là đúng ở cả hai tông mà không cần một quy tắc thứ hai. */
+.footer__social { display: flex; flex-wrap: wrap; gap: calc(var(--space-unit) * 1.5); margin-top: calc(var(--space-unit) * 3); }
+.footer__mxh-a {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 40px; height: 40px; border-radius: 999px;
+  background: var(--color-bg); border: 1px solid var(--color-line); text-decoration: none;
+  transition: border-color 0.18s ease, transform 0.18s ease;
+}
+/* Điểm 3 — nút mạng xã hội nhích lên nhẹ và viền đậm màu nhấn khi rê/focus; `transform` không đổi kích thước
+   hộp (không xô các nút cạnh). `transition` ngắn, tắt hẳn dưới `prefers-reduced-motion: reduce`. */
+.footer__mxh-a:hover, .footer__mxh-a:focus-visible { border-color: var(--color-primary); transform: translateY(-2px); }
+@media (prefers-reduced-motion: reduce) { .footer__mxh-a { transition: none; } .footer__mxh-a:hover, .footer__mxh-a:focus-visible { transform: none; } }
+.footer__mxh-hinh { width: 20px; height: 20px; display: block; }
+/* Tên nền tảng ẩn khỏi MẮT nhưng còn trong cây tiếp cận — một nút chỉ có hình thì trình đọc màn hình đọc ra
+   chính địa chỉ URL. Không `display: none`. */
+.footer__mxh-nhan { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.footer__mxh { position: relative; }
+
+/* ---------- cột liên kết: prop `cols`, đọc qua biến, không qua media query của khối ---------- */
+/* `--qcv-p-cols` do `_runtime/chung.css` đặt từ `data-qcv-r` / `data-qcv-rm` (vế máy tính và vế điện thoại của
+   prop `responsive: true`). Media query dưới đây CHỈ đặt mặc định khi người dùng chưa chọn, và gán lại ĐÚNG
+   biến ấy với đặc hiệu (0,1,0) — gán một biến riêng của khối là lựa chọn của người dùng không bao giờ thắng
+   (BLOCK-MAU.md §4). */
+.footer { --qcv-p-cols: 2; }
+.footer__cot { display: grid; gap: calc(var(--space-unit) * 3); grid-template-columns: repeat(var(--qcv-p-cols), minmax(0, 1fr)); }
+/* Điểm 4 (chân trang không tự cân đối khi không đủ nội dung) — QUY TẮC: CHỈ MỘT nhóm liên kết (`slots.cot` có
+   đúng một mục) luôn chiếm TRỌN một hàng, bất kể prop `cols` đang chọn mấy. Trước dòng này `repeat(var(--qcv-p-
+   cols), 1fr)` dựng đúng SỐ CỘT ĐÃ CHỌN dù chỉ có một nhóm liên kết thật: người dựng chọn "2 cột" rồi mới điền
+   một nhóm (hoặc xoá bớt còn một) là lưới vẫn chia đôi bề rộng, nửa còn lại để TRỐNG — khoảng trắng vô nghĩa
+   đúng bằng nửa cột danh tính, đo được trên chính site mẫu Dottie. `:has(> :only-child)` bắt ĐÚNG ca này (một
+   mục không bao giờ có lý do "cần nhiều cột") mà không đụng tới ca có từ hai mục trở lên — ở đó số cột vẫn là
+   LỰA CHỌN của người dựng (`cols`), không phải điều CSS nên đoán thay. Còn lại ca "hai mục nhưng chọn 3–4 cột"
+   (ít gặp hơn — mặc định `cols` đã là 2) là khoảng trống nhỏ hơn, chưa tổng quát hoá trong lượt này — ghi ở
+   báo cáo cuối lượt. */
+.footer__cot:has(> :only-child) { grid-template-columns: minmax(0, 1fr); }
+.footer__cot-tieu { margin: 0 0 calc(var(--space-unit) * 1.5); font-size: var(--text-sm, 0.875rem); letter-spacing: 0.06em; text-transform: uppercase; }
+.footer__ds { display: grid; gap: calc(var(--space-unit) * 1); }
+.footer__ds-a { color: inherit; text-decoration: none; }
+.footer__ds-a:hover { text-decoration: underline; }
+
+/* ---------- biểu mẫu và bản đồ (khuôn chung) ---------- */
+.footer__nhan-tin, .footer__ban-do { min-width: 0; }
+/* Bản đồ CHÂN TRANG bị chặn bề rộng, không chạy hết cột: ở khung 1280 px cột thứ hai rộng ~800 px, và một mặt
+   tiền 16/10 rộng chừng ấy cao 500 px — chân trang khi ấy dài hơn cả thân trang, trên MỌI trang của site. Số đo
+   này thấy được bằng ảnh chụp chứ không bằng đọc mã. */
+.footer__ban-do { max-width: 420px; }
+.footer__ban-do .qcvk-mt, .footer__ban-do .qcvk-khung { aspect-ratio: 16 / 10; }
+
+/* ---------- huy hiệu và dòng cuối ---------- */
+.footer__badges {
+  max-width: var(--container-max); margin: calc(var(--space-unit) * 4) auto 0;
+  padding: 0 calc(var(--space-unit) * 3);
+  display: flex; flex-wrap: wrap; gap: calc(var(--space-unit) * 2); align-items: center;
+}
+.footer__badge-anh { display: block; height: 40px; width: auto; }
+.footer__cuoi {
+  max-width: var(--container-max);
+  margin: calc(var(--space-unit) * 4) auto 0;
+  padding: calc(var(--space-unit) * 2) calc(var(--space-unit) * 3) 0;
+  border-top: 1px solid var(--color-line);
+  color: var(--color-muted); font-size: var(--text-sm, 0.875rem);
+}
+.footer__cuoi:empty { display: none; }
+
+/* ---------- khung máy tính ---------- */
+@media (min-width: 768px) {
+  /* Cụm giới thiệu đứng cạnh phần còn lại; các cụm sau xếp tiếp theo dòng chảy của lưới. */
+  .footer--columns .footer__inner { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); align-items: start; }
+  /* Điểm 4 — `1 / -1` (từ vạch lưới đầu tới vạch CUỐI CÙNG), không phải `span 3`: cột phải có MỘT, HAI, hay BA
+     phần tử (cột liên kết · biểu mẫu · bản đồ, cả ba đều `@if` tuỳ chọn — `view.blade.php`) tuỳ site đã bật
+     những gì. `span 3` giả định LUÔN đủ ba; site như Dottie chỉ có hai (không bản đồ) thì khai `span 3` cũng
+     không sai (không tự tạo dòng thứ ba nào cả — CSS Grid không hư ở đây) nhưng LÀ MỘT CON SỐ ĐOÁN mà `1 / -1`
+     không cần đoán: bất kể một/hai/ba phần tử, cụm giới thiệu luôn cao đúng bằng toàn bộ số dòng thật đã dựng. */
+  .footer--columns .footer__brand { grid-row: 1 / -1; }
+  .footer--minimal .footer__inner { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Dưới 768 px lưới về một cột — chân trang nhiều cột trên điện thoại là bốn khối chữ chồng nhau, và người dùng
+   chọn `cols` cho khung máy tính chứ không cho điện thoại. Người dùng muốn khác thì `responsive.mobile.props.cols`
+   thắng dòng này (đặc hiệu (0,2,0) ở `chung.css`). */
+@media (max-width: 767px) {
+  .footer { --qcv-p-cols: 1; }
+}

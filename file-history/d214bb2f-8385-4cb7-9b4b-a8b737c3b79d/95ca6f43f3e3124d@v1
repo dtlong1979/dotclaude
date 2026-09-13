@@ -1,0 +1,34 @@
+{
+    "region": "footer",
+    "itemVersion": 1,
+    "blocks": [
+        {
+            "id": "b_footer",
+            "type": "footer",
+            "variant": "columns",
+            "props": {
+                "cols": "2",
+                "nhanTin": false,
+                "tone": "dark",
+                "space": "normal"
+            },
+            "slots": {
+                "thuongHieu": {
+                    "ten": "{site:name}",
+                    "moTa": "{site:slogan}"
+                },
+                "cot": [
+                    {
+                        "tieuDe": "Về đơn vị",
+                        "menu": "footer-1"
+                    }
+                ],
+                "social": [
+                    { "mang": "facebook" }
+                ],
+                "dongCuoi": "© {site:name}."
+            }
+        }
+    ],
+    "_ghi_chu": "Điểm 4 (lượt hoàn thiện giao diện) — CHỈ MỘT nhóm liên kết (`slots.cot` có đúng một mục) dù `props.cols` vẫn để « 2 »: `tu-can-doi.mjs` đo lưới `.footer__cot` phải cho ĐÚNG MỘT cột (chiếm trọn bề rộng), không phải hai cột với một cột bỏ trống. Đây là hiện vật CỦA BỘ KIỂM, không phải nội dung một trang thật — chép vào cây site local trước mỗi lượt y như `footer.region.json`."
+}

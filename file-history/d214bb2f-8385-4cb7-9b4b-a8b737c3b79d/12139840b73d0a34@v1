@@ -1,0 +1,92 @@
+{
+  "id": "luoi-du-lieu",
+  "title": "Lưới ô từ dữ liệu",
+  "path": "/luoi-du-lieu",
+  "kind": "page",
+  "lang": "vi",
+  "status": "published",
+  "itemVersion": 1,
+  "seo": {
+    "title": "Lưới ô từ dữ liệu — {site:name}",
+    "description": "Trang thử khối `entity-grid`: ba cách xếp, ba thực thể, ba kiểu ô.",
+    "noindex": true
+  },
+  "blocks": [
+    {
+      "id": "e_01",
+      "type": "entity-grid",
+      "variant": "grid",
+      "props": {
+        "entity": "product",
+        "card": "compact",
+        "cols": "4",
+        "tone": "light",
+        "space": "normal",
+        "nguon_product": { "category": "dien-thoai", "status": "all", "limit": 8, "sort": "newest" }
+      },
+      "slots": {
+        "heading": { "kicker": "Sản phẩm", "title": "Điện thoại bán chạy", "text": "Lấy từ danh mục Điện thoại." }
+      },
+      "layers": ["head", "tabbar", "luoi", "nav"],
+      "decor": [],
+      "responsive": { "mobile": { "props": { "cols": "2" } } }
+    },
+    {
+      "id": "e_02",
+      "type": "entity-grid",
+      "variant": "carousel",
+      "props": {
+        "entity": "product",
+        "card": "detail",
+        "cols": "4",
+        "autoplay": "0",
+        "tone": "soft",
+        "space": "normal",
+        "nguon_product": { "status": "in_stock", "limit": 12, "sort": "price-asc" }
+      },
+      "slots": { "heading": { "title": "Trượt ngang, ô chi tiết" } }
+    },
+    {
+      "id": "e_03",
+      "type": "entity-grid",
+      "variant": "grid",
+      "props": {
+        "entity": "category",
+        "card": "circle",
+        "cols": "4",
+        "tone": "surface",
+        "space": "tight",
+        "nguon_category": { "limit": 8, "sort": "sort", "hideEmpty": true }
+      },
+      "slots": { "heading": { "title": "Danh mục nổi bật" } }
+    },
+    {
+      "id": "e_04",
+      "type": "entity-grid",
+      "variant": "grid",
+      "props": {
+        "entity": "post",
+        "card": "detail",
+        "cols": "3",
+        "tone": "dark",
+        "space": "loose",
+        "nguon_post": { "limit": 3, "sort": "newest", "exclude": false }
+      },
+      "slots": { "heading": { "kicker": "Tin tức", "title": "Bài viết mới nhất", "link": { "label": "Xem tất cả", "href": "page:trang-chu" } } }
+    },
+    {
+      "id": "e_05",
+      "type": "entity-grid",
+      "variant": "tabs",
+      "props": { "entity": "product", "card": "compact", "cols": "4", "tone": "light", "space": "normal" },
+      "slots": {
+        "heading": { "title": "Sản phẩm theo nhóm" },
+        "tabs": [
+          { "label": "Điện thoại", "nguon_product": { "category": "dien-thoai", "limit": 8, "sort": "newest" } },
+          { "label": "Máy tính", "nguon_product": { "category": "may-tinh", "limit": 8, "sort": "newest" } },
+          { "label": "Gia dụng", "nguon_product": { "category": "gia-dung", "limit": 8, "sort": "newest" } }
+        ]
+      }
+    }
+  ]
+}

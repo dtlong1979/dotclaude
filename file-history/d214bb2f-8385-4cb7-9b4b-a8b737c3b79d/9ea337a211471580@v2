@@ -1,0 +1,50 @@
+/*
+ * Bỏ chú thích khỏi BA tệp của tầng dùng chung (`khoi-chung.css`, `khoi-cum.js`, `khoi-luoi.js`) khi chép sang
+ * `apps/site/public/assets/blocks/`. Nguồn giữ đủ tài liệu (và vẫn là thứ `qcv:kiem-blade` soi); bản đi trên dây
+ * tới người xem thì không cần. Số đo và lý do đầy đủ: `BLOCK-MAU.md` §2.1g.
+ *
+ * Tệp này TÁCH RA khỏi `vite.studio.config.ts` vì có HAI bên cần cùng một phép biến đổi: bước chép lúc build, và
+ * cổng `tai-san` — cổng khẳng định tài sản trong `public/assets/blocks/` khớp mã nguồn mà KHÔNG dựng lại. Chép
+ * phép biến đổi ra hai chỗ nghĩa là cổng canh một công thức khác với công thức thật, và ngày hai bên lệch nhau
+ * thì cổng đỏ (hoặc tệ hơn: xanh) vì một lý do không liên quan gì tới thứ nó canh.
+ *
+ * Bỏ theo DÒNG, không bằng một mẫu `/\*[\s\S]*?\*\/` trên cả tệp: mẫu đó bắt đầu ăn từ chuỗi `khuon/*.blade.php`
+ * nằm trong một chú thích `//` và nuốt luôn `(function () {` ở dưới — bản build khi ấy vẫn "chạy" ở chỗ đọc lướt
+ * nhưng hỏng. Chỉ bỏ dòng CHỈ có chú thích.
+ */
+
+/** Bỏ những dòng CHỈ chứa chú thích. `laJs` thì bỏ cả dòng `//`. */
+export function boDongChuThich(nguon, laJs) {
+  const ra = [];
+  let trongKhoi = false;
+  for (const l of nguon.split('\n')) {
+    if (trongKhoi) { if (l.includes('*/')) trongKhoi = false; continue; }
+    if (/^\s*\/\*/.test(l)) { if (!l.includes('*/')) trongKhoi = true; continue; }
+    if (laJs && /^\s*\/\//.test(l)) continue;
+    ra.push(l);
+  }
+  return ra.join('\n').replace(/\n{2,}/g, '\n').trim() + '\n';
+}
+
+/**
+ * Bản SẼ ĐƯỢC GHI cho một trong ba tệp tầng chung — kể cả lưới an toàn.
+ *
+ * Lưới an toàn: bản ra phải CÂN dấu ngoặc nhọn và còn giữ mốc cuối cùng của tệp. Lần đầu viết bước này, mẫu
+ * `/\*…\*\/` trên cả tệp đã ăn mất `(function () {` (nó bắt đầu từ chuỗi `khuon/*.blade.php` trong một chú thích
+ * `//`) — đúng ca mà phép đếm này bắt được. Không cân, hoặc mất mốc → chép NGUYÊN VĂN: nặng hơn vài trăm byte
+ * còn hơn phát ra mã hỏng.
+ *
+ * @param {string} ten   tên tệp: `khoi-chung.css` · `khoi-cum.js` · `khoi-luoi.js`
+ * @param {string} nguon nội dung tệp nguồn
+ */
+export function banChep(ten, nguon) {
+  const laJs = ten.endsWith('.js');
+  const ra = boDongChuThich(nguon, laJs);
+  const mo = (ra.match(/\{/g) || []).length;
+  const dong = (ra.match(/\}/g) || []).length;
+  const conMoc = laJs ? ra.includes('window.QCV.chung =') : ra.includes('.qcvk-mui-ten');
+  return mo === dong && conMoc ? ra : nguon;
+}
+
+/** Ba tệp của tầng dùng chung đi qua `banChep`. Mọi tệp khác chép NGUYÊN VĂN. */
+export const TEP_BO_CHU_THICH = ['khoi-chung.css', 'khoi-cum.js', 'khoi-luoi.js'];

@@ -44,19 +44,6 @@ Tra và điền đủ các cột. Ba thông tin hay sai nếu chỉ dựa vào t
 
 Ưu tiên vào danh mục những tạp chí có ít nhất một trong các đặc điểm: đã có người quen công bố được, phản biện dưới 6 tháng, hoặc không thu phí.
 
-## Mẫu bài (template)
-
-Mẫu đã tải sẵn nằm ở `mau-bai/`, danh sách và cách dùng ở `mau-bai/README.md`.
-Trước khi soạn bài cho một tạp chí, đọc cột `mau_bai` trong CSV để biết dùng tệp nào.
-
-- Cùng một nhà xuất bản thường dùng chung một mẫu, ví dụ mọi tạp chí Elsevier trong danh mục
-  đều dùng `elsarticle`, mọi tạp chí Springer Nature đều dùng `sn-jnl`. Không tải lại mẫu riêng
-  cho từng tạp chí.
-- Khi thêm tạp chí mới: nếu nhà xuất bản đã có mẫu trong `mau-bai/` thì chỉ điền tên tệp vào cột
-  `mau_bai`; nếu chưa có thì tải mẫu chính thức về thư mục này rồi ghi thêm một dòng vào README.
-- Mẫu có thể đổi phiên bản. Nếu tệp trong `mau-bai/` đã quá một năm kể từ `cap_nhat`, kiểm tra lại
-  trang hướng dẫn tác giả trước khi nộp.
-
 ## Lưu ý khi tư vấn
 
 - Phí niêm yết thay đổi hằng năm; luôn nhắc người dùng kiểm tra lại trước khi nộp.

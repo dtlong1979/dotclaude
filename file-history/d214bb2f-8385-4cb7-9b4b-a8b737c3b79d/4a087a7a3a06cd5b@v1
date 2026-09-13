@@ -1,0 +1,39 @@
+// Khối `footer` — ĐIỂM 4 (lượt hoàn thiện giao diện): « chân trang không tự cân đối khi không đủ nội dung ».
+//
+// Phép kiểm RIÊNG, tách khỏi `cong-khai.mjs` (biến thể `columns`/`minimal`): fixture ở đây cố ý chỉ có MỘT
+// nhóm liên kết (`slots.cot` một mục) trong khi `props.cols` vẫn để « 2 » — đúng ca đã đo được trên site mẫu
+// Dottie (2 nhóm điền sẵn nhưng khách xoá bớt còn 1, hoặc chưa kịp điền nhóm thứ hai).
+//
+// Dùng: node tu-can-doi.mjs <ip-caddy> <thư-mục-kết-quả>
+import { moKhung } from './khung-kiem.mjs';
+
+const PAGE = 'kiem-footer';
+const K = await moKhung({ ten: 'footer/mot-cot', trang: PAGE, toiThieu: 3, khungNhin: [1280] });
+const { page, check, PUB, out } = K;
+
+await page.setViewportSize({ width: 1280, height: 900 });
+await page.goto(`${PUB}/${PAGE}`, { waitUntil: 'networkidle' });
+await page.waitForSelector('.footer__cot', { timeout: 5000 }).catch(() => {});
+
+const o = await page.evaluate(() => {
+  const cot = document.querySelector('.footer__cot');
+  const brand = document.querySelector('.footer__brand');
+  if (!cot || !brand) return null;
+  const rCot = cot.getBoundingClientRect();
+  const rBrand = brand.getBoundingClientRect();
+  const muc = cot.querySelectorAll('.footer__mot-cot');
+  const track = getComputedStyle(cot).gridTemplateColumns.trim().split(/\s+/).filter((t) => t !== '0px').length;
+  return { soMuc: muc.length, track, wCot: Math.round(rCot.width), wBrand: Math.round(rBrand.width) };
+});
+
+check('1', 'fixture đúng ý: CHỈ MỘT nhóm liên kết trong `.footer__cot` (đối chứng — nếu khác 1 thì hai phép kiểm dưới không chứng minh được gì)',
+  !!o && o.soMuc === 1, JSON.stringify(o));
+check('2', 'điểm 4 · lưới `.footer__cot` cho ĐÚNG MỘT cột thật (không phải hai cột với một cột bỏ trống) dù `props.cols` = "2"',
+  !!o && o.track === 1, JSON.stringify(o));
+// `.footer__inner` chia 1fr (cụm danh tính) : 2fr (phần còn lại) — `.footer__cot` tự cân đối đúng thì rộng gấp
+// khoảng ĐÔI cụm danh tính (2/1), không phải rộng bằng NỬA phần dành cho nó (tức chỉ bằng cụm danh tính).
+check('3', 'điểm 4 · cột liên kết duy nhất chiếm TRỌN bề rộng phần 2fr dành cho nó (rộng hơn RÕ RỆT cụm danh tính 1fr, không co lại còn nửa bề rộng)',
+  !!o && o.wCot >= o.wBrand * 1.5, JSON.stringify(o));
+
+await page.screenshot({ path: `${out}/mot-cot-1280.png` });
+await K.ketThuc();

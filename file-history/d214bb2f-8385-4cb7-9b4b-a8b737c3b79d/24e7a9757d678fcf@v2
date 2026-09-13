@@ -1,0 +1,36 @@
+// Đo: cái gì nằm DƯỚI chân trang mà tạo ra dải trắng ở đáy? Và lưới "Bộ sưu tập" rộng bao nhiêu so với ô.
+import { chromium } from 'playwright-core';
+const [ip, out] = process.argv.slice(2);
+const browser = await chromium.launch({
+  executablePath: '/usr/bin/chromium-browser',
+  args: [`--host-resolver-rules=MAP qcv2-mau.localhost ${ip}`, '--no-sandbox', '--disable-gpu'],
+});
+const ket = {};
+for (const [ten, url] of [['bo-suu-tap', '/bo-suu-tap'], ['trang-chu', '/'], ['lien-he', '/lien-he']]) {
+  const page = await browser.newPage({ viewport: { width: 1280, height: 900 }, locale: 'vi-VN' });
+  await page.goto(`http://qcv2-mau.localhost:8081${url}`, { waitUntil: 'networkidle' });
+  ket[ten] = await page.evaluate(() => {
+    const f = document.querySelector('.footer') || document.querySelector('footer');
+    const doc = document.documentElement;
+    const fb = f ? Math.round(f.getBoundingClientRect().bottom + window.scrollY) : null;
+    const cao = Math.round(doc.scrollHeight);
+    // Phần tử nào chạm tới đáy tài liệu?
+    const duoi = [...document.body.querySelectorAll('*')]
+      .map((e) => ({ e, r: e.getBoundingClientRect() }))
+      .filter(({ r }) => Math.round(r.bottom + window.scrollY) > (fb ?? 0) + 2 && r.height > 0)
+      .map(({ e, r }) => `${e.tagName}.${e.className}`.slice(0, 70) + ` h=${Math.round(r.height)} bottom=${Math.round(r.bottom + window.scrollY)}`);
+    const st = { body: getComputedStyle(document.body), html: getComputedStyle(doc) };
+    const cot = document.querySelector('.eg, .entity-grid, [class*="entity-grid"]');
+    return {
+      caoTaiLieu: cao, caoKhungNhin: window.innerHeight,
+      dayChanTrang: fb, duDuoiChanTrang: fb === null ? null : cao - fb,
+      phanTuDuoiChanTrang: duoi.slice(0, 6),
+      bodyMinHeight: st.body.minHeight, bodyMargin: st.body.marginBottom,
+      htmlMinHeight: st.html.minHeight,
+      luoi: cot ? { cls: cot.className.slice(0, 60), cols: getComputedStyle(cot).gridTemplateColumns, gap: getComputedStyle(cot).gap } : null,
+    };
+  });
+  await page.close();
+}
+console.log(JSON.stringify(ket, null, 1));
+await browser.close();

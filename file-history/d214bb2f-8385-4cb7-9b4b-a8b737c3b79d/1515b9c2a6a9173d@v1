@@ -1,0 +1,124 @@
+<?php
+
+/*
+| Cạnh phụ thuộc và CHIỀU xoá cache của khối `entity-grid` — chạy trong container php:
+|   docker compose exec -T -u www-data php php /srv/sites/local/release/blocks/entity-grid/tests/deps.php
+|
+| Vì sao phải có phép kiểm riêng cho khối này. `qcv:kiem-cache` (21/21) đo `Deps` bằng định nghĩa block GIẢ dựng
+| trong chính lệnh đó; nó không nói được gì về một khối THẬT có prop `query` đặt ở chỗ khác tên, và cũng không đi
+| qua `slots`. Đây là chỗ khối và lớp dùng chung gặp nhau, nên phép kiểm phải chạy trên `block.json`/`schema.json`
+| thật của khối, trên trang thật, và phải kiểm CẢ HAI CHIỀU: trang lọc khớp thì mất cache, trang lọc khác thì KHÔNG.
+|
+| Kịch bản không ghi gì lâu dài: cạnh của hai trang thử được xoá lại ở cuối.
+*/
+
+require '/srv/sites/local/release/vendor/autoload.php';
+$app = require '/srv/sites/local/release/bootstrap/app.php';
+$app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+
+use App\Blocks\BlockRegistry;
+use App\Content\Deps;
+use Illuminate\Support\Facades\DB;
+
+$registry = $app->make(BlockRegistry::class);
+$deps = $app->make(Deps::class);
+$def = fn (string $t): ?array => $registry->has($t) ? $registry->get($t) : null;
+
+$ok = 0;
+$hong = 0;
+$kiem = function (bool $dieu, string $ten, string $chi_tiet = '') use (&$ok, &$hong): void {
+    if ($dieu) {
+        $ok++;
+        echo "ĐẠT  $ten".($chi_tiet !== '' ? " — $chi_tiet" : '')."\n";
+    } else {
+        $hong++;
+        echo "HỎNG $ten".($chi_tiet !== '' ? " — $chi_tiet" : '')."\n";
+    }
+};
+/**
+ * Khiếm khuyết của LỚP DÙNG CHUNG mà khối này phơi ra: in rõ kèm bằng chứng đo được, KHÔNG tính vào mã thoát —
+ * cổng của khối phải đo khối (cùng quy ước với nhãn THIẾU của `cards/tests/studio.mjs`).
+ */
+$thieu = function (bool $dungLaHong, string $ten, string $chi_tiet = '') use (&$hong): void {
+    if ($dungLaHong) {
+        echo "THIẾU $ten".($chi_tiet !== '' ? " — $chi_tiet" : '')."\n";
+    } else {
+        echo "ĐÃ SỬA (bỏ dòng THIẾU này đi) $ten\n";
+        $hong++;
+    }
+};
+
+$doc = fn (string $id): array => json_decode((string) file_get_contents("/srv/sites/local/content/pages/$id.json"), true, 64, JSON_THROW_ON_ERROR);
+
+$trang = ['luoi-du-lieu', 'luoi-loc-khac'];
+$canh = [];
+foreach ($trang as $id) {
+    $canh[$id] = Deps::tinh($doc($id), $def);
+    $deps->luu($id, $canh[$id]);
+}
+$chuoi = fn (string $id): array => array_map(fn (array $c) => $c['kind'].':'.$c['ref'].($c['sig'] !== '' ? ' '.$c['sig'] : ''), $canh[$id]);
+
+echo "\n--- 1. Cạnh sinh từ prop kiểu `query` của khối thật ---\n";
+$a = $chuoi('luoi-du-lieu');
+$tv = fn () => array_values(array_filter($a, fn ($c) => str_starts_with($c, 'query:')));
+// Chữ ký **bỏ tham số bằng mặc định của chính lược đồ khối** (`limit: 8`, `sort: newest`) và **bỏ giá trị không
+// lọc** (`status: all`) — HD-02 6.3 « chữ ký chuẩn hoá », thi hành ở `Deps::chuKy` từ 2026-09-09. Trước đó bảng
+// mặc định là một hằng số cứng (`limit: 12`) nên `limit=8` của khối này vào chữ ký như một bộ lọc thật.
+$kiem(in_array('query:products products(category=dien-thoai)', $a, true),
+    '1a · prop `nguon_product` sinh cạnh HẸP có chữ ký (mặc định của lược đồ khối và giá trị « không lọc » đã bỏ)', implode(' | ', $tv()));
+$kiem(in_array('query:categories categories(hideEmpty=1)', $a, true),
+    '1b · prop `nguon_category` của khối thứ ba sinh cạnh riêng cho bảng `categories`');
+$kiem(in_array('query:posts posts(exclude=0)', $a, true),
+    '1c · prop `nguon_post` sinh cạnh cho bảng `posts` (`exclude` khác mặc định nên còn trong chữ ký)');
+$kiem(count($tv()) === 6,
+    '1d · SÁU cạnh truy vấn cho năm khối: bốn của prop + hai của tab — tab « Điện thoại » trùng chữ ký với lưới đầu trang nên gộp làm một',
+    'các cạnh: '.implode(' | ', $tv()));
+
+echo "\n--- 2. Chiều xoá cache: trang khớp bộ lọc mất cache, trang lọc khác KHÔNG ---\n";
+$sig = 'products(category=dien-thoai,limit=8,status=all)';
+$kiem(Deps::chuKyKhop($sig, ['category' => 'dien-thoai']) === true,
+    '2a · chữ ký lọc « dien-thoai » KHỚP sản phẩm cùng danh mục');
+$kiem(Deps::chuKyKhop($sig, ['category' => 'may-tinh']) === false,
+    '2b · CHIỀU NGƯỢC: chữ ký đó KHÔNG khớp sản phẩm danh mục khác');
+$sp = DB::table('products')->first();
+$khop = $deps->trangTheoThucThe('product', (string) $sp->id, ['category' => 'dien-thoai']);
+$kiem(in_array('luoi-du-lieu', $khop, true) && ! in_array('luoi-loc-khac', $khop, true),
+    '2c · trên TRANG THẬT: sửa sản phẩm « dien-thoai » xoá cache trang lọc « dien-thoai », không đụng trang lọc « may-tinh »', implode(' · ', $khop));
+// Cạnh RỘNG của một khối không lọc kéo theo cả trang — đúng thiết kế, nhưng người dựng trang phải biết: đặt một
+// lưới « tất cả sản phẩm » cạnh một lưới lọc là khoá tham số của lưới lọc mất tác dụng trên chính trang đó.
+$khac = $deps->trangTheoThucThe('product', (string) $sp->id, ['category' => 'may-tinh']);
+$kiem(in_array('luoi-loc-khac', $khac, true) && in_array('luoi-du-lieu', $khac, true),
+    '2d · khối băng chuyền KHÔNG lọc danh mục trên cùng trang kéo trang đó vào mọi lượt xoá (đơn vị cache là TRANG)', implode(' · ', $khac));
+$bai = DB::table('posts')->first();
+$kiem(in_array('luoi-du-lieu', $deps->trangTheoThucThe('post', (string) $bai->id), true),
+    '2e · sửa một BÀI VIẾT cũng xoá cache trang có lưới bài viết (cạnh `query:posts`)');
+
+echo "\n--- 2bis. Giá trị « không lọc » KHÔNG được coi là bộ lọc ---\n";
+// `status: all` của HD-02 6.3d(f) nghĩa là « không lọc theo tình trạng ». Trước 2026-09-09 nó vào chữ ký như một
+// giá trị enum thật, nên `chuKyKhop('…status=all', ['status' => 'in_stock'])` là false và lưới « tất cả » GIỮ BẢN
+// CŨ sau khi một sản phẩm đổi trạng thái. Hai chiều, vì chữ ký cũ còn nằm trong bảng `deps` của site đang chạy.
+$kiem(! str_contains(Deps::chuKy('products', ['category' => 'dien-thoai', 'status' => 'all']), 'status'),
+    '2f · `status=all` KHÔNG vào chữ ký khi tính', Deps::chuKy('products', ['category' => 'dien-thoai', 'status' => 'all']));
+$kiem(Deps::chuKyKhop('products(category=dien-thoai,status=all)', ['category' => 'dien-thoai', 'status' => 'in_stock']) === true,
+    '2f-bis · chữ ký CŨ mang `status=all` vẫn khớp sản phẩm `in_stock` — hàng cũ trong bảng `deps` không giữ lại đúng lỗi vừa sửa');
+$kiem(Deps::chuKyKhop('products(status=in_stock)', ['status' => 'out_of_stock']) === false,
+    '2f-ter · CHIỀU NGƯỢC: `status=in_stock` là bộ lọc THẬT — sản phẩm `out_of_stock` không khớp (bản nới không nuốt luôn bộ lọc thật)');
+
+echo "\n--- 3. Prop `query` nằm trong một slot repeater (`tabs[].source` — HD-02 6.3 gọi đích danh) ---\n";
+$tabs = $doc('luoi-du-lieu')['blocks'][4];
+$soTab = count($tabs['slots']['tabs']);
+$kiem(in_array('query:products products(category=may-tinh)', $a, true) && in_array('query:products products(category=gia-dung)', $a, true),
+    '3a · '.$soTab.' tab, mỗi tab một truy vấn → mỗi tab một cạnh riêng (`Deps` quét MỌI độ sâu, không chỉ `schema.props`)', implode(' | ', $tv()));
+$sp2 = DB::table('products')->first();
+$khopTab = $deps->trangTheoThucThe('product', (string) $sp2->id, ['category' => 'gia-dung']);
+$kiem(in_array('luoi-du-lieu', $khopTab, true),
+    '3b · trên TRANG THẬT: sửa một sản phẩm « gia-dung » xoá cache trang có TAB « Gia dụng » — trước bản sửa trang này không có cạnh nào cho nó', implode(' · ', $khopTab));
+$kiem(! in_array('luoi-loc-khac', $deps->trangTheoThucThe('product', (string) $sp2->id, ['category' => 'gia-dung']), true),
+    '3c · CHIỀU NGƯỢC: trang đối chứng (không có tab, lọc « may-tinh ») KHÔNG bị kéo theo');
+
+foreach ($trang as $id) {
+    DB::table('deps')->where('page_id', $id)->delete();
+}
+
+echo "\n$ok đạt · $hong hỏng\n";
+exit($hong > 0 ? 1 : 0);

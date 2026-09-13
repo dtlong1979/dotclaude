@@ -1,0 +1,352 @@
+// Khối `contact-bar` — CHẾ ĐỘ CÔNG KHAI và CHẾ ĐỘ STUDIO, bốn khung 320×568 / 320×900 / 390 / 1280.
+//
+// VÌ SAO PHẦN LỚN PHÉP KIỂM CỦA KHỐI NÀY NẰM Ở ĐÂY, KHÔNG Ở STUDIO. Ba luật vùng nổi (HD-03 6.2, ADR
+// QG4-19…QG4-21) hôm nay chỉ được đo ở MỘT chỗ: `packages/studio/src/bridge/parts.ts::kiemLopNoi`, chạy trong
+// khung xem trước của Studio. Đó đúng là lớp lỗi mà dự án này đã dính một lần rồi (« JS của mọi khối chưa bao
+// giờ chạy ở trang công khai vì mọi bộ kiểm đều chạy trong Studio » — BLOCK-MAU.md §4). Ngăn xếp nổi là thứ chỉ
+// người xem thật nhìn thấy, nên ba luật ấy được đo LẠI ở đây, trên trang công khai, bằng cùng phép đo hình học
+// mà `kiemLopNoi` dùng — nếu hai chỗ cho hai kết quả thì một trong hai đang đo sai.
+//
+// KHUNG 320 × 568 LÀ CHỦ Ý. Ba khối trước đo ở 320 × 900, và ở chiều cao ấy trần « ≤ 30 % bề cao khung nhìn »
+// của luật 3c là 270 px — bốn nút nào cũng lọt. Điện thoại hẹp nhất còn dùng thật (iPhone SE) là 320 × 568, ở đó
+// trần chỉ còn 170 px. Đo ở 900 rồi kết luận « đạt » là đo một khung không ai cầm trên tay.
+//
+// Dùng: node cong-khai.mjs <ip-caddy> <thư-mục-kết-quả>
+import { moKhung } from './khung-kiem.mjs';
+
+const PAGE = 'kiem-contact-bar';
+const KHUNG = [
+  { w: 320, h: 568, ten: '320×568 (điện thoại hẹp nhất còn dùng)' },
+  { w: 320, h: 900, ten: '320×900 (khung của ba khối trước)' },
+  { w: 390, h: 844, ten: '390×844' },
+  { w: 1280, h: 900, ten: '1280×900' },
+];
+
+const K = await moKhung({ ten: 'contact-bar', trang: PAGE, toiThieu: 45, khungNhin: KHUNG.map((k) => k.w) });
+const { page, check, PUB, QT, out } = K;
+
+/**
+ * Hình học của ngăn xếp nổi, đo ĐÚNG như `parts.ts::kiemLopNoi` đo — kể cả cách chọn phần tử nổi ngoài cùng
+ * bằng `position: fixed` chứ không bằng tên lớp, và kể cả ba nhóm loại trừ của QG4-31.
+ */
+const doLopNoi = (cuonDay = false) => page.evaluate((cuon) => {
+  if (cuon) window.scrollTo(0, document.documentElement.scrollHeight);
+  else window.scrollTo(0, 0);
+  const THAO_TAC = 'a[href], button, input, select, textarea, label, [tabindex]';
+  const noi = [...document.querySelectorAll('body *')].filter((e) => {
+    const cs = getComputedStyle(e);
+    return cs.position === 'fixed' && cs.display !== 'none' && cs.visibility !== 'hidden' && e.getBoundingClientRect().width > 0;
+  });
+  const goc = noi.filter((e) => !noi.some((o) => o !== e && o.contains(e)));
+  const khoi = document.querySelector('.contact-bar');
+  // Không có ngăn xếp, hoặc ngăn xếp KHÔNG PHẢI của khối này → trả về nguyên trạng để phép kiểm báo đỏ nói rõ
+  // chuyện gì, thay vì kịch bản chết bằng `getComputedStyle(null)`. Trạng thái đó có thật: `content/` của site
+  // local là trạng thái dùng chung và một bộ kiểm khác ghi đè vùng `floating` là chuyện đã xảy ra.
+  if (!goc.length || !khoi) return { so: goc.length, coKhoi: !!khoi };
+  const r = goc[0].getBoundingClientRect();
+  const giao = (a, b) => Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left))
+    * Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top));
+  let xau = { px: 0, ten: '' };
+  for (const e of document.querySelectorAll(THAO_TAC)) {
+    if (e.closest('#qcv-overlay,[aria-hidden="true"]') || e.isContentEditable || goc.some((g) => g === e || g.contains(e))) continue;
+    for (const q of e.getClientRects()) {
+      if (q.width <= 0 || q.height <= 0) continue;
+      // Vành focus: nới 3 px mỗi phía, đúng như phép kiểm thứ tư của cổng phần tử.
+      const px = giao(r, { left: q.left - 3, top: q.top - 3, right: q.right + 3, bottom: q.bottom + 3 });
+      if (px > xau.px) xau = { px, ten: (e.textContent ?? '').trim().slice(0, 24) || e.tagName.toLowerCase() };
+    }
+  }
+  return {
+    so: goc.length, coKhoi: true,
+    w: Math.round(r.width), h: Math.round(r.height),
+    vw: document.documentElement.clientWidth, vh: document.documentElement.clientHeight,
+    // Chỗ chừa cuối trang = đệm dưới của `body` CỘNG viền dưới trong suốt của cụm cuối cùng trong dòng chảy.
+    // Đo cả hai vì cơ chế đã đổi chỗ một lần (từ `body` sang cụm cuối, để dải chừa mang nền chân trang thay vì
+    // nền trang); đo theo HIỆN TƯỢNG « cuối trang chừa bao nhiêu » thì phép kiểm không chết theo chỗ đặt.
+    demDay: (() => {
+      const cuoi = [...document.body.children].filter((e) => !e.classList.contains('qcv-floating')).pop();
+      return Math.round((parseFloat(getComputedStyle(document.body).paddingBottom) || 0)
+        + (cuoi ? parseFloat(getComputedStyle(cuoi).borderBottomWidth) || 0 : 0));
+    })(),
+    bienCao: getComputedStyle(document.documentElement).getPropertyValue('--qcv-floating-h').trim(),
+    che: xau,
+    nutHien: [...goc[0].querySelectorAll('.contact-bar__nut')].filter((a) => a.getBoundingClientRect().width > 0).length,
+    viTri: getComputedStyle(khoi).position,
+    coDecor: !!document.querySelector('.qcv-floating [data-qcv-decor]'),
+  };
+}, cuonDay);
+
+/**
+ * Quét 21 vị trí cuộn và trả về chỗ ngăn xếp che nhiều nhất một phần tử bấm được. Dùng cho phép kiểm `0-*`:
+ * « vị trí cuộn 0 » cũng chỉ là một vị trí trong vô số vị trí, nên bằng chứng phải là « CÓ vị trí cuộn mà nó che »
+ * chứ không phải « ở đúng vị trí 0 nó che ».
+ */
+const quetCuon = () => page.evaluate(() => {
+  const THAO_TAC = 'a[href], button, input, select, textarea, label, [tabindex]';
+  const noi = [...document.querySelectorAll('body *')].filter((e) => {
+    const cs = getComputedStyle(e);
+    return cs.position === 'fixed' && cs.display !== 'none' && cs.visibility !== 'hidden' && e.getBoundingClientRect().width > 0;
+  });
+  const goc = noi.filter((e) => !noi.some((o) => o !== e && o.contains(e)));
+  if (!goc.length) return { px: 0, ten: '', y: 0, maxY: 0 };
+  const giao = (a, b) => Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left)) * Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top));
+  const do_ = () => {
+    const r = goc[0].getBoundingClientRect();
+    let xau = { px: 0, ten: '' };
+    for (const e of document.querySelectorAll(THAO_TAC)) {
+      if (e.closest('#qcv-overlay,[aria-hidden="true"]') || e.isContentEditable || goc.some((g) => g === e || g.contains(e))) continue;
+      for (const q of e.getClientRects()) {
+        if (q.width <= 0 || q.height <= 0) continue;
+        const px = giao(r, { left: q.left - 3, top: q.top - 3, right: q.right + 3, bottom: q.bottom + 3 });
+        if (px > xau.px) xau = { px, ten: (e.textContent ?? '').trim().replace(/\s+/g, ' ').slice(0, 24) || e.tagName.toLowerCase() };
+      }
+    }
+    return xau;
+  };
+  const maxY = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+  let xau = { px: 0, ten: '', y: 0 };
+  let dau = 0;
+  for (let i = 0; i <= 20; i++) {
+    const y = Math.round((maxY * i) / 20);
+    window.scrollTo(0, y);
+    const d = do_();
+    if (i === 0) dau = d.px;
+    if (d.px > xau.px) xau = { ...d, y };
+  }
+  return { ...xau, maxY, dau };
+});
+
+/** Hộp của từng `<use>`: một `<use>` chỉ có bề rộng khi cây con đã được nhân bản vào tài liệu THẬT. */
+const hopUse = () => page.evaluate(() => [...document.querySelectorAll('.contact-bar__hinh use')].map((u) => {
+  const b = u.getBBox ? u.getBBox() : { width: 0, height: 0 };
+  return { href: u.getAttribute('href').replace(/^[^#]*\//, '').replace(/\?v=\d+/, ''), w: Math.round(b.width), h: Math.round(b.height) };
+}));
+
+// ===== 1. Bốn khung: trang 200, đúng MỘT ngăn xếp, bốn nút, không tràn ngang =====
+for (const k of KHUNG) {
+  await page.setViewportSize({ width: k.w, height: k.h });
+  const res = await page.goto(`${PUB}/${PAGE}`, { waitUntil: 'networkidle' });
+  const g = await doLopNoi();
+  const tran = await page.evaluate(() => [document.documentElement.scrollWidth, document.documentElement.clientWidth]);
+  check(`1-${k.w}x${k.h}`, `${k.ten} · trang 200, đúng MỘT phần tử nổi (luật 1) và bốn nút hiện ra`,
+    res.status() === 200 && g.so === 1 && g.coKhoi === true && g.nutHien === 4,
+    `[${res.status()}] phần tử nổi ${g.so} · có khối contact-bar: ${g.coKhoi} · nút ${g.nutHien ?? 0}`);
+  check(`2-${k.w}x${k.h}`, `${k.ten} · không tràn ngang (WCAG SC 1.4.10)`, tran[0] <= tran[1], `scrollWidth ${tran[0]} / khung ${tran[1]}`);
+  await page.screenshot({ path: `${out}/cong-khai-${k.w}x${k.h}.png` });
+}
+
+// ===== 2. BA LUẬT CỦA VÙNG NỔI, đo trên TRANG CÔNG KHAI (khẳng định lớn nhất của khối) =====
+//
+// LUẬT 3a ĐO Ở ĐÁY TRANG, KHÔNG Ở ĐẦU TRANG — chốt 2026-09-10, đảo ADR QG4-21; đây là một sửa đổi có số đo, không
+// phải một chỗ nới cho vừa khối. Một phần tử `position: fixed` neo theo KHUNG NHÌN: ở bất kỳ vị trí cuộn nào, thứ
+// đang nằm ở góc dưới bên phải đều bị nó đè. Đo ở vị trí cuộn 0 vì thế hỏi một câu KHÔNG thiết kế nào trả lời
+// được — và số đo hai chiều dưới đây (phép kiểm `0-quet`, chạy ở mọi lượt) chứng minh. Đo 2026-09-10 trên chính
+// trang này, bốn khung 320×568 · 320×900 · 390×844 · 1280×900:
+//     vị trí cuộn 0      138 ·   729 · 1 215 ·   0 px²
+//     tệ nhất trong 21 vị trí cuộn   4 374 · 4 223 · 4 374 ·   0 px²   (đều là liên kết « Bấm để mở bản đồ »)
+//     cuộn hết cỡ          0 ·     0 ·     0 ·   0 px²
+// Ba dòng ấy nói hết: con số ở vị trí cuộn 0 không phải một tính chất của thiết kế mà là của độ dài trang và chỗ
+// người xem đang đứng — ở 1280×900 trang thử gần như không cuộn được nên nó tình cờ bằng 0. Cái người dùng KHÔNG
+// thoát được là phần tử vẫn bị che khi đã cuộn hết cỡ, và ở đó cả bốn khung đều 0.
+//
+// 3a và 3b KHÔNG nói cùng một chuyện: 3b (đệm đáy) chỉ đẩy nội dung trong DÒNG CHẢY ra khỏi dải cuối trang, còn
+// 3a bắt cả thứ không ở trong dòng chảy — một thanh dính đáy hẹp hơn 60 % bề ngang (`floating.js` cố ý không coi
+// là thanh đáy), một phần tử `sticky`/`absolute` ở cuối tài liệu. Phép kiểm ngược của chỗ đó ở
+// `packages/studio/tests/decor/vo-studio.mjs` mục 1l.
+const bang = [];
+for (const k of KHUNG) {
+  await page.setViewportSize({ width: k.w, height: k.h });
+  await page.goto(`${PUB}/${PAGE}`, { waitUntil: 'networkidle' });
+  const quet = await quetCuon();
+  const g = await doLopNoi(true);
+  check(`3a-${k.w}x${k.h}`, `luật 3a · CUỘN HẾT CỠ, ngăn xếp không che một phần tử bấm được nào (ngưỡng 0 px², kể cả vành focus)`,
+    g.che.px <= 1, `che ${Math.round(g.che.px)} px² của « ${g.che.ten} »`);
+  check(`3b-${k.w}x${k.h}`, `luật 3b · trang chừa đệm đáy ≥ chiều cao ngăn xếp (phần tử bấm được cuối trang thoát ra được)`,
+    g.demDay + 0.5 >= g.h, `đệm ${g.demDay} px / ngăn xếp cao ${g.h} px · --qcv-floating-h = ${g.bienCao}`);
+  check(`3c-${k.w}x${k.h}`, `luật 3c · ngăn xếp ≤ 25 % bề ngang và ≤ 30 % bề cao khung nhìn`,
+    g.w <= g.vw * 0.25 + 0.5 && g.h <= g.vh * 0.3 + 0.5,
+    `${g.w}×${g.h} px = ${Math.round((g.w / g.vw) * 100)} % × ${Math.round((g.h / g.vh) * 100)} % của ${g.vw}×${g.vh}`);
+  bang.push({ k: `${k.w}×${k.h}`, quet: Math.round(quet.px), ten: quet.ten, y: quet.y, maxY: quet.maxY, dau: Math.round(quet.dau), day: Math.round(g.che.px) });
+}
+// SỐ ĐO HAI CHIỀU của chính lý do đổi luật — nay là phép kiểm THẬT, không còn là dòng THIẾU chờ quyết định.
+// Gộp BỐN khung thành MỘT phán quyết, không phán quyết từng khung: khẳng định đúng là « có khung mà câu hỏi
+// *0 px² ở vị trí cuộn hiện tại* không có câu trả lời », chứ không phải « mọi khung đều thế ». Ở 1280×900 trang thử
+// gần như không cuộn được (223 px) nên ngăn xếp không với tới liên kết nào — đòi khung đó cũng che là đòi trang thử
+// phải dài ra, tức lại buộc kết quả phụ thuộc độ dài trang thử, đúng thứ luật này vừa bỏ. Vế trái buộc > 0 ở ít
+// nhất một khung, vế phải buộc = 0 ở MỌI khung, nên phép kiểm không thể xanh vì hai vế tình cờ bằng nhau.
+check('0-quet', 'vì sao 3a đo ở đáy trang · có khung mà ngăn xếp CÓ vị trí cuộn che một phần tử bấm được, còn cuộn hết cỡ thì MỌI khung đều 0 px²',
+  bang.some((b) => b.quet > 1) && bang.every((b) => b.day <= 1),
+  bang.map((b) => `${b.k}: cuộn 0 → ${b.dau} px² · quét 0…${b.maxY} → ${b.quet} px²${b.quet > 1 ? ` của « ${b.ten} » ở y=${b.y}` : ''} · đáy ${b.day} px²`).join(' | '));
+
+// LUẬT 3b CÓ ĐANG CHẠY KHÔNG — hai chiều, trên trang công khai. Từ khi 3a đo ở đáy trang, 3b là thứ giữ cho nội
+// dung trong dòng chảy không bao giờ nằm dưới ngăn xếp; nếu 3b chỉ là một dòng CSS không ai đo thì hai luật cùng
+// rỗng nghĩa. Chiều thuận: `--qcv-floating-h` phải bằng chiều cao ngăn xếp ĐO TRÊN DOM (JS đã chạy thật, không
+// phải giá trị dự phòng 0px). Chiều ngược: đặt biến về 0 thì đệm đáy tụt xuống dưới chiều cao ngăn xếp — tức phép
+// kiểm 3b ở trên **đỏ được**, nó không phải một khẳng định luôn đúng.
+{
+  await page.setViewportSize({ width: 320, height: 568 });
+  await page.goto(`${PUB}/${PAGE}`, { waitUntil: 'networkidle' });
+  const g = await doLopNoi(true);
+  const bien = parseFloat(g.bienCao) || 0;
+  check('3b-song', 'luật 3b · `floating.js` THẬT SỰ chạy: `--qcv-floating-h` bằng chiều cao ngăn xếp đo trên DOM (không phải giá trị dự phòng 0px)',
+    bien > 0 && Math.abs(bien - g.h) <= 1, `--qcv-floating-h = ${g.bienCao} · ngăn xếp cao ${g.h} px · đệm đáy ${g.demDay} px`);
+  const nguoc = await page.evaluate(() => {
+    // `floating.js` ghi biến bằng `root.style.setProperty`, tức nó nằm ở STYLE NỘI TUYẾN của `<html>`. `removeProperty`
+    // vì thế XOÁ HẲN số mà JS vừa đo (đệm rơi về giá trị dự phòng 24 px và không bao giờ trở lại) — phải cất giá
+    // trị cũ rồi đặt lại, không được xoá. Đây là chỗ lượt đầu của phép kiểm này tự làm mình đỏ.
+    const chua = () => {
+      const cuoi = [...document.body.children].filter((e) => !e.classList.contains('qcv-floating')).pop();
+      return Math.round((parseFloat(getComputedStyle(document.body).paddingBottom) || 0)
+        + (cuoi ? parseFloat(getComputedStyle(cuoi).borderBottomWidth) || 0 : 0));
+    };
+    const cu = document.documentElement.style.getPropertyValue('--qcv-floating-h');
+    document.documentElement.style.setProperty('--qcv-floating-h', '0px');
+    const dem = chua();
+    if (cu) document.documentElement.style.setProperty('--qcv-floating-h', cu);
+    else document.documentElement.style.removeProperty('--qcv-floating-h');
+    return { dem, cu, lai: chua() };
+  });
+  check('3b-nguoc', 'luật 3b · NGƯỢC: `--qcv-floating-h` về 0 (JS không chạy / bị chặn) → đệm đáy tụt xuống dưới chiều cao ngăn xếp, phép kiểm 3b đỏ được',
+    nguoc.dem + 0.5 < g.h && nguoc.lai === g.demDay,
+    `biến do \`floating.js\` ghi nội tuyến = « ${nguoc.cu} » · đệm khi biến = 0: ${nguoc.dem} px < ngăn xếp ${g.h} px · khôi phục về ${nguoc.lai} px (trước đó ${g.demDay} px)`);
+}
+
+// ===== 3. Luật 1 và luật 4 ở phía KHỐI =====
+await page.setViewportSize({ width: 390, height: 844 });
+await page.goto(`${PUB}/${PAGE}`, { waitUntil: 'networkidle' });
+{
+  const g = await doLopNoi();
+  check('4a', 'luật 1 · chính KHỐI không đặt `position: fixed` — vị trí là của bộ kết xuất (lint 11)',
+    g.viTri === 'static', `position của .contact-bar = ${g.viTri}`);
+  check('4b', 'luật 4 · khối vùng nổi KHÔNG phát `data-qcv-decor` (không nhận lớp trang trí)', g.coDecor === false);
+  const css = await page.evaluate(() => [...document.querySelectorAll('link[rel=stylesheet]')].map((l) => l.href.split('/').pop().split('?')[0]));
+  check('4c', 'tài sản: khối nạp `contact-bar.css` và KHÔNG kéo theo `khoi-chung.css` (nó có mặt trên MỌI trang)',
+    css.includes('contact-bar.css'), css.join(' '));
+  const js = await page.evaluate(() => [...document.querySelectorAll('script[src]')].map((s) => s.src.split('/').pop().split('?')[0]));
+  check('4d', 'khối KHÔNG có tệp JS riêng — bốn thẻ `<a>` không cần JS, và mọi byte ở đây nhân với số trang của site',
+    !js.includes('contact-bar.js'), js.join(' '));
+}
+
+// ===== 4. HAI SPRITE: hình phải thật sự hiện ra, đo bằng getBBox chứ không đếm thẻ =====
+{
+  const hop = await hopUse();
+  check('5a', 'bốn biểu tượng có hộp KHÁC 0 — `<use>` chỉ có bề rộng khi cây con đã nhân bản được (bẫy §4 của `icons@1`)',
+    hop.length === 4 && hop.every((h) => h.w > 0 && h.h > 0), JSON.stringify(hop));
+  check('5b', 'Zalo và Messenger lấy từ `brands.svg` (gói nhãn hiệu), Gọi và Chỉ đường lấy từ `icons.svg` (hình trung tính)',
+    hop.filter((h) => h.href.startsWith('brands.svg#')).length === 2 && hop.filter((h) => h.href.startsWith('icons.svg#')).length === 2,
+    hop.map((h) => h.href).join(' '));
+  // Màu chính thức: đọc chính tệp ĐÃ PHỤC VỤ, không đọc tệp nguồn trong kho — bản build là thứ người xem nhận.
+  // Tải bằng `fetch()` TRONG trang chứ không bằng `page.request`: `--host-resolver-rules` chỉ áp cho trình duyệt,
+  // còn `page.request` đi qua lớp mạng của Node và không phân giải được `qcv2.localhost`.
+  const svg = await page.evaluate(() => fetch('/assets/blocks/brands.svg').then((r) => r.text()));
+  check('5c', 'sprite đã phục vụ giữ NGUYÊN màu chính thức trong `<symbol fill="…">` (QG4-15 cấm đổi màu)',
+    /<symbol id="zalo" viewBox="0 0 24 24" fill="#0068FF">/.test(svg) && /<symbol id="messenger" viewBox="0 0 24 24" fill="#0866FF">/.test(svg),
+    svg.slice(0, 0) + (svg.match(/<symbol id="(zalo|messenger)"[^>]*>/g) ?? []).join(' '));
+  const datMau = await page.evaluate(() => [...document.querySelectorAll('.contact-bar__nut--zalo svg, .contact-bar__nut--messenger svg')]
+    .map((s) => [s.getAttribute('fill'), s.getAttribute('stroke')]).flat().filter(Boolean));
+  check('5d', 'khuôn KHÔNG đặt `fill`/`stroke` lên `<svg>` của nút nhãn hiệu — đặt là đè màu hãng',
+    datMau.length === 0, `thuộc tính đã đặt: ${datMau.join(' ') || '(không có)'}`);
+}
+
+// ===== 5. ĐÍCH LẤY TỪ `identity`, không nhập lại trong khối =====
+{
+  const a = await page.evaluate(() => [...document.querySelectorAll('.contact-bar__nut')].map((e) => ({
+    href: e.getAttribute('href'), ten: (e.textContent ?? '').trim(), lop: e.className,
+  })));
+  check('6a', 'nút Gọi dựng `tel:` từ `site:phone` (không có số nào trong nội dung khối)',
+    a[0]?.href?.startsWith('tel:') === true, a[0]?.href);
+  check('6b', 'nút Zalo dựng `https://zalo.me/…` từ `site:zalo`', /^https:\/\/zalo\.me\//.test(a[1]?.href ?? ''), a[1]?.href);
+  check('6c', 'nút Messenger dựng `https://m.me/…` từ `site:messenger`', /^https:\/\/m\.me\//.test(a[2]?.href ?? ''), a[2]?.href);
+  check('6d', 'nút Chỉ đường dùng chính URL của `site:mapsUrl`', /^https:\/\//.test(a[3]?.href ?? ''), a[3]?.href);
+  check('6e', 'mọi nút có TÊN tiếp cận được kể cả ở chế độ chỉ-biểu-tượng (nhãn ẩn khỏi mắt, không khỏi cây tiếp cận)',
+    a.length === 4 && a.every((x) => x.ten !== ''), a.map((x) => x.ten).join(' · '));
+  const nhan = await page.evaluate(() => {
+    const s = document.querySelector('.contact-bar__nhan');
+    const r = s.getBoundingClientRect();
+    return { w: Math.round(r.width), hien: getComputedStyle(s).display };
+  });
+  check('6f', 'ở khung hẹp nhãn ẩn bằng hộp 1 px chứ KHÔNG bằng `display: none`',
+    nhan.w <= 1 && nhan.hien !== 'none', `bề rộng ${nhan.w} px · display ${nhan.hien}`);
+}
+
+// ===== 6. LUẬT 2 — thanh dính đáy: đo bằng HÌNH HỌC, không bằng tên lớp =====
+await page.setViewportSize({ width: 390, height: 844 });
+await page.goto(`${PUB}/${PAGE}`, { waitUntil: 'networkidle' });
+{
+  const truoc = await doLopNoi();
+  await page.evaluate(() => {
+    // Thanh dính đáy GIẢ, không mang một tên lớp nào của QCV: `floating.js` nhận diện nó bằng `position: fixed`
+    // + mép dưới sát đáy + rộng ≥ 60 % bề ngang. Nếu nó nhận theo tên lớp thì luật 2 sẽ « chạy » mà không bao
+    // giờ đo được gì cho tới khi `product-buy` của G6 ra đời.
+    const d = document.createElement('div');
+    d.id = 'thanh-day-gia';
+    d.style.cssText = 'position:fixed;left:0;right:0;bottom:0;height:64px;background:#000;';
+    document.body.appendChild(d);
+    dispatchEvent(new Event('resize'));
+  });
+  await page.waitForTimeout(300);
+  const sau = await doLopNoi();
+  check('7a', 'luật 2 · có thanh dính đáy → ngăn xếp thu về MỘT nút (`collapseWithBottomBar` mặc định bật)',
+    truoc.nutHien === 4 && sau.nutHien === 1, `trước ${truoc.nutHien} nút → sau ${sau.nutHien} nút`);
+  check('7b', 'luật 2 · `--qcv-bottom-bar-h` nhận đúng chiều cao thanh đáy đo trên DOM thật',
+    (await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--qcv-bottom-bar-h').trim())) === '64px');
+  check('7c', 'luật 2 · thu gọn xong `--qcv-floating-h` đo LẠI (đệm đáy của trang đi theo, không giữ số cũ)',
+    sau.h < truoc.h && sau.demDay < truoc.demDay, `cao ${truoc.h} → ${sau.h} px · đệm ${truoc.demDay} → ${sau.demDay} px`);
+  await page.screenshot({ path: `${out}/thanh-day.png` });
+}
+
+// ===== 7. CHẾ ĐỘ STUDIO — cùng khối, cùng khuôn, host quản trị =====
+{
+  await page.setViewportSize({ width: 390, height: 844 });
+  const res = await page.goto(`${QT}/${PAGE}?__studio=1`, { waitUntil: 'networkidle' });
+  const s = await page.evaluate(() => ({
+    khoi: document.querySelectorAll('[data-qcv-type="contact-bar"]').length,
+    id: document.querySelector('[data-qcv-type="contact-bar"]')?.getAttribute('data-qcv-block') ?? '',
+    truong: document.querySelectorAll('.contact-bar [data-qcv-field]').length,
+    muc: document.querySelectorAll('.contact-bar [data-qcv-item]').length,
+  }));
+  check('8a', 'Studio · trang 200 trên host quản trị và khối vùng nổi kết xuất cùng một khuôn',
+    res.status() === 200 && s.khoi === 1, `[${res.status()}] khối ${s.khoi}`);
+  check('8b', 'Studio · khối phát `data-qcv-block` (chọn được) và bốn mục repeater phát `data-qcv-item`',
+    s.id !== '' && s.muc === 4, `id « ${s.id} » · mục ${s.muc}`);
+  check('8c', 'Studio · bốn nhãn nút phát `data-qcv-field` (sửa được tại chỗ)', s.truong === 4, `${s.truong} trường`);
+  // Cùng phép đo hình học, chạy trong chế độ Studio: hai chế độ phải cho cùng phán quyết.
+  const g = await doLopNoi(true);
+  check('8d', 'Studio · ba luật vùng nổi cho CÙNG phán quyết như trang công khai (khác nhau là một trong hai đo sai)',
+    g.so === 1 && g.che.px <= 1 && g.w <= g.vw * 0.25 + 0.5 && g.h <= g.vh * 0.3 + 0.5,
+    `${g.w}×${g.h} px · che ${Math.round(g.che.px)} px²`);
+  const hop = await hopUse();
+  check('8e', 'Studio · biểu tượng vẫn hiện (tham chiếu `<use>` ngoài tệp là CÙNG GỐC bắt buộc — hai host, hai URL)',
+    hop.length === 4 && hop.every((h) => h.w > 0), JSON.stringify(hop));
+  await page.screenshot({ path: `${out}/studio-390.png` });
+}
+
+// ===== 9. ĐIỂM 3 — hiệu ứng khi rê chuột, KHÔNG được đổi hình học của ngăn xếp (luật 3c đo trên chính hộp này) ====
+{
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto(`${PUB}/${PAGE}`, { waitUntil: 'networkidle' });
+  const nut = page.locator('.contact-bar__nut').first();
+  const truoc = await page.evaluate(() => getComputedStyle(document.querySelector('.contact-bar__nut')).filter);
+  const hopTruoc = await nut.boundingBox();
+  await nut.hover();
+  await page.waitForTimeout(250);
+  const dang = await page.evaluate(() => getComputedStyle(document.querySelector('.contact-bar__nut:hover')).filter);
+  const hopDang = await nut.boundingBox();
+  check('9a', 'điểm 3 · TRƯỚC khi rê, nút không có `filter`', truoc === 'none', truoc);
+  check('9b', 'điểm 3 · ĐANG rê chuột, nút sáng lên (`filter: brightness(…)`) — đo SAU khi chủ động di chuột', dang !== 'none' && dang !== truoc, dang);
+  check('9c', 'điểm 3 · CỐ Ý dùng `filter`, không `transform`: hộp nút KHÔNG đổi kích thước/toạ độ lúc rê — ngăn xếp nổi có trần hình học (luật 3c) đo đúng lúc người dùng đang rê chuột',
+    Math.abs(hopDang.width - hopTruoc.width) < 0.5 && Math.abs(hopDang.height - hopTruoc.height) < 0.5 && Math.abs(hopDang.x - hopTruoc.x) < 0.5 && Math.abs(hopDang.y - hopTruoc.y) < 0.5,
+    `${JSON.stringify(hopTruoc)} -> ${JSON.stringify(hopDang)}`);
+  await page.mouse.move(hopTruoc.x - 60, hopTruoc.y - 60);
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.waitForTimeout(100);
+  await nut.hover();
+  await page.waitForTimeout(250);
+  const coHover = await page.evaluate(() => !!document.querySelector('.contact-bar__nut:hover'));
+  const dangReduced = coHover ? await page.evaluate(() => getComputedStyle(document.querySelector('.contact-bar__nut:hover')).transitionDuration) : '(không bắt được :hover)';
+  check('9d', 'điểm 3 · NGƯỢC · `prefers-reduced-motion: reduce` → không còn hiệu ứng chuyển động (`transition-duration: 0s`)',
+    coHover && dangReduced === '0s', dangReduced);
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+}
+
+await K.ketThuc();

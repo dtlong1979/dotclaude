@@ -1,0 +1,111 @@
+/* CSS nền của site mẫu (spike S2). Token tạm — hệ token thật đến từ HD-11.
+   Sửa 2026-09-10 (BLOCK-MAU.md §7 mục 44): `--color-primary` và `--color-muted` ĐỔI GIÁ TRỊ để đạt WCAG AA
+   (≥ 4,5:1 chữ thường). Bốn cặp đã đo dưới bảng gốc và bảng mới — công thức WCAG (luminance tương đối,
+   ngưỡng gamma 0,04045; `(Lmax+0,05)/(Lmin+0,05)`), kiểm bằng tay khớp đúng bốn số đã ghi trong hợp đồng:
+
+     Cặp                                    | Trước (đo trong BLOCK-MAU.md) | Sau (bảng này)
+     --color-muted / --color-bg      (sáng) | 3,8                          | 6,79
+     --color-muted / --color-surface (hộp)  | 3,3                          | 6,03
+     --color-muted / --color-primary (màu chính, qua color-mix — xem chung.css) | 2,8 | 4,70
+     --color-primary / --color-on-primary   | 3,7                          | 5,12
+
+   `--color-muted` cũ #8a817a → #5f5954 (cùng họ xám ấm, chỉ đậm hơn). `--color-primary` cũ #e2571f (cam sáng)
+   → #c1440e (cam-gạch đậm hơn): vừa đủ tối để chữ trắng (`--color-on-primary`) đạt 4,5:1, vừa đủ sáng để không
+   cần đổi lại `--color-accent`/`--color-on-accent` (cặp này đã đạt 8,35:1, không đụng). `--color-primary-soft`
+   giữ nguyên #fbe3d8 (chưa suy lại OKLCH theo hue mới — xem báo cáo, đây là nợ của bước `design.json` ở G4).
+   Cổng máy đo lại đúng các cặp này: `packages/blocks/_runtime/kiem-tuong-phan.mjs` (đăng ký ở tooling/ci/kiem.sh,
+   cổng `tuong-phan`). */
+:root { --qcv-c-primary: #c1440e; --qcv-c-on-primary: #fff; --qcv-c-surface: #1d2430; --qcv-c-bg: #fffdf9; --qcv-c-fg: #26221f;
+  /* Tên biến token theo HD-11 8.6 (decor.css tĩnh trỏ tới) — giá trị tạm của site mẫu, hệ token thật sinh từ design.json ở G4 */
+  --color-primary: #c1440e; --color-on-primary: #fff; --color-accent: #f2b134; --color-on-accent: #26221f; --color-primary-soft: #fbe3d8;
+  --color-surface: #f3efe9; --color-bg: #fffdf9; --color-text: #26221f; --color-muted: #5f5954; --color-line: #e2dbd2;
+  /* `--color-brand` / `--color-on-brand` — CẶP TOKEN THÊM (lượt "hệ nền cho khối", ca thanh đầu trang Dottie,
+     HD-11 8.6b +2 tông). Không thuộc bảng màu chuẩn 8 tông (§8.1): đây là cặp mà MỘT khối toàn site (thanh
+     đầu trang, sau này có thể là chân trang) dùng để khớp màu một ảnh bìa/banner cụ thể của site — tách khỏi
+     `--color-primary`/`--color-bg` để đổi bảng màu site không vô tình phá cặp này, và ngược lại. Giá trị lấy
+     THẬT từ ảnh `uploads/dottie/slider/1.jpg` (Pillow, trung bình 20 px trên cùng ảnh: #11281e; trung bình
+     80 px: #172e21 — chọn giá trị giữa) — không phải một tông tình cờ đoán bằng mắt. Tương phản đo được
+     (kiem-tuong-phan.mjs, cổng `tuong-phan`): chữ chính (`--color-on-brand`) 14,91:1 · chữ phụ (composite
+     color-mix `--color-bg` 95 % trên `--color-brand`) 13,57:1 — cả hai vượt xa ngưỡng AA 4,5:1. CÙNG chỗ này
+     là nơi một site mẫu ngành SAU sẽ đổi hai giá trị này cho banner của NÓ — cơ chế không đổi, chỉ đổi số. */
+  --color-brand: #17281d; --color-on-brand: #fffdf9;
+  --text-sm: 14px;
+  /* `--font-heading`/`--font-body` TẠM đặt cùng ngăn xếp hệ thống — hai cặp phông OFL đã CHỌN (HD-11 §8.3,
+     lý do đầy đủ ở `packages/blocks/_runtime/fonts/can-tai.json`) chưa có tệp WOFF2 thật trong kho (phiên
+     2026-09-10 không tải được, xem báo cáo M5). Khi tệp thật vào `_runtime/fonts/`: bật khối `@font-face`
+     đang comment bên dưới, rồi đổi hai dòng này thành `"Be Vietnam Pro", system-ui, …` (Cặp A) hoặc
+     `"Playfair Display", Georgia, serif` / `"Nunito", system-ui, …` (Cặp B — chọn theo mẫu). */
+  --font-heading: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --radius: 8px; --space-unit: 8px; --container-max: 1280px; }
+
+/* ---------------------------------------------------------------------------------------------------------------
+   PHÔNG ĐÓNG GÓI — ĐANG COMMENT, chờ tệp WOFF2 thật (xem ghi chú ở khối :root và `_runtime/fonts/can-tai.json`).
+   Bật từng khối khi có tệp tương ứng; `font-display: swap` bắt buộc (HD-11 §8.3); phông tiêu đề nên `<link
+   rel=preload>` ở `<head>` của khuôn trang (không phải việc của CSS — ghi cho người bật nhớ làm).
+
+@font-face { font-family: "Be Vietnam Pro"; font-style: normal; font-weight: 400; font-display: swap;
+  src: url("/assets/blocks/fonts/be-vietnam-pro/be-vietnam-pro-400.woff2") format("woff2"); unicode-range: U+0000-00FF,U+0102-0103,U+0110-0111,U+0128-0129,U+0168-0169,U+01A0-01A1,U+01AF-01B0,U+0300-0301,U+0303,U+0309,U+0323,U+1EA0-1EF9; }
+@font-face { font-family: "Be Vietnam Pro"; font-style: normal; font-weight: 600; font-display: swap;
+  src: url("/assets/blocks/fonts/be-vietnam-pro/be-vietnam-pro-600.woff2") format("woff2"); unicode-range: U+0000-00FF,U+0102-0103,U+0110-0111,U+0128-0129,U+0168-0169,U+01A0-01A1,U+01AF-01B0,U+0300-0301,U+0303,U+0309,U+0323,U+1EA0-1EF9; }
+@font-face { font-family: "Be Vietnam Pro"; font-style: normal; font-weight: 700; font-display: swap;
+  src: url("/assets/blocks/fonts/be-vietnam-pro/be-vietnam-pro-700.woff2") format("woff2"); unicode-range: U+0000-00FF,U+0102-0103,U+0110-0111,U+0128-0129,U+0168-0169,U+01A0-01A1,U+01AF-01B0,U+0300-0301,U+0303,U+0309,U+0323,U+1EA0-1EF9; }
+@font-face { font-family: "Inter"; font-style: normal; font-weight: 400; font-display: swap;
+  src: url("/assets/blocks/fonts/inter/inter-400.woff2") format("woff2"); unicode-range: U+0000-00FF,U+0102-0103,U+0110-0111,U+0128-0129,U+0168-0169,U+01A0-01A1,U+01AF-01B0,U+0300-0301,U+0303,U+0309,U+0323,U+1EA0-1EF9; }
+@font-face { font-family: "Inter"; font-style: normal; font-weight: 600; font-display: swap;
+  src: url("/assets/blocks/fonts/inter/inter-600.woff2") format("woff2"); unicode-range: U+0000-00FF,U+0102-0103,U+0110-0111,U+0128-0129,U+0168-0169,U+01A0-01A1,U+01AF-01B0,U+0300-0301,U+0303,U+0309,U+0323,U+1EA0-1EF9; }
+@font-face { font-family: "Inter"; font-style: normal; font-weight: 700; font-display: swap;
+  src: url("/assets/blocks/fonts/inter/inter-700.woff2") format("woff2"); unicode-range: U+0000-00FF,U+0102-0103,U+0110-0111,U+0128-0129,U+0168-0169,U+01A0-01A1,U+01AF-01B0,U+0300-0301,U+0303,U+0309,U+0323,U+1EA0-1EF9; }
+@font-face { font-family: "Playfair Display"; font-style: normal; font-weight: 600; font-display: swap;
+  src: url("/assets/blocks/fonts/playfair-display/playfair-display-600.woff2") format("woff2"); unicode-range: U+0000-00FF,U+0102-0103,U+0110-0111,U+0128-0129,U+0168-0169,U+01A0-01A1,U+01AF-01B0,U+0300-0301,U+0303,U+0309,U+0323,U+1EA0-1EF9; }
+@font-face { font-family: "Playfair Display"; font-style: normal; font-weight: 700; font-display: swap;
+  src: url("/assets/blocks/fonts/playfair-display/playfair-display-700.woff2") format("woff2"); unicode-range: U+0000-00FF,U+0102-0103,U+0110-0111,U+0128-0129,U+0168-0169,U+01A0-01A1,U+01AF-01B0,U+0300-0301,U+0303,U+0309,U+0323,U+1EA0-1EF9; }
+@font-face { font-family: "Nunito"; font-style: normal; font-weight: 400; font-display: swap;
+  src: url("/assets/blocks/fonts/nunito/nunito-400.woff2") format("woff2"); unicode-range: U+0000-00FF,U+0102-0103,U+0110-0111,U+0128-0129,U+0168-0169,U+01A0-01A1,U+01AF-01B0,U+0300-0301,U+0303,U+0309,U+0323,U+1EA0-1EF9; }
+@font-face { font-family: "Nunito"; font-style: normal; font-weight: 600; font-display: swap;
+  src: url("/assets/blocks/fonts/nunito/nunito-600.woff2") format("woff2"); unicode-range: U+0000-00FF,U+0102-0103,U+0110-0111,U+0128-0129,U+0168-0169,U+01A0-01A1,U+01AF-01B0,U+0300-0301,U+0303,U+0309,U+0323,U+1EA0-1EF9; }
+@font-face { font-family: "Nunito"; font-style: normal; font-weight: 700; font-display: swap;
+  src: url("/assets/blocks/fonts/nunito/nunito-700.woff2") format("woff2"); unicode-range: U+0000-00FF,U+0102-0103,U+0110-0111,U+0128-0129,U+0168-0169,U+01A0-01A1,U+01AF-01B0,U+0300-0301,U+0303,U+0309,U+0323,U+1EA0-1EF9; }
+
+   --------------------------------------------------------------------------------------------------------------- */
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--qcv-c-bg); color: var(--qcv-c-fg); font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+.site-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 24px; background: #fff; border-bottom: 1px solid #eee; }
+.site-header__brand { font-weight: 700; color: var(--qcv-c-fg); text-decoration: none; }
+.site-header__nav a { margin-left: 18px; color: var(--qcv-c-fg); text-decoration: none; }
+.site-footer { padding: 32px 24px; background: #f3efe9; margin-top: 40px; }
+.site-footer__form { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
+.site-footer__form input { padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+.site-footer__form button { padding: 8px 14px; border: 0; border-radius: 4px; background: var(--qcv-c-primary); color: #fff; }
+
+/* ---------------------------------------------------------------------------------------------------------------
+   VÙNG TOÀN SITE `floating` — HD-03 6.2, bốn luật. Đây là CSS của CORE, không phải của block:
+   luật 1 nói ngăn xếp nổi là MỘT phần tử do bộ kết xuất dựng, và block trong vùng không tự đặt `position: fixed`
+   (lint 11 của `qcv:kiem-blade` chặn). Sản xuất gộp tệp này vào `site.css`.
+   `--qcv-floating-h` (chiều cao ngăn xếp) và `--qcv-bottom-bar-h` (chiều cao thanh dính đáy) do `floating.js` đo
+   và đặt trên `:root` — luật 2. Giá trị dự phòng 0px để trang vẫn đúng khi JS chưa chạy hoặc bị chặn.
+   --------------------------------------------------------------------------------------------------------------- */
+.qcv-floating { position: fixed; z-index: 60; right: 12px; bottom: calc(var(--qcv-bottom-bar-h, 0px) + 12px);
+  display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+/* Luật 2 — thu gọn về MỘT nút khi trang có thanh dính đáy (`collapseWithBottomBar`, mặc định bật) */
+.qcv-floating--gon.is-co-thanh-day > * > *:not(:first-child) { display: none; }
+/* Luật 3 — nội dung chừa chỗ đúng chiều cao ngăn xếp; thiếu chỗ chừa này thì phần tử nổi che chữ ở cuối trang
+   và phép kiểm thứ tư của cổng phần tử (ngưỡng 0 %) chặn.
+   Chỗ chừa nằm TRONG cụm CUỐI CÙNG của trang (thường là chân trang), KHÔNG trên `body`: đặt trên `body` thì
+   dải chừa ăn nền của TRANG, nên mọi trang lộ một dải trắng dưới chân trang — đo được 172 px trên cả ba trang
+   của site mẫu, giống hệt nhau, và không phần tử nào nằm trong đó.
+   Chừa bằng VIỀN TRONG SUỐT chứ không bằng `padding`: nền của phần tử phủ tới hết viền (`background-clip`
+   mặc định là `border-box`) nên dải chừa mang nền của chân trang, và không giẫm lên `padding` mà CSS của khối
+   tự đặt. Dùng longhand để không xoá `border-top` của khối. */
+body > :last-child:not(.qcv-floating),
+body:has(> .qcv-floating:last-child) > :nth-last-child(2) {
+  border-bottom-style: solid;
+  border-bottom-color: transparent;
+  border-bottom-width: calc(var(--qcv-floating-h, 0px) + 24px);
+}
+.tnk { display: flex; flex-direction: column; gap: 8px; align-items: flex-end; }
+.tnk__nut { display: inline-block; padding: 10px 14px; border-radius: var(--radius); background: var(--color-primary);
+  color: var(--color-on-primary); text-decoration: none; font-size: var(--text-sm); }
+.lk { padding: 16px 24px; }
+.lk__ctx { font-weight: 700; margin: 0 0 4px; }
+.lk__mota, .lk__trong { color: var(--color-muted); margin: 0; }

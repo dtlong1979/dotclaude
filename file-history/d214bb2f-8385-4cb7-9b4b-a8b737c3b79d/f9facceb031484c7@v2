@@ -1,0 +1,245 @@
+#!/usr/bin/env bash
+# Một lượt kiểm cho mọi thay đổi — chạy từ gốc kho:
+#
+#   bash tooling/ci/kiem.sh                    # cả 17 cổng, từ RẺ tới ĐẮT
+#   bash tooling/ci/kiem.sh --release          # thêm: mã spike và APP_DEBUG là CHẶN, không phải nhắc
+#   bash tooling/ci/kiem.sh --cong tat-dinh    # chạy đúng một (hoặc vài, ngăn bằng dấu phẩy) cổng
+#   bash tooling/ci/kiem.sh --danh-sach        # in bảng NHÃN cổng rồi thoát
+#
+# ================================ ĐỌC DÒNG NÀO KHI CỔNG ĐỎ (V14-1a) ================================
+# Ba dòng CUỐI là toàn bộ thứ cần đọc lúc 11 giờ đêm. Chúng đi ra CẢ stdout LẪN stderr, nên `| tail`,
+# `| grep`, `> nhat-ky.log` đều không nuốt mất:
+#
+#   KET-QUA: 14/15 đạt · 1 hỏng · 44 giây
+#   CONG-HONG: tat-dinh
+#   CHAY-LAI: bash tooling/ci/kiem.sh --cong tat-dinh
+#
+# `CONG-HONG:` và `CHAY-LAI:` là nhãn ASCII viết hoa, KHÔNG xuất hiện ở bất kỳ dòng nhật ký chi tiết nào
+# (nhật ký chi tiết tiếng Việt có dấu, và mỗi kết quả cổng mang nhãn dạng `cong=<tên>`), nên
+# `grep '^CONG-HONG:'` luôn cho đúng một dòng. Đặt `QCV_KET_QUA=<tệp>` thì ba dòng đó cũng được ghi ra tệp.
+# Vì sao phải thế: 2026-09-09 PM chạy hàng chục lượt, giữ toàn bộ nhật ký, mà vẫn không biết cổng nào đỏ —
+# dòng tổng kết chỉ nói "TẤT CẢ ĐẠT" hoặc im, và lọc theo tên cổng thì khớp nhầm dòng ĐẠT. Một cổng không
+# nói được mình hỏng ở đâu thì người ta sẽ chạy lại cho tới khi xanh.
+#
+# ================================ MƯỜI BẢY CỔNG ================================
+#   json         JSON của mọi hiện vật lược đồ và kê khai block đọc được (bắt lỗi \escape, dấu phẩy thừa)
+#   php          cú pháp PHP của apps/site (app + database + routes + bootstrap + config + tests)
+#   luoc-do      artisan qcv:kiem-luoc-do — block.json/schema.json + fixture hợp lệ/sai/cảnh báo/vị trí/props,
+#                lint block, và `sample._default` phải hợp lệ theo chính `schema.json` của khối (QG4-6)
+#   bao-mat      artisan qcv:kiem-bao-mat — độ sâu JSON, trần lỗi 422, so khớp host quản trị, bề mặt route,
+#                lược đồ `site:` (mỗi phép kiểm sinh từ một lỗ đã tái hiện được — BAO-MAT.md §4)
+#   danh-tinh    artisan qcv:kiem-danh-tinh — tham chiếu `site:` (V8-1) giải ở ba chỗ nhúng của HD-03 6.6,
+#                đúng thứ tự "giải trước, thoát sau", + LINT quy tắc 6 "không ghi cứng danh tính"
+#   ro-danh-tinh artisan qcv:ro-danh-tinh — cổng rò danh tính trên chính site local (tiêu chí L19 đo được)
+#   ts           hằng số TypeScript của Studio khớp JSON Schema (sinh-ts.mjs --check) — ADR QG1-1 dựa vào
+#                "hai bên không lệch được", và điều đó chỉ đúng nếu có ai đó nhớ build Studio
+#   tai-san      node kiem-tai-san.mjs — tài sản trong `apps/site/public/assets/blocks/` KHỚP BYTE mã nguồn
+#                trong `packages/blocks/`. Cây ấy không nằm trong git, và bộ kiểm của mỗi khối tự dựng lại
+#                trước khi chạy nên nó luôn xanh trong khi trang thật phục vụ bản CŨ (BLOCK-MAU.md §7 mục 62)
+#   tuong-phan   node kiem-tuong-phan.mjs — mọi cặp nền/chữ của HD-11 §8 (base.css + color-mix của chung.css)
+#                đạt WCAG AA ≥ 4,5:1 (BLOCK-MAU.md §7 mục 44). Đọc TĨNH, không cần Chromium.
+#   tai-lieu     python .project/kiem-tai-lieu.py — trần dòng, dấu trạng thái, đường dẫn có thật (QUY-TAC 4.6)
+#   cache        artisan qcv:kiem-cache — cạnh `deps` và xoá cache theo phụ thuộc (9.5), kiểm CẢ HAI chiều
+#                trên tệp thật: trang phải mất cache thì mất, trang không liên quan thì CÒN
+#   chuyen-doi   artisan qcv:chuyen-doi-noi-dung --thu — contentMigrations[] (HD-08 16.5) chạy khô
+#   release      MÃ CHỈ-DÀNH-CHO-LOCAL và APP_DEBUG không lọt vào release (`SpikeRole`, `X-QCV-Role`).
+#                Ở lượt thường chỉ NHẮC; với `--release` là CHẶN. Cổng này quan trọng hơn guard môi trường:
+#                guard gỡ nhầm được và không ai thấy, cổng thì đỏ
+#   blade        artisan qcv:kiem-blade — LINT Blade và CSS (V5, HD-02 §3 quy tắc 1–5 + lint 8/9/11; HD-11 §8).
+#                Blade KHÔNG thoát theo ngữ cảnh — lint là lưới DUY NHẤT của XSS
+#   http         artisan qcv:kiem-http — BỀ MẶT HTTP thật qua Caddy (V2, V9-3). Phải là HTTP THẬT:
+#                `X-QCV-Cache: static` do CADDY đặt, tức chứng minh yêu cầu KHÔNG tới PHP. ~15 giây
+#   tat-dinh     bash tooling/ci/kiem-tat-dinh.sh — cùng đầu vào, kết xuất và build NHIỀU LẦN rồi so BYTE THÔ
+#                (tiêu chí G1). Bốn lượt A/B/C/D trên BẢN CHÉP RIÊNG của cây tài sản + build tài sản của block
+#   neo          bash tooling/ci/kiem-neo.sh — QG4-1: vùng khai `anchorable` phải THẬT SỰ có một vị trí thả hợp
+#                lệ. Cần Chromium (`qcv2/playwright:1`); ~25 giây
+#
+# KHÔNG có ở đây (cố ý): bộ kiểm Chromium của Studio (`packages/studio/tests/*/chay.sh`) vì mỗi lượt vài phút;
+# `vendor/bin/pint` vì dự án chưa nhận chuẩn định dạng đó. Chạy tay hai thứ đó trước khi đóng một lượt module.
+#
+# MỌI cổng artisan chạy bằng **một user duy nhất** (`-u www-data`). Trước lượt này bốn cổng chạy bằng root và số
+# còn lại bằng `www-data`: tệp tạm do root ghi làm lượt sau bằng `www-data` "Permission denied" và cổng đỏ vì một
+# lý do không liên quan gì tới thứ nó canh (đã dính thật với `qcv:kiem-danh-tinh`). Một cổng đỏ theo user và theo
+# thứ tự chạy là một cổng sẽ bị tắt.
+set -u
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+cd "$ROOT" || exit 2
+
+# Thứ tự chạy = thứ tự trong mảng này (RẺ trước, ĐẮT sau). Nhãn là ĐỊNH DANH ỔN ĐỊNH: nó vào dòng `CONG-HONG:`,
+# vào `--cong`, và không được đổi tuỳ tiện — kịch bản và thói quen của người khác bám vào nó.
+CONG=(json php luoc-do bao-mat danh-tinh ro-danh-tinh ts tai-san tuong-phan tai-lieu cache chuyen-doi release blade http tat-dinh neo)
+declare -A NHAN=(
+  [json]='JSON của hiện vật lược đồ'
+  [php]='Cú pháp PHP (php -l trong container qcv2-php)'
+  [luoc-do]='Lược đồ v1, fixture, lint block, sample._default (artisan qcv:kiem-luoc-do)'
+  [bao-mat]='Bảy lỗ của lượt rà G1 (artisan qcv:kiem-bao-mat)'
+  [danh-tinh]='Tham chiếu danh tính site: và lint quy tắc 6 (artisan qcv:kiem-danh-tinh)'
+  [ro-danh-tinh]='Cổng rò danh tính trên site local (artisan qcv:ro-danh-tinh)'
+  [ts]='Hằng số TypeScript của Studio khớp lược đồ (sinh-ts.mjs --check)'
+  [tai-san]='Tài sản dựng trong public/assets/blocks khớp byte mã nguồn (kiem-tai-san.mjs)'
+  [tuong-phan]='Tương phản WCAG AA của token màu — HD-11 §8 (kiem-tuong-phan.mjs)'
+  [tai-lieu]='Tài liệu (.project/kiem-tai-lieu.py)'
+  [cache]='Xoá cache theo phụ thuộc (artisan qcv:kiem-cache)'
+  [chuyen-doi]='contentMigrations[] chạy khô (artisan qcv:chuyen-doi-noi-dung --thu)'
+  [release]='Mã chỉ-dành-cho-local và APP_DEBUG không lọt vào release'
+  [blade]='Lint Blade và CSS (artisan qcv:kiem-blade)'
+  [http]='Bề mặt HTTP thật qua Caddy (artisan qcv:kiem-http)'
+  [tat-dinh]='Kết xuất và build TẤT ĐỊNH (tooling/ci/kiem-tat-dinh.sh)'
+  [neo]='Vùng anchorable có chỗ thả thật — QG4-1 (tooling/ci/kiem-neo.sh)'
+)
+
+RELEASE=0
+CHON=()
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --release) RELEASE=1 ;;
+    --danh-sach)
+      printf 'Nhãn cổng (dùng với --cong):\n'
+      for c in "${CONG[@]}"; do printf '  %-13s %s\n' "$c" "${NHAN[$c]}"; done
+      exit 0 ;;
+    --cong) shift; IFS=',' read -r -a X <<< "${1:-}"; CHON+=("${X[@]}") ;;
+    --cong=*) IFS=',' read -r -a X <<< "${1#--cong=}"; CHON+=("${X[@]}") ;;
+    *) printf 'Không hiểu tham số « %s ». Xem: bash tooling/ci/kiem.sh --danh-sach\n' "$1" >&2; exit 2 ;;
+  esac
+  shift
+done
+# Nhãn gõ sai phải DỪNG, không được lặng lẽ chạy 0 cổng rồi báo "TẤT CẢ ĐẠT" — đó đúng là kiểu xanh giả tệ nhất.
+for c in ${CHON[@]+"${CHON[@]}"}; do
+  [ -n "${NHAN[$c]:-}" ] || { printf 'Không có cổng tên « %s ». Xem: bash tooling/ci/kiem.sh --danh-sach\n' "$c" >&2; exit 2; }
+done
+
+DAT=0
+HONG_TEN=()
+BAT_DAU=$(date +%s)
+
+chay_mot() {   # $1 = nhãn cổng
+  case "$1" in
+
+  json)
+    # PYTHONIOENCODING: bảng mã mặc định của console Windows là cp1252, in tiếng Việt là ném UnicodeEncodeError
+    PYTHONIOENCODING=utf-8 python - <<'PY'
+import glob, json, sys
+loi = 0
+tep = sorted(set(glob.glob('packages/schema/**/*.json', recursive=True)
+                 + glob.glob('packages/blocks/*/block.json')
+                 + glob.glob('packages/blocks/*/schema.json')
+                 + glob.glob('apps/site/app/Entities/*.json')
+                 + glob.glob('themes/**/*.json', recursive=True)))
+for f in tep:
+    try:
+        json.load(open(f, encoding='utf-8'))
+    except Exception as e:
+        print('  HỎNG %s: %s' % (f, e)); loi += 1
+print('  %d tệp JSON, %d hỏng' % (len(tep), loi))
+sys.exit(1 if loi else 0)
+PY
+    ;;
+
+  php)
+    docker compose exec -T php sh -lc '
+      n=0; loi=0
+      for f in $(find app database routes bootstrap config tests -name "*.php"); do
+        n=$((n+1)); php -l "$f" >/dev/null 2>&1 || { loi=$((loi+1)); php -l "$f"; }
+      done
+      echo "  $n tệp PHP, $loi hỏng"; [ "$loi" -eq 0 ]'
+    ;;
+
+  luoc-do)      docker compose exec -T -u www-data php php artisan qcv:kiem-luoc-do | tail -n 24; return "${PIPESTATUS[0]}" ;;
+  bao-mat)      docker compose exec -T -u www-data php php artisan qcv:kiem-bao-mat | tail -n 30; return "${PIPESTATUS[0]}" ;;
+  danh-tinh)    docker compose exec -T -u www-data php php artisan qcv:kiem-danh-tinh | tail -n 30; return "${PIPESTATUS[0]}" ;;
+  ro-danh-tinh) docker compose exec -T -u www-data php php artisan qcv:ro-danh-tinh | tail -n 20; return "${PIPESTATUS[0]}" ;;
+  ts)           docker compose run --rm -T node node ../schema/sinh-ts.mjs --check ;;
+  tai-san)      docker compose run --rm -T node node ../blocks/_runtime/kiem-tai-san.mjs ;;
+  tuong-phan)   docker compose run --rm -T node node ../blocks/_runtime/kiem-tuong-phan.mjs ;;
+  tai-lieu)     PYTHONIOENCODING=utf-8 python .project/kiem-tai-lieu.py | tail -n 3; return "${PIPESTATUS[0]}" ;;
+  cache)        docker compose exec -T -u www-data php php artisan qcv:kiem-cache | tail -n 26; return "${PIPESTATUS[0]}" ;;
+  chuyen-doi)   docker compose exec -T -u www-data php php artisan qcv:chuyen-doi-noi-dung --thu | tail -n 12; return "${PIPESTATUS[0]}" ;;
+
+  release)
+    local rc=0
+    VET="$(grep -rn --include='*.php' -e 'SpikeRole' -e 'X-QCV-Role' apps/site/bootstrap apps/site/app/Http 2>/dev/null || true)"
+    if [ -n "$VET" ]; then
+      printf '%s\n' "$VET" | sed 's/^/  /'
+      if [ "$RELEASE" -eq 1 ]; then
+        printf '  release KHÔNG được mang vai giả từ header (BAO-MAT.md §4 B5)\n'; rc=1
+      else
+        printf '  \033[33mNHẮC\033[0m %s\n' 'vai giả còn trong mã (đúng ở local); `--release` sẽ CHẶN'
+      fi
+    fi
+    # APP_DEBUG — hai lớp như SpikeRole: guard trong mã (App\Support\Runtime::debugCho, có phép kiểm riêng ở
+    # qcv:kiem-bao-mat) và CỔNG này, soi `secrets.php` thật của cây site sắp đóng gói.
+    VET_DEBUG="$(grep -rn --include='secrets*.php' "APP_DEBUG' *=> *\(true\|'true'\|'1'\|1\)" tooling/local/sites apps/site 2>/dev/null || true)"
+    if [ -n "$VET_DEBUG" ]; then
+      printf '%s\n' "$VET_DEBUG" | sed 's/^/  /'
+      if [ "$RELEASE" -eq 1 ]; then
+        printf '  release KHÔNG được mang APP_DEBUG = true (BAO-MAT.md §4 B4 — 68 dòng có vendor/ trong thân 500)\n'; rc=1
+      else
+        printf '  \033[33mNHẮC\033[0m %s\n' 'APP_DEBUG bật (đúng ở local; guard ép tắt ngoài `local`); `--release` sẽ CHẶN'
+      fi
+    fi
+    # `apps/site/blocks-kiem/` — hai khối CHỈ-ĐỂ-KIỂM của Nền (`thanh-noi-kiem` cho vùng `floating`,
+    # `luoi-kiem` cho `ctx.filter`). Hai lớp chặn như `SpikeRole`: guard môi trường ở
+    # `BlockServiceProvider` (sổ chỉ nạp thư mục này ngoài `production`) và CỔNG này. Cổng quan trọng hơn
+    # guard: guard gỡ nhầm được, và một khối chỉ-để-kiểm lọt vào bảng chọn khối của khách là khách chèn
+    # được « Thanh liên hệ nổi (chỉ cho bộ kiểm) » vào site thật.
+    if [ -d "$ROOT/apps/site/blocks-kiem" ]; then
+      printf '  %s\n' "apps/site/blocks-kiem/ ($(ls "$ROOT/apps/site/blocks-kiem" | tr '\n' ' '))"
+      if [ "$RELEASE" -eq 1 ]; then
+        printf '  release KHÔNG được mang khối chỉ-để-kiểm (blocks-kiem/) — xoá thư mục khi đóng gói\n'; rc=1
+      else
+        printf '  \033[33mNHẮC\033[0m %s\n' 'khối chỉ-để-kiểm còn trong cây (đúng ở local); `--release` sẽ CHẶN'
+      fi
+    fi
+    return $rc ;;
+
+  blade)    docker compose exec -T -u www-data php php artisan qcv:kiem-blade | grep -v 'đạt ' | tail -n 30; return "${PIPESTATUS[0]}" ;;
+  http)     docker compose exec -T -u www-data php php artisan qcv:kiem-http | tail -n 12; return "${PIPESTATUS[0]}" ;;
+  tat-dinh) bash "$ROOT/tooling/ci/kiem-tat-dinh.sh" | grep -Ev '^  đạt ' | tail -n 22; return "${PIPESTATUS[0]}" ;;
+  neo)      bash "$ROOT/tooling/ci/kiem-neo.sh" | grep -Ev '^  đạt ' | tail -n 22; return "${PIPESTATUS[0]}" ;;
+
+  esac
+}
+
+I=0
+TONG=0
+for c in "${CONG[@]}"; do
+  if [ ${#CHON[@]} -gt 0 ]; then
+    case " ${CHON[*]} " in *" $c "*) ;; *) continue ;; esac
+  fi
+  TONG=$((TONG + 1))
+done
+for c in "${CONG[@]}"; do
+  if [ ${#CHON[@]} -gt 0 ]; then
+    case " ${CHON[*]} " in *" $c "*) ;; *) continue ;; esac
+  fi
+  I=$((I + 1))
+  printf '\n\033[1m== [%s] %d/%d · %s ==\033[0m\n' "$c" "$I" "$TONG" "${NHAN[$c]}"
+  T0=$(date +%s)
+  chay_mot "$c"
+  RC=$?
+  DT=$(($(date +%s) - T0))
+  if [ "$RC" -eq 0 ]; then
+    DAT=$((DAT + 1)); printf '\033[32mĐẠT\033[0m  cong=%s · %d giây\n' "$c" "$DT"
+  else
+    HONG_TEN+=("$c"); printf '\033[31mHỎNG\033[0m cong=%s · %d giây · mã thoát %d\n' "$c" "$DT" "$RC"
+  fi
+done
+
+# ---- ba dòng tổng kết: ra CẢ stdout LẪN stderr, và ra tệp nếu có QCV_KET_QUA ----
+GIAY=$(($(date +%s) - BAT_DAU))
+if [ ${#HONG_TEN[@]} -eq 0 ]; then
+  L1=$(printf 'KET-QUA: %d/%d đạt · 0 hỏng · %d giây' "$DAT" "$TONG" "$GIAY")
+  L2='CONG-HONG: -'
+  L3='CHAY-LAI: -'
+else
+  L1=$(printf 'KET-QUA: %d/%d đạt · %d hỏng · %d giây' "$DAT" "$TONG" "${#HONG_TEN[@]}" "$GIAY")
+  L2="CONG-HONG: ${HONG_TEN[*]}"
+  L3="CHAY-LAI: bash tooling/ci/kiem.sh --cong $(IFS=,; echo "${HONG_TEN[*]}")"
+fi
+printf '\n%s\n%s\n%s\n' "$L1" "$L2" "$L3"
+# Ra thêm stderr KHI stdout không phải màn hình (`| tail`, `> nhat-ky.log`, `$(...)`) — đó đúng là lúc dòng tổng
+# kết hay bị nuốt. Ở terminal thì không in hai lần.
+[ -t 1 ] || printf '%s\n%s\n%s\n' "$L1" "$L2" "$L3" >&2
+[ -n "${QCV_KET_QUA:-}" ] && printf '%s\n%s\n%s\n' "$L1" "$L2" "$L3" > "$QCV_KET_QUA"
+[ ${#HONG_TEN[@]} -eq 0 ] && exit 0
+exit 1

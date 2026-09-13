@@ -1,0 +1,131 @@
+/* Khối `entity-grid` — namespace `.eg`, CHỈ token (HD-11 8.1: --color-*, --radius, --space-unit, --container-max, --text-*).
+   Lint 9 (HD-02 6.3c): gốc block KHÔNG đặt position/isolation (decor.css đặt qua [data-qcv-decor]); KHÔNG z-index ở bất
+   kỳ đâu; KHÔNG vẽ bằng ::before/::after; KHÔNG position: fixed/sticky (lint 11).
+   Lint 10: không có vùng nào `anchorable` nên không có ràng buộc khối chứa; vẫn giữ `.eg__inner` không `position`.
+   Tông nền, khoảng cách trên/dưới và màu nhấn ở tông nghịch: `packages/blocks/_runtime/chung.css` (HD-11 8.6b) —
+   khối không khai lại `.qcv-tone-*` (lint 8).
+   BẢN SAO CÓ CHỦ Ý so với `cards/style.css`: lưới, băng chuyền và ô ảnh–chữ ở hai khối là cùng một hình dạng, nhưng
+   CSS của khối chỉ được nạp ở trang có khối đó (`PageController::htmlCuaTrang` gom theo `type`) và namespace là
+   `.<type>` — dùng lại `.cards__*` ở đây là trang chỉ có `entity-grid` mất sạch kiểu dáng. Muốn dùng chung thật thì
+   phải có một tệp CSS cấp SDK như `chung.css`; đó là việc của Nền, ghi ở BLOCK-MAU.md §7. */
+
+.eg {
+  /* Số ô mỗi hàng đi qua biến DÙNG CHUNG `--qcv-p-cols`: `chung.css` đặt nó theo `data-qcv-r` (vế máy tính) và
+     `data-qcv-rm` (ghi đè di động) — khối không viết media query nào cho việc đó. */
+  --eg-n: var(--qcv-p-cols, 4);
+  --eg-gap: calc(var(--space-unit) * 3);
+  overflow: hidden;
+  /* Đệm trên/dưới đọc từ biến DÙNG CHUNG `--qcv-p-space-y` (HD-11 8.6b, `chung.css`): có mặc định "normal" ở
+     tầng gốc tài liệu nên khối vẫn có nhịp cách đúng khi nội dung CHƯA đặt `props.space` — trước dòng này khối
+     phụ thuộc HOÀN TOÀN vào `data-qcv-space` có mặt hay không, và cả bốn lượt dùng thật của khối trên site mẫu
+     Dottie đều không đặt `space` ⇒ 0 px, kicker chạm thẳng viền trên (đúng điều chủ dự án chỉ ra). */
+  padding-top: var(--qcv-p-space-y);
+  padding-bottom: var(--qcv-p-space-y);
+}
+
+.eg__inner {
+  max-width: var(--container-max);
+  margin: 0 auto;
+  padding-left: calc(var(--space-unit) * 3);
+  padding-right: calc(var(--space-unit) * 3);
+}
+
+/* ---------- cụm tiêu đề ---------- */
+.eg__head { max-width: 68ch; margin-bottom: calc(var(--space-unit) * 4); }
+.eg__kicker { margin: 0 0 calc(var(--space-unit) * 1); font-size: var(--text-sm, 0.875rem); letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-primary); }
+.eg__title { margin: 0; font-size: var(--text-2xl, clamp(1.5rem, 3vw, 2.25rem)); line-height: 1.2; }
+.eg__lead { margin-top: calc(var(--space-unit) * 1.5); color: var(--color-muted); }
+.eg__more { display: inline-block; margin-top: calc(var(--space-unit) * 2); color: var(--color-primary); }
+.eg__kicker:empty, .eg__lead:empty { display: none; }
+
+/* ---------- hàng tab ---------- */
+.eg__tabs { display: flex; flex-wrap: wrap; gap: calc(var(--space-unit) * 1); margin-bottom: calc(var(--space-unit) * 3); }
+.eg__tab {
+  padding: calc(var(--space-unit) * 1.25) calc(var(--space-unit) * 2.5);
+  border: 1px solid var(--color-line); border-radius: var(--radius);
+  background: transparent; color: inherit; font: inherit; cursor: pointer;
+}
+.eg__tab[aria-selected="true"] { background: var(--color-primary); color: var(--color-on-primary); border-color: var(--color-primary); }
+
+/* ---------- lưới và băng chuyền ---------- */
+.eg__grid { display: grid; grid-template-columns: repeat(var(--eg-n), minmax(0, 1fr)); gap: var(--eg-gap); }
+.eg__card { display: flex; flex-direction: column; }
+.eg--carousel .eg__grid {
+  display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scroll-behavior: smooth;
+  padding-bottom: calc(var(--space-unit) * 1); scrollbar-width: thin;
+}
+.eg--carousel .eg__card {
+  flex: 0 0 calc((100% - (var(--eg-n) - 1) * var(--eg-gap)) / var(--eg-n));
+  scroll-snap-align: start;
+}
+/* Nút băng chuyền và lời nhắn « chưa có gì »: `_runtime/khoi-chung.css` (nguồn; ADR QG4-34, QM5-10). */
+
+/* ---------- ô ---------- */
+/* Điểm 3 (chưa có hiệu ứng nào khi rê chuột) — QUY TẮC: thẻ bấm được phóng nhẹ ẢNH bên trong (không đổi kích
+   thước HỘP của ô, nên không xô layout ô cạnh) khi `:hover`/`:focus-within`; khung `.eg__anh` giữ `overflow:
+   hidden` để ảnh phóng không tràn ra ngoài bo góc. `transition` ngắn (180 ms) và tắt hẳn dưới
+   `prefers-reduced-motion: reduce` (cùng tiền lệ khối `hero`). */
+.eg__anh { display: block; overflow: hidden; border-radius: var(--radius); }
+.eg--k-circle .eg__anh { border-radius: 50%; width: fit-content; margin: 0 auto; }
+.eg__img { transition: transform 0.18s ease; }
+.eg__card:hover .eg__img, .eg__card:focus-within .eg__img { transform: scale(1.045); }
+@media (prefers-reduced-motion: reduce) {
+  .eg__img { transition: none; }
+  .eg__card:hover .eg__img, .eg__card:focus-within .eg__img { transform: none; }
+}
+/* Điểm 1 (ảnh sản phẩm bị cắt đầu/chân) — hai phần phối hợp, KHÔNG dùng riêng lẻ:
+   (a) TỈ LỆ KHUNG theo loại nội dung: `entity-grid` là khối DUY NHẤT trong 19 khối kết xuất ảnh THỰC THỂ (sản
+       phẩm/danh mục) theo lưới thẻ — nơi khách hàng thời trang chắc chắn tải ảnh người mẫu đứng (dọc). Đổi từ
+       4:3 (ngang) sang 4:5 (dọc, tỉ lệ phổ biến của thẻ sản phẩm thời trang) giảm phần bị cắt CHO MỌI ảnh, không
+       riêng ảnh đã đặt tiêu cự. `cards` (nội dung tổng quát — thử nghiệm, tin tức, đội ngũ) GIỮ 4:3: ảnh của khối
+       đó không chắc là ảnh người đứng, đổi tỉ lệ ở đó là một phỏng đoán không có căn cứ.
+   (b) TIÊU CỰ (mục 10, HD-11 §3): dù đổi tỉ lệ, khung THẺ vẫn là một tỉ lệ CỐ ĐỊNH trong khi ảnh gốc thì không —
+       luôn còn trường hợp phải cắt. `object-position` đọc từ `--fx`/`--fy` (mặc định 50 % 50 % khi ảnh chưa đặt
+       tiêu cự, không đổi hành vi cũ) — hai biến do khuôn `chung::tieu-cu` phát qua lớp `qcv-fx-N`/`qcv-fy-N`
+       (không `style=`, lint 5). Đã CÂN NHẮC và LOẠI: `background-image` + `background-position` (mục 10 HD-11
+       cấm hẳn cho ảnh nội dung — không `srcset`/`loading=lazy`); `object-fit: contain` (để trống nền, lưới rời
+       rạc, không hợp thẻ thương mại điện tử); thêm helper `focal()` ở `apps/site/app/Blocks/helpers.php` (đụng
+       mã ngoài `packages/blocks/**`, ngoài ranh giới lượt này). */
+.eg__img { display: block; width: 100%; height: auto; aspect-ratio: 4 / 5; object-fit: cover; object-position: var(--fx, 50%) var(--fy, 50%); border-radius: var(--radius); }
+/* Điểm 5 (trang « Bộ sưu tập » loãng khi danh mục ít): đường kính ảnh tròn tăng từ 14×unit (112 px) cố định
+   sang `clamp()` co giãn theo khung nhìn (144–208 px) — không bịa nội dung, chỉ đổi BỐ CỤC: lưới có ít mục
+   (3–6 danh mục là phổ biến) thì mỗi ô cần trọng lượng thị giác lớn hơn để không "chìm" trong khung rộng. */
+.eg--k-circle .eg__img { width: clamp(144px, 16vw, 208px); max-width: 100%; aspect-ratio: 1 / 1; border-radius: 50%; margin-left: auto; margin-right: auto; }
+.eg--k-circle .eg__ten { font-size: var(--text-xl, 1.5rem); }
+.eg--k-circle .eg__body { text-align: center; }
+/* `flex: 1` — cùng bẫy đã sửa ở `cards/style.css` (« hàng nút không thẳng »): `.eg__card` là một ô lưới CSS Grid
+   nên đã giãn bằng ô cao nhất trong hàng theo mặc định (`align-items: stretch`), nhưng `.eg__body` — con của một
+   flex-column bên trong ô đó — không tự giãn theo nếu không khai `flex`. Thiếu dòng này thì `.eg__btn
+   { margin-top: auto }` chỉ đẩy nút xuống đáy PHẦN NỘI DUNG của chính ô đó, không phải đáy Ô ĐÃ GIÃN: sản phẩm có
+   tên xuống hai dòng làm nút « Xem chi tiết » của cả hàng lệch nhau. */
+.eg__body { display: flex; flex: 1; flex-direction: column; gap: calc(var(--space-unit) * 0.75); padding-top: calc(var(--space-unit) * 2); }
+.eg__ten { margin: 0; font-size: var(--text-lg, 1.125rem); line-height: 1.3; }
+.eg__ten a { color: inherit; text-decoration: none; }
+.eg__ten a:hover { text-decoration: underline; }
+.eg__meta { margin: 0; font-size: var(--text-sm, 0.875rem); color: var(--color-muted); }
+.eg__mo { margin: 0; color: var(--color-muted); }
+.eg__gia { margin: 0; font-size: var(--text-lg, 1.125rem); color: var(--color-primary); }
+.eg__gia-cu { margin-left: calc(var(--space-unit) * 1); font-size: var(--text-sm, 0.875rem); color: var(--color-muted); }
+.eg__btn {
+  align-self: flex-start; margin-top: auto; padding: calc(var(--space-unit) * 1.5) calc(var(--space-unit) * 2.5);
+  border-radius: var(--radius); background: var(--color-primary); color: var(--color-on-primary); text-decoration: none;
+  transition: opacity 0.18s ease;
+}
+/* `opacity` (không phải đổi `background`) để không cần khai lại token theo tông — cùng nguyên tắc chữ dẫn/nút
+   chính vẽ bằng MỘT token (HD-11 8.6b) mà không có quy tắc riêng theo `data-qcv-tone`. */
+.eg__btn:hover, .eg__btn:focus-visible { opacity: 0.85; }
+@media (prefers-reduced-motion: reduce) { .eg__btn { transition: none; } }
+.eg--k-circle .eg__btn { align-self: center; }
+
+/* ---------- lời nhắn khi chưa có dữ liệu (chỉ hiện ở Studio — xem view.blade.php) ---------- */
+
+
+/* ---------- bàn phím: không bao giờ outline: none (cổng WCAG) ---------- */
+/* Vành focus: khai một lần ở `chung.css` theo `[data-qcv-type]` (cổng WCAG). */
+
+/* ---------- khung hẹp: 320 px phải không tràn ngang (WCAG SC 1.4.10) ----------
+   MẶC ĐỊNH của khối khi người dùng CHƯA chọn riêng cho điện thoại: đặt lại chính `--qcv-p-cols` ở đặc hiệu (0,1,0),
+   nên quy tắc (0,2,0) của `chung.css` thắng khi người dùng đã chọn. */
+@media (max-width: 1023px) { .eg--c-4, .eg--c-5, .eg--c-6, [data-qcv-r~="cols-4"], [data-qcv-r~="cols-5"], [data-qcv-r~="cols-6"] { --qcv-p-cols: 3; } }
+@media (max-width: 767px) { .eg { --qcv-p-cols: 2; } .eg__inner { padding-left: calc(var(--space-unit) * 2); padding-right: calc(var(--space-unit) * 2); } }
+@media (max-width: 479px) { .eg { --qcv-p-cols: 1; } .eg--k-circle { --qcv-p-cols: 2; } }
