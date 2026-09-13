@@ -1,0 +1,27 @@
+// Chân trang: ai đứng ô nào? Nghi `grid-row: 1 / -1` không span gì cả khi lưới KHÔNG có hàng tường minh
+// (`-1` khi ấy trỏ về chính vạch đầu). Đo hộp thật + giá trị `grid-row`/`grid-column` đã tính.
+import { chromium } from 'playwright-core';
+const [ip] = process.argv.slice(2);
+const browser = await chromium.launch({
+  executablePath: '/usr/bin/chromium-browser',
+  args: [`--host-resolver-rules=MAP qcv2-mau.localhost ${ip}`, '--no-sandbox', '--disable-gpu'],
+});
+const page = await browser.newPage({ viewport: { width: 1280, height: 900 }, locale: 'vi-VN' });
+await page.goto('http://qcv2-mau.localhost:8081/bo-suu-tap', { waitUntil: 'networkidle' });
+console.log(JSON.stringify(await page.evaluate(() => {
+  const inner = document.querySelector('.footer__inner');
+  const s = getComputedStyle(inner);
+  const hop = (e) => { const r = e.getBoundingClientRect(); const c = getComputedStyle(e);
+    return { ten: e.className.toString().slice(0, 40), x: Math.round(r.x), y: Math.round(r.y),
+      w: Math.round(r.width), h: Math.round(r.height), row: c.gridRow, col: c.gridColumn }; };
+  const eg = document.querySelector('.eg__grid');
+  const o = eg?.firstElementChild;
+  return {
+    inner: { cols: s.gridTemplateColumns, rows: s.gridTemplateRows, gap: s.gap },
+    con: [...inner.children].map(hop),
+    luoiTron: eg ? { cols: getComputedStyle(eg).gridTemplateColumns, w: Math.round(eg.getBoundingClientRect().width),
+      oDau: o ? Math.round(o.getBoundingClientRect().width) : null,
+      anh: (() => { const i = eg.querySelector('.eg__img'); return i ? Math.round(i.getBoundingClientRect().width) : null; })() } : null,
+  };
+}, null), null, 1));
+await browser.close();

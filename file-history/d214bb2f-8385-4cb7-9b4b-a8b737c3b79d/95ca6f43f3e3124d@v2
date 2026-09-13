@@ -1,0 +1,44 @@
+{
+    "region": "footer",
+    "itemVersion": 1,
+    "blocks": [
+        {
+            "id": "b_footer",
+            "type": "footer",
+            "variant": "columns",
+            "props": {
+                "cols": "2",
+                "nhanTin": true,
+                "tone": "dark",
+                "space": "normal"
+            },
+            "slots": {
+                "thuongHieu": {
+                    "ten": "{site:name}",
+                    "moTa": "{site:slogan}"
+                },
+                "cot": [
+                    {
+                        "tieuDe": "Về đơn vị",
+                        "menu": "footer-1"
+                    }
+                ],
+                "form": {
+                    "fields": [
+                        { "type": "email", "label": "Thư điện tử", "required": true }
+                    ],
+                    "submitLabel": "Đăng ký",
+                    "recipient": "{site:email}",
+                    "subject": "Đăng ký nhận tin từ {site:name}",
+                    "successMode": "inline",
+                    "success": "Đã ghi nhận."
+                },
+                "social": [
+                    { "mang": "facebook" }
+                ],
+                "dongCuoi": "© {site:name}."
+            }
+        }
+    ],
+    "_ghi_chu": "Hiện vật CỦA BỘ KIỂM (không phải nội dung trang thật), chép vào cây site local trước mỗi lượt y như `footer.region.json`. Mang HAI ca cùng lúc, cố ý: (1) CHỈ MỘT nhóm liên kết (`slots.cot` một mục) trong khi `props.cols` vẫn để « 2 » — `tu-can-doi.mjs` 1–3 đo lưới `.footer__cot` phải cho ĐÚNG MỘT cột chiếm trọn bề rộng, không phải hai cột với một cột bỏ trống. (2) `nhanTin: true` nên cột phải có HAI cụm (liên kết + biểu mẫu) — `tu-can-doi.mjs` 4–5 đo không cụm nào rơi ngược về cột trái để lại một Ô TRỐNG bên phải. Ca (2) cần ĐỦ HAI cụm mới tái hiện được: với một cụm thì lưới chỉ có một dòng và phép kiểm xanh mà không chứng minh gì."
+}
