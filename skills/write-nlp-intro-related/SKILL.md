@@ -16,6 +16,9 @@ description: >-
 
 Skill con của [[write-nlp-paper]]. Lo **hai phần**: Introduction và Related work. Đọc reference TRƯỚC khi viết;
 nạp thêm **master** cho 8 nguyên tắc + thẻ tiếng Việt dùng chung.
+**Sau mỗi lần viết hoặc sửa: BẮT BUỘC** chạy lượt rà văn phong người viết ở
+`write-nlp-paper/references/09-human-style-pass.md` (không nhãn in đậm đầu đoạn, không em dash, không câu
+khẩu hiệu hay dấu vết công cụ, chỉ báo lần chạy cuối, khẳng định đúng bằng chứng).
 
 - Introduction → `references/02-introduction.md`
 - Related work / Background → `references/03-related-work.md`

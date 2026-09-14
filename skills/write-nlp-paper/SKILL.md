@@ -9,7 +9,8 @@ description: >-
   eference styles, novelty-vs-soundness, desk-reject list). Routes to companions write-nlp-intro-related, write-
   nlp-method-results, write-nlp-discussion-conclusion. Use for any IT/CS paper task, writing the abstract, choos
   ing a venue, or checking a paper before submission. Triggers: 'viet bai IT', 'viet abstract', 'checklist nop Q
-  1', 'cau truc bai bao', 'bai doc nhu dich may', 'chon tap chi', 'submission compliance'.
+  1', 'cau truc bai bao', 'bai doc nhu dich may', 'chon tap chi', 'submission compliance', 'ra soat van phong',
+  'giam dau hieu AI', 'bo em dash', 'soat truoc khi nop'.
 ---
 
 # Write an IT/CS Q1 paper — MASTER coordinator
@@ -35,6 +36,7 @@ genre-analysis (Swales CARS, Hyland) + audit 50 tạp chí (yêu cầu nộp bà
 - Abstract → `references/01-abstract.md` (viết CUỐI, nén cả bài)
 - Yêu cầu nộp bài & chính sách tạp chí → `references/08-journal-submission-requirements.md`
 - Mạch xuyên phần, ma trận chống trùng lặp, checklist nộp → `references/GUIDELINE.md`
+- **Lượt rà văn phong người viết (BẮT BUỘC mỗi lần sửa và trước khi nộp)** → `references/09-human-style-pass.md`
 
 Trong Claude Code: gọi `Skill` để nạp skill con. Trong chat: nêu việc (vd "viết phần methods") — skill con tự bật, master cấp nền.
 
@@ -58,6 +60,23 @@ Trong Claude Code: gọi `Skill` để nạp skill con. Trong chat: nêu việc 
 8. **Văn phong ≠ tuân thủ nộp bài:** bài viết chuẩn vẫn desk-reject nếu sai style-file, thiếu Highlights/
    Data-Availability/Declarations, khai AI sai chỗ, vượt giới hạn, hoặc over-claim ở tạp chí *soundness* (PLOS/
    PeerJ/Sci Reports/IEEE Access/Frontiers/TMLR). Sau khi viết, chạy "compliance pass" theo `08` đối chiếu tạp chí đích.
+
+## Lượt rà văn phong người viết — BẮT BUỘC, lần nào cũng chạy
+
+Người dùng yêu cầu (2026-09): sau **mỗi** lần viết hoặc sửa bài, và luôn trước khi nộp, rà theo
+`references/09-human-style-pass.md`, kể cả khi không được nhắc. Tóm tắt:
+1. **Không nhãn in đậm đầu đoạn** (`\textbf{Label.} …` hay `**Label.** …`, cả trong `\item`): viết đoạn thường, câu đầu nêu chủ đề;
+   cần tiêu đề thì dùng dòng tiêu đề riêng.
+2. **Bỏ em dash** (`---`) trừ khi không thay được.
+3. **Bỏ câu lộ "mùi" đánh bóng:** đối xứng "not X but Y / rather than" dày đặc, đếm tròn ("three things…"), câu
+   khẩu hiệu ngắn ("Selection matters."), châm ngôn, ẩn dụ và nhân hoá ("fusion is worth", "survived", "consumes"),
+   câu meta kể quá trình.
+4. **Không để dấu vết công cụ hay quy trình** ("search summaries", "machine check", "raster tables could not be
+   read"): viết theo kiểm chứng và tiêu chí khoa học.
+5. **Chỉ báo kết quả lần chạy cuối**, không nhắc chạy lại hay không tất định; môi trường ghi trong README của repo.
+6. **Không lặp số chính** ở mọi phần; mỗi khẳng định đúng bằng chứng (nguồn gốc "reported", nhân quả "consistent
+   with", thống kê nêu đủ các phép kiểm định, mệnh đề toán đủ điều kiện, không gán quan điểm sai cho bài trích).
+7. **Đồng bộ toàn bài** sau mỗi lần đổi định nghĩa hay thuật ngữ (grep mọi chỗ, cả chú thích, nhãn trục, keywords).
 
 ## Thẻ tiếng Việt / ít tài nguyên
 
