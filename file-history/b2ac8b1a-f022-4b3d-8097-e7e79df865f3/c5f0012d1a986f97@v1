@@ -39,5 +39,4 @@ Hệ WordPress cũ (`D:\dev\qcv-builder\KIEN-TRUC.md`) chỉ để rút bài h�
 ## Gu & cách làm việc (feedback/user — luôn áp dụng)
 - [UI Copy Style](ui_copy_style.md) — văn phong giao diện: TRANG TRỌNG, THUẦN VIỆT, không emoji/khẩu ngữ
 - [Research Writing](research_writing_standards.md) — chuẩn viết/rà bài NCKH (rõ, đúng vấn đề, không over-claim)
-- [Author Identity](author-identity.md) — tên/đơn vị/email/ORCID tác giả để điền vào bài báo (Long Dinh Tuan)
 - [Agent Company](agent_company_model.md) — mô hình "công ty agent" (~/.claude), template `.project/`

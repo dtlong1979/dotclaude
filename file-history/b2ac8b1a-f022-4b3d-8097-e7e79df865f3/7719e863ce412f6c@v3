@@ -1,0 +1,173 @@
+# -*- coding: utf-8 -*-
+"""Chuyen CertiHeal-Edge-TNSM-EN.md -> IEEEtran LaTeX (.tex). Muc tieu: compile duoc + do so trang."""
+import re, os
+HERE=os.path.dirname(os.path.abspath(__file__))
+SRC=os.path.join(HERE,"CertiHeal-Edge-TNSM-EN.md")
+OUT=os.path.join(HERE,"CertiHeal-Edge-TNSM.tex")
+FIG="experiments/certiheal_poc/"
+lines=open(SRC,encoding="utf-8").read().split("\n")
+
+def inline(s):
+    maths=[]
+    def st(m): maths.append(m.group(0)); return f"\x00{len(maths)-1}\x00"
+    s=re.sub(r"\$[^$]*\$", st, s)
+    def cite(m):
+        ids=[]
+        for part in re.split(r"[,]", m.group(1)):
+            part=part.strip()
+            if "-" in part:
+                a,b=part.split("-"); ids+=[str(i) for i in range(int(a),int(b)+1)]
+            elif part: ids.append(part)
+        return "\\cite{"+",".join("r"+i for i in ids)+"}"
+    s=re.sub(r"\[(\d+(?:\s*[,\-]\s*\d+)*)\]", cite, s)
+    cites=[]
+    def stc(m): cites.append(m.group(0)); return f"\x01{len(cites)-1}\x01"
+    s=re.sub(r"\\cite\{[^}]*\}", stc, s)
+    for a,b in [("&",r"\&"),("%",r"\%"),("#",r"\#"),("_",r"\_")]: s=s.replace(a,b)
+    s=re.sub(r"\*\*([^*]+)\*\*", r"\\textbf{\1}", s)
+    s=re.sub(r"\*([^*]+)\*", r"\\emph{\1}", s)
+    s=re.sub("\x01(\\d+)\x01", lambda m: cites[int(m.group(1))], s)
+    s=re.sub("\x00(\\d+)\x00", lambda m: maths[int(m.group(1))], s)
+    return s
+
+def esc_ref(s):
+    for a,b in [("&",r"\&"),("%",r"\%"),("#",r"\#"),("_",r"\_")]: s=s.replace(a,b)
+    return s
+
+out=[]; i=0; N=len(lines)
+# preamble
+out.append(r"""\documentclass[journal]{IEEEtran}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{url}
+\usepackage{array}
+\usepackage{fancyvrb}
+\begin{document}
+\title{CertiHeal-Edge: A Local-Field Framework with Repairability Certificates for Self-Healing IoT/Edge Fabrics}
+\author{Long Dinh Tuan\thanks{Long Dinh Tuan is with [Department, Institution, City, Country]. Email: [email]. ORCID [ORCID].}}
+\markboth{IEEE Transactions on Network and Service Management}{}
+\maketitle""")
+
+def parse_table(i):
+    rows=[]
+    while i<N and lines[i].strip().startswith("|"):
+        rows.append(lines[i].strip()); i+=1
+    # rows[1] is separator
+    cells=[[c.strip() for c in r.strip("|").split("|")] for r in rows]
+    header=cells[0]; body=[c for k,c in enumerate(cells) if k!=1]
+    ncol=len(header)
+    return header, cells, i
+
+pending_caption=None
+in_refs=False
+appendix_done=False
+while i<N:
+    ln=lines[i]
+    s=ln.strip()
+    # skip title (first '# ') and rule
+    if s.startswith("# ") and i<3:
+        i+=1; continue
+    if s=="---":
+        i+=1; continue
+    if s.startswith("[Author Name]") or s.startswith("\u00b9 ["):
+        i+=1; continue
+    # Abstract
+    if s=="## Abstract":
+        i+=1; buf=[]
+        while i<N and not lines[i].strip().startswith("*Index Terms*"):
+            if lines[i].strip(): buf.append(lines[i].strip())
+            i+=1
+        out.append(r"\begin{abstract}"); out.append(inline(" ".join(buf))); out.append(r"\end{abstract}")
+        continue
+    if s.startswith("*Index Terms*"):
+        kw=s.split("—",1)[1].strip() if "—" in s else s
+        kw=kw.strip(". ")
+        out.append(r"\begin{IEEEkeywords}"); out.append(inline(kw)); out.append(r"\end{IEEEkeywords}")
+        out.append(r"\IEEEpeerreviewmaketitle")
+        i+=1; continue
+    # References
+    if s=="## References":
+        in_refs=True; out.append(r"\begin{thebibliography}{99}"); i+=1; continue
+    if in_refs:
+        m=re.match(r"^\[(\d+)\]\s*(.*)$", s)
+        if m: out.append(r"\bibitem{r%s} %s"%(m.group(1), esc_ref(m.group(2))))
+        i+=1; continue
+    # Appendix
+    if s.startswith("## Appendix"):
+        out.append(r"\appendices"); out.append(r"\section{Proof Sketches}")
+        i+=1; continue
+    if s=="## Declarations":
+        out.append(r"\section*{Declarations}"); i+=1; continue
+    # sections/subsections
+    m=re.match(r"^## (?:[IVX]+\.\s*)?(.*)$", s)
+    if m and s.startswith("## "):
+        out.append(r"\section{%s}"%inline(m.group(1))); i+=1; continue
+    m=re.match(r"^### (?:[A-Z]\.\s*)?(.*)$", s)
+    if m and s.startswith("### "):
+        out.append(r"\subsection{%s}"%inline(m.group(1))); i+=1; continue
+    # figure tag
+    m=re.match(r"^\[\[FIG:([^|]+)\|(.*?)\|(\d+)\|(\d+)\]\]$", s)
+    if m:
+        fn,cap,w,h=m.group(1),m.group(2),int(m.group(3)),int(m.group(4))
+        wide=(w/h)>1.6
+        cap=re.sub(r"^Fig\.\s*\d+\.\s*","",cap)  # strip 'Fig. N.' (LaTeX numbers)
+        env="figure*" if wide else "figure"
+        width=r"\textwidth" if wide else r"\columnwidth"
+        out.append(r"\begin{%s}[t]\centering"%env)
+        out.append(r"\includegraphics[width=%s]{%s%s}"%(width,FIG,fn))
+        out.append(r"\caption{%s}"%inline(cap))
+        out.append(r"\end{%s}"%env)
+        i+=1; continue
+    # table caption line  *Table N. ...*
+    if re.match(r"^\*Table \d+\..*\*$", s):
+        pending_caption=inline(s.strip("*")); i+=1; continue
+    # table block
+    if s.startswith("|"):
+        header, cells, i2 = parse_table(i)
+        ncol=len(header)
+        wide = ncol>=3
+        env="table*" if wide else "table"
+        colspec = ("p{2.2cm}p{4.2cm}p{9.5cm}" if (wide and ncol==3) else "|".join(["c"]*ncol))
+        out.append(r"\begin{%s}[t]\centering"%env)
+        if pending_caption: out.append(r"\caption{%s}"%pending_caption); pending_caption=None
+        out.append(r"\begin{tabular}{%s}\hline"%colspec)
+        for k,row in enumerate(cells):
+            if k==1: continue  # sep
+            out.append(" & ".join(inline(c) for c in row)+r" \\ \hline")
+        out.append(r"\end{tabular}")
+        out.append(r"\end{%s}"%env)
+        i=i2; continue
+    # algorithm fenced block
+    if s.startswith("```"):
+        i+=1; buf=[]
+        while i<N and not lines[i].strip().startswith("```"):
+            buf.append(lines[i]); i+=1
+        i+=1
+        out.append(r"\begin{figure}[t]\hrule\vspace{2pt}\footnotesize")
+        out.append(r"\begin{Verbatim}[fontsize=\footnotesize]")
+        out.extend(buf)
+        out.append(r"\end{Verbatim}")
+        out.append(r"\vspace{2pt}\hrule\end{figure}")
+        continue
+    # bullet list
+    if s.startswith("- "):
+        out.append(r"\begin{itemize}")
+        while i<N and lines[i].strip().startswith("- "):
+            out.append(r"\item "+inline(lines[i].strip()[2:])); i+=1
+        out.append(r"\end{itemize}"); continue
+    # numbered list
+    if re.match(r"^\d+\.\s", s):
+        out.append(r"\begin{enumerate}")
+        while i<N and re.match(r"^\d+\.\s", lines[i].strip()):
+            out.append(r"\item "+inline(re.sub(r"^\d+\.\s","",lines[i].strip()))); i+=1
+        out.append(r"\end{enumerate}"); continue
+    # blank
+    if s=="":
+        out.append(""); i+=1; continue
+    # normal paragraph (may span; but md paragraphs are single lines here)
+    out.append(inline(s)); i+=1
+
+if in_refs: out.append(r"\end{thebibliography}")
+out.append(r"\end{document}")
+open(OUT,"w",encoding="utf-8").write("\n".join(out))
+print("wrote",OUT,"| lines",len(out))

@@ -1,0 +1,17 @@
+---
+name: author-identity
+description: "Thông tin tác giả của user để điền vào bài báo/manuscript (byline, affiliation, email, ORCID) — dùng lại, không hỏi lại phần đã có."
+metadata: 
+  node_type: memory
+  type: user
+  originSessionId: b2ac8b1a-f022-4b3d-8097-e7e79df865f3
+  modified: 2026-09-14T12:54:01.606Z
+---
+
+Tên tác giả trên bài báo (byline, đúng thứ tự user đưa): **Long Dinh Tuan**.
+
+- Email trên bài: CHƯA CHỐT (tài khoản là dinhtuanlong@gmail.com; hỏi user xác nhận có dùng email này trên bài hay email cơ quan khác).
+- ORCID: CHƯA CÓ (hỏi user; cập nhật vào đây khi có).
+- Đơn vị công tác (affiliation): CHƯA CÓ (hỏi user).
+
+User đã dặn: lưu lại để sau dùng, không phải hỏi lại phần đã biết. Khi user cung cấp email/ORCID/affiliation → CẬP NHẬT file này (đừng hỏi lại). Liên quan: [[dissertation-to-practice]] (các bài đang viết, gồm CertiHeal-Edge cho IEEE TNSM).
