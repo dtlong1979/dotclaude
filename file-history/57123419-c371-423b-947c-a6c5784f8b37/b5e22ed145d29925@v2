@@ -1,0 +1,26 @@
+from pathlib import Path
+
+P = Path(r"D:\dev\ClaudeResearch\paper\fjcai\main.tex")
+t = P.read_text(encoding="utf-8")
+
+
+def rep(old, new):
+    global t
+    assert t.count(old) == 1, old[:60]
+    t = t.replace(old, new)
+
+
+rep(r"""Information from the evaluation data reaching the model during training, known as data
+leakage, is a recognised cause""",
+    r"""Data leakage, in which information from the evaluation data reaches the model during
+training, is a recognised cause""")
+rep(r"""To build the released features, Poria et al.~\cite{poria2017} describe a
+text network""",
+    r"""Poria et al.~\cite{poria2017} built the released features with a
+text network""")
+rep(r"""Two differences other than label fitting, training-set size and representation width,
+could also produce Table~\ref{tab:gap}.""",
+    r"""Two differences other than label fitting could also produce Table~\ref{tab:gap}.""")
+
+P.write_text(t, encoding="utf-8")
+print("ok")

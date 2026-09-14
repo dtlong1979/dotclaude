@@ -1,0 +1,105 @@
+from pathlib import Path
+
+P = Path(r"D:\dev\ClaudeResearch\paper\fjcai\main.tex")
+t = P.read_text(encoding="utf-8")
+
+
+def rep(old, new):
+    global t
+    assert t.count(old) == 1, old[:60]
+    t = t.replace(old, new)
+
+
+# Related Work
+rep(r"""\textbf{Data leakage.} Information from the evaluation data reaching the model during
+training is a recognised cause""",
+    r"""Information from the evaluation data reaching the model during training, known as data
+leakage, is a recognised cause""")
+rep(r"""\textbf{IEMOCAP evaluation.} IEMOCAP lacks""", r"""IEMOCAP lacks""")
+rep(r"""\textbf{Feature reuse in MERC.} Pre-extracted features have become""",
+    r"""In MERC, pre-extracted features have become""")
+
+# Setup
+rep(r"""\textbf{Data.} IEMOCAP~\cite{busso2008} contains""", r"""IEMOCAP~\cite{busso2008} contains""")
+rep(r"""\textbf{How the released features were built.} Poria et al.~\cite{poria2017} describe a""",
+    r"""To build the released features, Poria et al.~\cite{poria2017} describe a""")
+rep(r"""\textbf{Frozen encoders.} To obtain text features""", r"""To obtain text features""")
+rep(r"""\textbf{Model.} Unless stated otherwise,""", r"""Unless stated otherwise,""")
+rep(r"""\textbf{Protocols.} \emph{Standard}: train on sessions 1--4, test on session 5.
+\emph{Session-4 hold-out}: train on sessions 1--3, test on session 4; both test sets are
+unseen by the model, but only session 5 is unseen by the feature extractors.
+\emph{Leave-one-session-out (LOSO)}: five folds, each session tested once by a model
+trained on the other four; fold 5 equals the standard split, and the LOSO mean is the
+unweighted mean over folds. \emph{Leave-one-speaker-out}: ten folds, one actor held out
+per fold, read by the linear probe because a dialogue contains two speakers.
+\emph{Random five-fold}: folds drawn over dialogues, ignoring sessions, so every test
+fold mixes sessions 1--4 with session 5.""",
+    r"""The standard split trains on sessions 1--4 and tests on session 5. The session-4
+hold-out trains on sessions 1--3 and tests on session 4; both test sets are unseen by the
+model, but only session 5 is unseen by the feature extractors. Leave-one-session-out
+(LOSO) has five folds, each session tested once by a model trained on the other four;
+fold 5 equals the standard split, and the LOSO mean is the unweighted mean over folds.
+Leave-one-speaker-out has ten folds, one actor held out per fold, and is read by the
+linear probe because a dialogue contains two speakers. Random five-fold cross-validation
+draws folds over dialogues, ignoring sessions, so every test fold mixes sessions 1--4
+with session 5.""")
+rep(r"""\textbf{Uncertainty.} Seeds vary only the initialisation.""",
+    r"""Seeds vary only the initialisation.""")
+
+# Session gap
+rep(r"""\textbf{Label shift.} Sessions differ in class balance:""",
+    r"""Sessions also differ in class balance:""")
+rep(r"""\textbf{Nearest-neighbour check.} This check trains no model: for every utterance, take""",
+    r"""A nearest-neighbour check needs no trained model: for every utterance, take""")
+rep(r"""\textbf{Training-set size and representation width.} Two differences other than label
+fitting could produce""",
+    r"""Two differences other than label fitting, training-set size and representation width,
+could also produce""")
+
+# LOSO
+rep(r"""\textbf{Reader architecture.} The bi-LSTM reads the whole dialogue,""",
+    r"""The bi-LSTM reads the whole dialogue,""")
+rep(r"""\textbf{Other protocols.} Leave-one-speaker-out and random""",
+    r"""Leave-one-speaker-out and random""")
+rep(r"""\textbf{Per-emotion breakdown.} Table~\ref{tab:perclass} breaks""",
+    r"""Table~\ref{tab:perclass} breaks""")
+rep(r"""\textbf{Stress test with a published architecture.} As a leakage stress test, not a
+replication, we trained""",
+    r"""To test a published architecture, in a leakage stress test that is not a replication,
+we trained""")
+
+# Provenance, downstream
+rep(r"""\textbf{Usage survey.} The audit is purposive:""",
+    r"""To see how widely these files are used, we ran a purposive code audit:""")
+rep(r"""\textbf{Fusion with released blocks.} On the standard split,""", r"""On the standard split,""")
+rep(r"""\textbf{Effect on rankings.} A leak that added""", r"""A leak that added""")
+
+# Discussion
+rep(r"""\textbf{Origin of the hazard.} The original extraction suited its purpose: a fixed split,
+extractors trained on its training part, and features released for replication. The
+hazard arose later. Releases that did not restate the provenance reused the files as
+generic features, and evaluation practice moved towards cross-validation.""",
+    r"""The original extraction suited its purpose: a fixed split, extractors trained on its
+training part, and features released for replication. The hazard arose later, when
+releases that did not restate the provenance reused the files as generic features and
+evaluation practice moved towards cross-validation.""")
+rep(r"""\textbf{Scope of the claims.} This leak does not affect standard-split results on these
+files, and our audit found no published cross-validated result on them. The claim is
+therefore a hazard and its measured size.""",
+    r"""This leak does not affect standard-split results on these files, and our audit found no
+published cross-validated result on them, so we report a hazard and its measured size.""")
+rep(r"""\textbf{Cost of re-extraction.} The frozen text encoders run""",
+    r"""Re-extraction is inexpensive for text: the frozen encoders run""")
+rep(r"""\textbf{Provenance metadata.} A feature release can state""",
+    r"""A feature release can also state""")
+
+# Recommendations list
+rep(r"""\item \textbf{State the protocol and use the standard split.} On these files""",
+    r"""\item State the protocol and use the standard split. On these files""")
+rep(r"""\item \textbf{Run the session-gap diagnostic} on a pre-extracted""",
+    r"""\item Run the session-gap diagnostic on a pre-extracted""")
+rep(r"""\item \textbf{Re-extract with frozen encoders} when cross-validation""",
+    r"""\item Re-extract with frozen encoders when cross-validation""")
+
+P.write_text(t, encoding="utf-8")
+print("ok")
