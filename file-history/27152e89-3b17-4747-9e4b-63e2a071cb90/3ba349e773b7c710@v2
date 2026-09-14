@@ -1,0 +1,85 @@
+# -*- coding: utf-8 -*-
+# VÁ WEB /log: nút -15/+15 phút + hiển thị mã giờ lẻ 'mNNN'. Chạy TRÊN server khi điện về:
+#   python3 patch_web_muc.py
+# Sau đó rebuild:  cd ~/code/fithouone/fithouone-deploy && docker compose --env-file .env up -d --build --no-deps workload
+import io, time, sys
+BASE = "/home/fitadm/code/fithouone/workload"
+APPJS = BASE + "/static/app.js"
+LOG   = BASE + "/templates/log.html"
+CSS   = BASE + "/static/style.css"
+
+def patch(path, edits, marker):
+    src = io.open(path, encoding="utf-8").read()
+    if marker in src:
+        print("SKIP (da vá):", path.split("/")[-1]); return True
+    for i,(o,n) in enumerate(edits):
+        c = src.count(o)
+        if c != 1:
+            print("MISS %s edit %d: khop %d -> DUNG." % (path.split("/")[-1], i, c)); return False
+    bak = path + ".bak_mucmin_" + time.strftime("%Y%m%d_%H%M%S")
+    io.open(bak, "w", encoding="utf-8").write(src)
+    for o,n in edits: src = src.replace(o, n)
+    io.open(path, "w", encoding="utf-8").write(src)
+    print("OK:", path.split("/")[-1], "| backup", bak.split("/")[-1]); return True
+
+# ---------- app.js ----------
+MUC_LINE = "  var MUC_LABEL = { '30p': '≤30p', '1h': '1 giờ', '2h': '2 giờ', '3h': '3 giờ', '4h': '4 giờ', 'ca_buoi': 'Cả buổi', 'ca_ngay': 'Cả ngày' };"
+HELPERS = (MUC_LINE
+ + "\n  function mucMinutes(m) { var P = { '30p': 30, '1h': 60, '2h': 120, '3h': 180, '4h': 240, 'ca_buoi': 240, 'ca_ngay': 480 }; if (P[m] != null) return P[m]; var x = /^m(\\d{1,3})$/.exec(m || ''); return x ? parseInt(x[1], 10) : 0; }"
+ + "\n  function mucLabel(m) { if (MUC_LABEL[m]) return MUC_LABEL[m]; var mins = mucMinutes(m); if (!mins) return m || ''; var h = (mins / 60) | 0, mm = mins % 60; return h === 0 ? (mm + 'p') : (mm === 0 ? (h + ' giờ') : (h + 'h' + mm)); }")
+
+OPEN_OLD = "      hrs.querySelectorAll('.jt-h').forEach(function (h) { h.classList.toggle('on', h.getAttribute('data-muc') === cur && cur !== ''); });\n      item.querySelectorAll('.jt-b')"
+OPEN_NEW = "      hrs.querySelectorAll('.jt-h').forEach(function (h) { h.classList.toggle('on', h.getAttribute('data-muc') === cur && cur !== ''); });\n      var sv = hrs.querySelector('[data-step-val]'); if (sv) sv.textContent = cur ? mucLabel(cur) : '—';\n      item.querySelectorAll('.jt-b')"
+
+STEP_HANDLER = (
+"      var st = e.target.closest('.jt-step');\n"
+"      if (st) {\n"
+"        var hrsS = item.querySelector('[data-hours]'); var buS = hrsS ? hrsS.getAttribute('data-active-buoi') : '';\n"
+"        if (!buS) return;\n"
+"        var step = parseInt(st.getAttribute('data-step'), 10) || 0;\n"
+"        var mins = mucMinutes(sel(item)[buS] || '') + step; if (mins > 720) mins = 720;\n"
+"        var nmuc = mins <= 0 ? '' : ('m' + mins);\n"
+"        post(item, buS, nmuc).then(function (r) {\n"
+"          if (r.ok) { var s = sel(item); delete s.ngay; if (nmuc) s[buS] = nmuc; else delete s[buS]; setSel(item, s); if (nmuc) openHours(item, buS); else closeHours(item); graduateDraft(item); }\n"
+"          else err(r);\n"
+"        });\n"
+"        return;\n"
+"      }\n"
+"      var h = e.target.closest('.jt-h');\n      if (h) {")
+
+appjs_edits = [
+    (MUC_LINE, HELPERS),
+    ("b.textContent = (on && bu !== 'ngay') ? (BUOI_LABEL[bu] + ': ' + MUC_LABEL[s[bu]]) : BUOI_LABEL[bu];",
+     "b.textContent = (on && bu !== 'ngay') ? (BUOI_LABEL[bu] + ': ' + mucLabel(s[bu])) : BUOI_LABEL[bu];"),
+    ("if (s.sang) parts.push('Sáng: ' + MUC_LABEL[s.sang]); if (s.chieu) parts.push('Chiều: ' + MUC_LABEL[s.chieu]); if (s.toi) parts.push('Tối: ' + MUC_LABEL[s.toi]);",
+     "if (s.sang) parts.push('Sáng: ' + mucLabel(s.sang)); if (s.chieu) parts.push('Chiều: ' + mucLabel(s.chieu)); if (s.toi) parts.push('Tối: ' + mucLabel(s.toi));"),
+    (OPEN_OLD, OPEN_NEW),
+    ("      var h = e.target.closest('.jt-h');\n      if (h) {", STEP_HANDLER),
+]
+
+# ---------- log.html ----------
+log_edits = [
+    ('  <button type="button" class="jt-h jt-h-clear" data-muc="">Bỏ chọn</button>\n </div>',
+     '  <button type="button" class="jt-h jt-h-clear" data-muc="">Bỏ chọn</button>\n'
+     '  <span class="jt-step-wrap"><button type="button" class="jt-step" data-step="-15">−15</button>'
+     '<span class="jt-step-val" data-step-val>—</span>'
+     '<button type="button" class="jt-step" data-step="15">+15</button></span>\n </div>'),
+]
+
+# ---------- style.css ----------
+CSS_ANCHOR = ".jt-h-clear{color:var(--muted);border-style:dashed}"
+css_edits = [
+    (CSS_ANCHOR,
+     CSS_ANCHOR
+     + "\n.jt-step-wrap{display:inline-flex;align-items:center;gap:6px;margin-left:6px;padding-left:8px;border-left:1px dashed var(--line)}"
+     + "\n.jt-step{font-size:.82rem;font-weight:800;padding:5px 11px;border:1px solid var(--line-strong);border-radius:14px;background:#fff;color:var(--primary-d);cursor:pointer}"
+     + "\n.jt-step:hover{border-color:var(--primary)}"
+     + "\n.jt-step-val{font-size:.82rem;font-weight:800;color:var(--primary-d);min-width:40px;text-align:center}"),
+]
+
+ok = True
+ok &= patch(APPJS, appjs_edits, "function mucMinutes")
+ok &= patch(LOG,   log_edits,   "jt-step-wrap")
+ok &= patch(CSS,   css_edits,   ".jt-step-wrap")
+print("=== WEB PATCH:", "OK — nhớ rebuild workload" if ok else "CÓ LỖI, kiểm lại")
+sys.exit(0 if ok else 1)

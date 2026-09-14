@@ -1,0 +1,49 @@
+# -*- coding: utf-8 -*-
+# VÁ BACKEND workload: hỗ trợ mã mức giờ lẻ 'mNNN' (NNN phút) cho nút -15/+15 nhật ký.
+# Chạy TRÊN server khi điện về:  python3 patch_backend_muc.py
+import io, time, sys
+PATH = "/home/fitadm/code/fithouone/workload/app.py"
+
+HELPER = '''
+import re as _re_muc
+def _muc_hours(muc):
+    """Số GIỜ của một mức thời lượng: preset trong _MUC_HOURS, hoặc mã lẻ 'mNNN' (NNN phút, do nút -15/+15)."""
+    if muc in _MUC_HOURS:
+        return _MUC_HOURS[muc]
+    m = _re_muc.fullmatch(r"m(\\d{1,3})", muc or "")
+    if m:
+        mins = int(m.group(1))
+        if 15 <= mins <= 720:
+            return round(mins / 60.0, 4)
+    return None
+'''
+
+edits = [
+    # 1) Thêm helper ngay sau _MUC_LABEL_VN
+    ('_MUC_LABEL_VN = {"30p": "≤30 phút", "1h": "1 giờ", "2h": "2 giờ", "3h": "3 giờ", "4h": "4 giờ", "ca_buoi": "Cả buổi", "ca_ngay": "Cả ngày"}',
+     '_MUC_LABEL_VN = {"30p": "≤30 phút", "1h": "1 giờ", "2h": "2 giờ", "3h": "3 giờ", "4h": "4 giờ", "ca_buoi": "Cả buổi", "ca_ngay": "Cả ngày"}\n' + HELPER),
+    # 2) log_set: dùng _muc_hours thay vì chặn cứng theo _MUC_HOURS
+    ('''    if muc_tg not in _MUC_HOURS:
+        conn.close()
+        return JSONResponse({"ok": False, "error": "muc"})''',
+     '''    _hrs = _muc_hours(muc_tg)
+    if _hrs is None:
+        conn.close()
+        return JSONResponse({"ok": False, "error": "muc"})'''),
+    # 3) log_set INSERT: lưu giờ đã quy đổi (_hrs) thay cho _MUC_HOURS[muc_tg]
+    ('''         (user["id"], log_date, buoi, activity_id, atext, None, _MUC_HOURS[muc_tg],''',
+     '''         (user["id"], log_date, buoi, activity_id, atext, None, _hrs,'''),
+]
+
+src = io.open(PATH, encoding="utf-8").read()
+if "_muc_hours" in src:
+    print("SKIP: da vá roi."); sys.exit(0)
+for i,(o,n) in enumerate(edits):
+    c = src.count(o)
+    if c != 1:
+        print("MISS edit %d: khop %d lan -> DUNG, khong ghi." % (i, c)); sys.exit(1)
+bak = PATH + ".bak_mucmin_" + time.strftime("%Y%m%d_%H%M%S")
+io.open(bak, "w", encoding="utf-8").write(src)
+for o,n in edits: src = src.replace(o, n)
+io.open(PATH, "w", encoding="utf-8").write(src)
+print("BACKUP:", bak); print("APPLIED backend: OK (_muc_hours + log_set)")
