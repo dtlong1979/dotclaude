@@ -1,0 +1,574 @@
+% ICEIR 2026 submission: Springer LNNS proceedings, 12-15 pages including references,
+% PDF via Microsoft CMT, deadline 2026-09-30. Compile with llncs.cls and splncs04.bst,
+% e.g. from Overleaf's "Springer LNCS" template. Condensed from paper/headroom.md;
+% every number is traceable to docs/headroom-data.json or results/*.json.
+\documentclass[runningheads]{llncs}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{url}
+
+\begin{document}
+
+\title{How Much Is Fusion Worth? Headroom and Baselines in Multimodal Emotion Recognition}
+\titlerunning{How Much Is Fusion Worth?}
+\author{Long Dinh Tuan \and An Le Ngoc \and Huy Nguyen Thanh}
+\authorrunning{Long Dinh Tuan et al.}
+\institute{Hanoi Open University, Hanoi, Vietnam\\
+\email{dinhtuanlong@hou.edu.vn, anln@hou.edu.vn, huynt@hou.edu.vn}}
+
+\maketitle
+
+\begin{abstract}
+Papers on multimodal emotion recognition usually report margins over previous systems,
+but rarely the scale against which those margins should be read. We measure two simple
+quantities that provide this scale. The
+\emph{fusion headroom} $H$ is the gain of a paper's multimodal system over its own best
+single modality, read from matched results under the same protocol and model family; the \emph{majority-class
+baseline} is the score of a classifier that ignores its input. Reading eight matched
+comparisons from five corpora at their sources and measuring two more ourselves on
+CMU-MOSI and CMU-MOSEI, we find $H$ between $-1.8$ and $+9.1$ points: only the two
+EEG-with-eye-movement corpora exceed $3.22$, the conversational, sentiment and peripheral-physiology benchmarks
+stay at or below it, and four of the ten comparisons are negative. Re-measuring MELD with frozen encoders that never saw its
+labels gives a headroom of $0.04$ weighted-F1 points against the published $2.81$,
+while the text-only score rises by about five. A one-point margin on MELD thus consumes
+about one third of the published fusion headroom, whereas with frozen features the
+estimated headroom is statistically indistinguishable from zero; a constant classifier
+already reaches $31.3$ weighted F1 on the same test split. Collapse toward the majority class raises
+weighted F1 in $97.6\%$ of $9{,}261$ random confusion matrices with positive kappa, while
+kappa never rises. We therefore recommend reporting the majority-class baseline, fusion
+headroom, and at least one collapse-resistant metric alongside the primary metric.
+\keywords{Multimodal fusion \and Emotion recognition \and Evaluation \and
+Majority-class baseline \and Missing modalities}
+\end{abstract}
+
+%------------------------------------------------------------------------------------
+\section{Introduction}
+
+Multimodal emotion recognition rests on the premise that text, speech, vision and
+physiology carry complementary evidence, so that a system which fuses them should
+outperform one that reads a single channel~\cite{poria2019meld,zhao2021}. Progress is
+accordingly reported as a margin: a new fusion mechanism, or a new way of coping with
+missing channels~\cite{lian2023,zhang2024,li2024}, is judged by how many points it gains
+over the previous best. Such margins influence which architectures and robustness claims
+are adopted.
+
+A margin, however, can be read only against the scale on which it is measured, and two
+quantities that set that scale are rarely reported. The first is the majority-class
+baseline. MELD's test split is
+$48.1\%$ neutral, so a classifier that always answers \emph{neutral} scores $31.3$
+weighted F1, and the single-modality and severe-missingness conditions that robustness
+papers emphasise report scores a few points above it. The second is the fusion headroom.
+If a paper's
+best single modality scores $s^\star$ and its multimodal system $f$, then $H=f-s^\star$
+is the observed multimodal gain over the strongest unimodal result within that matched
+comparison, and a margin $\Delta$ over a
+competitor consumes $\Delta/H$ of it. When a system reaches $60.25$ weighted F1 against a
+previous $59.25$ on a corpus where the headroom is $3.22$ points, the one-point
+improvement corresponds to about a third of the headroom, even though some forty points
+remain to a perfect score. We therefore ask a question that
+the tables the field already prints can answer: how large is the headroom on the corpora
+that multimodal emotion recognition uses, and how close to that baseline do reported systems
+operate?
+
+This scaling matters for the interpretation of reported gains. If the headroom is only a
+few points, much of the
+evidence for new fusion mechanisms consists of differences that are small against the
+room available, and a metric that rises when a system collapses onto the majority class
+can produce such differences by itself. Both quantities are inexpensive to compute, yet
+they clarify whether a reported difference is large relative to the fusion headroom
+available in the matched comparison.
+
+In this paper, we measure both quantities at their sources. Our contributions are:
+\begin{enumerate}
+\item a reading discipline for $H$ (same paper, protocol, model family and evaluation
+  setting) and a demonstration that violating the model-family condition multiplies $H$ by $2.7$ on SEED-IV
+  (Section~\ref{sec:diag});
+\item an audit of ten matched comparisons over seven corpora, eight read at their sources
+  and two measured first-hand on CMU-MOSI and CMU-MOSEI
+  (Sections~\ref{sec:audit} and~\ref{sec:firsthand});
+\item a first-hand re-measurement of a published MELD row with frozen modern encoders,
+  in which the text-only score rises more than the fused score relative to the published row
+  (Section~\ref{sec:meld});
+\item a proof that majority-class collapse cannot improve positive kappa or MCC, nor
+  balanced accuracy when it is above its chance level $1/K$, beside the measurement that weighted F1 rises under it in
+  $97.6\%$ of cases (Section~\ref{sec:diag});
+\item closed-form majority-class baselines and reporting practices built on collapse-resistant metrics, whose
+  consequence we show on a missing-modality system of our own
+  (Sections~\ref{sec:diag} and~\ref{sec:case}, the latter on synthetic data).
+\end{enumerate}
+We do not re-run published systems or claim that any published number is incorrect. $H$
+as measured here is a property of the systems a paper compares, not an
+information-theoretic bound on the corpus; Section~\ref{sec:limits} returns to this.
+
+%------------------------------------------------------------------------------------
+\section{Related Work}
+
+Powers~\cite{powers2011} showed that recall, precision, F-measure and accuracy are
+biased, that a system worse in informedness can score higher under any of them, and that
+chance levels should be reported. Chicco and
+Jurman~\cite{chicco2020} argue for the Matthews correlation coefficient (MCC) over F1,
+while Delgado and Tibau~\cite{delgado2019} argue against Cohen's
+kappa~\cite{cohen1960} in favour of MCC~\cite{matthews1975}, and a multidisciplinary
+consortium has since catalogued such metric pitfalls in a domain-agnostic
+taxonomy~\cite{reinke2024}. These arguments are not new. Our contribution is empirical:
+none of the missing-modality emotion recognition papers we examined reports a chance level
+for any degradation condition.
+
+Methods for missing-modality emotion and sentiment recognition either reconstruct the
+absent channel~\cite{zhao2021,lian2023} or leave it absent and reweight the
+fusion~\cite{zhang2024}; distillation from a complete-modality teacher combines
+both~\cite{li2024}. These works report margins under severe missingness but not the
+headroom those margins occupy.
+
+Fusion in conversational emotion recognition has grown progressively richer:
+from recurrent context over concatenated utterance features~\cite{poria2017}, to tracking
+the state of each speaker~\cite{majumder2019}, to graph convolution over the speakers of a
+dialogue~\cite{ghosal2019} and across modalities~\cite{hu2021mmgcn}; a recent survey catalogues these fusion families and
+the evaluation strategies used with them~\cite{wu2025merc}. This line evaluates a
+new mechanism by its margin over earlier systems, and the unimodal ablations some of these
+papers report are not used to scale those margins. We use these ablations to provide
+that scale.
+
+Evaluation audits in NLP have shown that standard splits change system
+rankings~\cite{gorman2019} and that much of the field is statistically
+underpowered~\cite{card2020}. Our study follows this line of evaluation-oriented audits:
+it examines how results are interpreted rather than proposing a new fusion architecture.
+
+%------------------------------------------------------------------------------------
+\section{Two Diagnostics}\label{sec:diag}
+
+\subsection{Fusion Headroom and the Reading Discipline}
+
+For a paper reporting a multimodal system and its unimodal ablations,
+$H = f - \max_m s_m$, where $f$ is the score of the full multimodal system and $s_m$ that
+of modality $m$ alone, all read from the same paper under the same protocol, model family
+and evaluation setting. A margin $\Delta$ between two systems on that corpus has \emph{utilisation}
+$\Delta/H$. The ratio is meaningful only where $H$ is clearly positive: with an interval that
+excludes zero where seed variance is available, and as an indicative figure for published
+point estimates that report none. Where the interval covers zero, as on our frozen-encoder MELD row, $\Delta$ and $H$ should
+be reported side by side instead, since a denominator near zero makes the ratio unstable.
+
+Three requirements govern the reading. \emph{Same paper and evaluation setting}: the
+unimodal and fused results must come from the same study and matched experimental setting,
+although they may appear in different tables or figures. \emph{Same protocol}: splits,
+label sets and metrics must match. \emph{Same model family}: differences between a shallow
+unimodal classifier and a deeper fused model confound fusion with model capacity. Zheng et al.~\cite{zheng2019} report on SEED-IV, in one results section, EEG alone
+at $70.33\%$ and eye movements at $67.82\%$ (linear SVMs), feature-level fusion with SVMs
+at $75.88\%$, and a bimodal deep autoencoder at $85.11\%$. Read against the deep model
+$H=14.78$; read within the SVM family $H=5.55$. We report only matched values.
+
+\subsection{The Majority-Class Baseline}
+
+We call this quantity a baseline rather than a floor: nothing prevents a system from
+scoring below it, and several in this paper do. Let a constant predictor emit class $k_0$,
+whose share of the \emph{evaluation} split is $\pi_0$, among $K$ classes. Then accuracy, weighted F1 and macro F1 are, as fractions,
+\begin{equation}
+A = \pi_0,\qquad W = \frac{2\pi_0^2}{1+\pi_0},\qquad M = \frac{1}{K}\cdot\frac{2\pi_0}{1+\pi_0},
+\end{equation}
+since class $k_0$ has precision $\pi_0$ and recall $1$ and every other class has
+$F_1=0$. Two details are easily overlooked: $\pi_0$ is the evaluation share of the class
+\emph{actually predicted}, not the training majority, and macro F1 averages over the
+label set, not over the classes observed in a split (a common library default). A
+practitioner cannot fit the evaluation majority in advance, so a constant predictor chosen
+on training data can score far lower; Section~\ref{sec:firsthand} gives a case where the
+two differ by $24$ points. On MELD's test split ($K=7$, $\pi_0=0.481$) the baseline, in
+percent, is $W=31.3$, $M=9.3$ and $A=48.1$.
+
+\subsection{Metrics Under Majority-Class Collapse}
+
+Let $T_\lambda$ emit a classifier's output with probability $\lambda$ and the majority
+class otherwise. For $\lambda_1<\lambda_2$ we have $T_{\lambda_1}=T_{\lambda_1/\lambda_2}
+\circ T_{\lambda_2}$, so $T_{\lambda_1}$ is a garbling of $T_{\lambda_2}$ and, by the
+data-processing inequality, carries no more information about the label. Cohen's kappa
+and multiclass MCC are strictly increasing in $\lambda$ when they are positive. Balanced
+accuracy is also increasing in $\lambda$ whenever it exceeds its chance level $1/K$. Thus,
+for above-chance classifiers, none of these metrics can be improved by collapse onto the
+majority class (balanced accuracy is affine in $\lambda$, while kappa and MCC have numerator $\lambda D$
+with $D>0$ and a positive denominator for $\lambda>0$; the derivations and a
+numerical verification script are provided in the accompanying \texttt{theory\_check.py}). Weighted F1 has no such
+property. We drew $20{,}000$ row-stochastic confusion matrices over MELD's test prior,
+each row from a Dirichlet whose concentration was itself drawn uniformly in $[0.2,4]$ so
+that the sample spans sharp and diffuse classifiers, and kept the $9{,}261$ with positive
+kappa. Garbling them to $\lambda=0.9$ raised kappa in $0$ cases and weighted F1 in
+$9{,}041$ ($97.6\%$; Fig.~\ref{fig:garbling}). The proportion moves by less than a point
+when the concentration range is halved or doubled. This is the
+phenomenon Powers described~\cite{powers2011}, stated for the operation that severe
+missingness approximates.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{fig_garbling.pdf}
+\caption{Collapse toward the majority class ($T_{0.9}$) applied to 9{,}261 random confusion
+matrices over MELD's test prior with positive kappa. Every matrix moves left (kappa
+falls); 97.6\% move up (weighted F1 rises).}
+\label{fig:garbling}
+\end{figure}
+
+The three collapse-resistant metrics do differ in \emph{sensitivity} near the baseline. Kappa
+and MCC share the numerator $\lambda D$, with $D=p_{\mathrm{o}}-p_{\mathrm{e}}$ the gap
+between observed and expected agreement, but MCC's denominator vanishes like $\sqrt{\lambda}$, so kappa moves
+as $\Theta(\varepsilon)$ and MCC as $\Theta(\sqrt{\varepsilon})$ in the mass $\varepsilon$
+predicted away from the constant class. Perturbing the constant predictor on MELD's test
+prior by a single sample (one prediction flipped to \emph{fear}, the rarest class) moves MCC by $+0.024$ or $-0.009$ and kappa by $+0.0011$ or
+$-0.0004$. Near the baseline MCC is the more responsive instrument and kappa the more stable
+one, which is a reason to report both rather than to choose between them.
+
+%------------------------------------------------------------------------------------
+\section{Headroom in Published Tables}\label{sec:audit}
+
+We selected corpora spanning the modality combinations the field uses: conversational
+text--audio--video (MELD~\cite{poria2019meld}), speech with peripheral physiology
+(KEMDy20~\cite{sgmt2026}), EEG with eye movements (SEED~\cite{lu2015},
+SEED-IV~\cite{zheng2019}) and EEG with peripheral physiology (AMIGOS~\cite{amigos}). For each we located a paper reporting unimodal ablations beside
+the fused system. A row was admitted only if
+the unimodal and fused scores share one paper, one protocol, one model family and one
+evaluation setting; a
+paper whose unimodal rows use a different model family from its fused row is recorded as an
+illustration, never as a data point (the SEED-IV deep autoencoder above). All reported values
+were verified against the original papers, and the source table or figure and metric of
+each row are recorded with the data. Table~\ref{tab:headroom} adds
+the two corpora we measured ourselves (Section~\ref{sec:firsthand}).
+
+The sample is purposive, not exhaustive. We fixed the modality combinations first and
+then took, for each corpus, a paper that introduces it or is standard for it and prints
+unimodal rows beside the fused row. Candidates were excluded when we could not identify a
+matched unimodal--fusion comparison satisfying the criteria above. We did not search for papers with
+small $H$. Applying the same criteria to a different paper on the same corpus may yield a
+different value; we therefore record the source and metric of every row to make the audit
+reproducible.
+
+\begin{table}[t]
+\caption{Fusion headroom $H$ (points), matched on paper, protocol, model family and
+evaluation setting. SEED's cells come from one paper, one protocol and one classifier family,
+but from three places in it: Table~2 (eye movements), Table~3 (EEG) and Fig.~2 (fusion).
+The published rows are descriptive point estimates: their sources report no seed variance,
+so a small $H$ there cannot be separated from the run-to-run spread of the original
+system. The first-hand rows use the fusion style chosen on held-out data,
+and their $H$ is computed from unrounded means, so it may differ by $0.01$ from the
+printed cells.}
+\label{tab:headroom}
+\centering\small
+\begin{tabular}{@{}llllrr@{}}
+\toprule
+Corpus & Source & Metric & Best single & Fused & $H$ \\
+\midrule
+SEED & \cite{lu2015}, Tab.~2--3, Fig.~2 & acc. & EEG 78.51 & 87.59 & $+9.08$ \\
+SEED-IV & \cite{zheng2019}, Tab.~III & acc. & EEG 70.33 & 75.88 & $+5.55$ \\
+MELD (DialogueRNN) & \cite{poria2019meld}, Tab.~11 & wF1 & text 57.03 & 60.25 & $+3.22$ \\
+MELD (bc-LSTM) & \cite{poria2019meld}, Tab.~11 & wF1 & text 56.44 & 59.25 & $+2.81$ \\
+KEMDy20 (valence) & \cite{sgmt2026}, Tab.~10 & UAR & bio 52.0 & 52.8 & $+0.80$ \\
+CMU-MOSEI & first-hand & acc. & text 59.05 & 59.73 & $+0.68$ \\
+AMIGOS (valence) & \cite{amigos}, Tab.~7 & F1 & EEG 56.4 & 56.0 & $-0.40$ \\
+CMU-MOSI & first-hand & acc. & text 80.11 & 79.49 & $-0.62$ \\
+AMIGOS (arousal) & \cite{amigos}, Tab.~7 & F1 & EEG 57.7 & 56.4 & $-1.30$ \\
+KEMDy20 (arousal) & \cite{sgmt2026}, Tab.~10 & UAR & audio 71.4 & 69.6 & $-1.80$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{fig_headroom.pdf}
+\caption{Fusion headroom for the ten matched comparisons of Table~\ref{tab:headroom},
+sorted. Blue circles are read from published tables; orange diamonds are measured here,
+with 95\% confidence intervals over paired seeds. The rows use different metrics, so the
+ordering is descriptive: a point is comparable with the row it came from, not with the
+rows above and below it.}
+\label{fig:headroom}
+\end{figure}
+
+Across the ten matched comparisons, $H$ ranges from $-1.8$ to $+9.1$ points
+(Fig.~\ref{fig:headroom}), with four negative values: the fused system scores below its own best single
+channel. The ten rows
+are not ten independent experiments, since MELD, AMIGOS and KEMDy20 contribute two each.
+The observed ordering does not follow a simple pattern by modality type. EEG with eye movements gives the largest headroom;
+EEG with peripheral physiology, which shares the property that neither channel is
+derivable from the other, is negative on both AMIGOS dimensions; and speech with wearable
+biosignals is negative on arousal. The KEMDy20 authors offer an explanation for their case:
+acoustic features already carry most of the arousal information, and electrodermal
+activity and inter-beat interval mainly track arousal too. These results suggest that
+multimodal benefit depends on complementary label-relevant information rather than merely
+on distinct sensing channels.
+
+During preliminary extraction, three entries were
+mismatched; verification against the original papers corrected all three
+downward. The KEMDy20 value had been measured against speech alone rather than the best
+single modality; the MELD text score had been assigned to the wrong modality combination;
+and the SEED-IV value mixed classifier families. Table~\ref{tab:headroom} reports the
+corrected values under the matching criteria of Section~\ref{sec:diag}.
+
+Interpretation is most sensitive when reported scores
+lie near the baseline. On MELD's
+severe-missingness conditions, single-modality systems report weighted F1 in the low
+thirties against a baseline of $31.3$. On AMIGOS, the best single modality reaches F1 $56.4$
+against a random baseline of $50.0$ that the paper prints in its own table: $6.4$ points
+of signal in total, inside which the fusion comparison of Table~\ref{tab:headroom} takes
+place. A margin reported in such a regime can reflect, in part, which system collapses onto
+the majority class less completely.
+
+%------------------------------------------------------------------------------------
+\section{First-Hand Measurements}\label{sec:firsthand}
+
+\subsection{Protocol}
+
+For three corpora we measured $H$ ourselves under one architecture: a masked
+bidirectional LSTM~\cite{hochreiter1997} over the utterances of a video or dialogue, with
+a per-utterance linear read-out and packed sequences, as in bc-LSTM~\cite{poria2017}.
+We use hidden size $100$, dropout $0.5$, Adam with learning rate $10^{-3}$ and batches of
+$32$, and train for at most $50$ epochs with early stopping (patience $8$) on a seeded
+$20\%$ of the training videos, with twenty seeds ($0$--$19$). Only the input feature blocks change between
+configurations. We evaluate three fusion strategies: early concatenation, late averaging of the
+unimodal posteriors, and per-modality encoders concatenated before the read-out (mid).
+Both the fusion style and the best single modality are chosen on the held-out training
+videos, never on test. As a robustness check, hyper-parameters are also selected per
+configuration over hidden $\in\{50,100,200\}$ and dropout $\in\{0.3,0.5\}$. Differences
+are paired over seeds and reported with bootstrap 95\% intervals, sign-flip permutation $p$-values and the effect size $d_z$.
+
+The bi-LSTM is deterministic given the seed on four CPU threads;
+the frozen encoders of Section~\ref{sec:meld} run in half precision, inference only, on one
+6\,GB GPU. Feature files are pinned by checksum, and every number is recorded with the
+script that produced it.
+
+\subsection{CMU-MOSI and CMU-MOSEI}
+
+We used the utterance-level features and speaker-independent splits released with the
+bc-LSTM line of work~\cite{poria2017,poria2017b}, pinned to a public repository commit
+with per-file checksums: MOSI~\cite{zadeh2016} as binary sentiment ($1{,}447$/$752$
+training/test utterances) and MOSEI~\cite{zadeh2018} as three-class sentiment
+($16{,}188$/$4{,}614$). Labels and masks are identical across the modality files, so all
+rows are matched at the sample level.
+
+\begin{table}[t]
+\caption{MOSI and MOSEI, means over twenty seeds. Bold marks the single modality and the
+fusion style chosen on held-out data; $H$ is their difference on test, computed from
+unrounded means.}
+\label{tab:mosi}
+\centering\small
+\begin{tabular}{@{}lrrrrrrr@{}}
+\toprule
+ & text & audio & video & early & late & mid & $H$ \\
+\midrule
+MOSI acc. & \textbf{80.11} & 54.63 & 55.71 & 79.82 & 77.40 & \textbf{79.49} & $-0.62$ \\
+MOSI wF1 & \textbf{79.93} & 54.74 & 56.20 & 79.77 & 77.37 & \textbf{79.47} & $-0.46$ \\
+MOSI kappa & \textbf{0.571} & 0.105 & 0.107 & 0.569 & 0.520 & \textbf{0.564} & $-0.007$ \\
+MOSEI acc. & \textbf{59.05} & 58.56 & 53.14 & \textbf{59.73} & 60.48 & 59.42 & $+0.68$ \\
+MOSEI wF1 & \textbf{57.90} & 52.56 & 48.15 & 58.69 & 55.31 & \textbf{58.52} & $+0.63$ \\
+MOSEI kappa & \textbf{0.333} & 0.269 & 0.178 & 0.345 & 0.306 & \textbf{0.342} & $+0.009$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Table~\ref{tab:mosi} shows that no fusion style beats text alone on MOSI. With the style
+chosen on held-out data, accuracy $H$ is $-0.62$ over twenty seeds (bootstrap $95\%$
+interval $[-1.22,-0.07]$, which narrowly excludes zero, permutation $p=0.06$, $d_z=-0.47$); on MOSEI it is $+0.68$
+($[+0.55,+0.82]$, $p<0.001$, $d_z=2.11$). Held-out data barely separate early from mid
+fusion on either corpus (held-out accuracy $99.09$ vs.\ $99.11$ on MOSI, $71.31$ vs.\ 
+$71.23$ on MOSEI); counted with the other style, $H$ is $-0.29$ ($p=0.22$) and $+0.37$
+($p=0.001$). At five seeds, selecting hyper-parameters per configuration gave $-1.12$
+and $+1.04$ (paired-$t$ $p=0.068$ and $0.057$; permutation $p=0.125$ for both). On MOSI the headroom is small and negative, and the bootstrap interval and the
+permutation test disagree on whether it differs from zero; on MOSEI the gain is
+measurable but below one point.
+
+The selection procedure also matters. Late averaging gives the highest MOSEI test accuracy, $+1.43$ over
+text, yet ranks last among the fusion styles on held-out accuracy ($65.05$). Choosing the
+fusion style by its test mean would have reported a gain two to four times larger than
+the ones the held-out data support.
+
+The majority-class baseline is also informative on MOSI. The best constant predictor scores $62.10$ accuracy on MOSI,
+so audio-only and video-only both score \emph{below} a classifier that ignores its input.
+MOSI's training majority is negative and its test majority positive, so a constant
+predictor fit to the training split scores $37.90$: the same formula gives values $24$
+points apart, depending on which $\pi_0$ is used.
+
+\subsection{MELD with Frozen Encoders}\label{sec:meld}
+
+The MELD rows of Table~\ref{tab:headroom} use the features released with that paper. We
+therefore test how $H$ changes when the unimodal representation is strengthened using
+frozen modern encoders, which MELD's public raw media allow. We re-extracted MELD with encoders that never saw a MELD label and were never
+fine-tuned: BERT-base~\cite{devlin2019} on the official transcripts and
+WavLM-base-plus~\cite{chen2022wavlm} on the audio of each clip, mean-pooled over the last
+layer ($2$ of $13{,}708$ clips have no media). The protocol is that of the previous
+subsection, training on the official training and development dialogues and testing on
+the official test split. Text and audio are the modalities of the published rows.
+
+\begin{table}[t]
+\caption{MELD with frozen encoders, means over twenty seeds. Bold marks the single modality
+and fusion style chosen on held-out data, which are also the best on test; $H$ is computed
+from unrounded means.}
+\label{tab:meld}
+\centering\small
+\begin{tabular}{@{}lrrrrrr@{}}
+\toprule
+ & text & audio & early & late & mid & $H$ \\
+\midrule
+MELD wF1 & \textbf{61.56} & 43.25 & 60.78 & 58.80 & \textbf{61.59} & $+0.04$ \\
+MELD acc. & \textbf{64.39} & 51.32 & 63.98 & 63.41 & \textbf{64.65} & $+0.26$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{fig_meld_frozen.pdf}
+\caption{MELD headroom in the published rows and in our frozen-encoder re-measurement. Each
+dumbbell runs from a row's best single modality (open marker) to its fused system
+(filled), and $H$ is their difference. Blue circles are read from the published
+table~\cite{poria2019meld}; the orange diamonds are measured here, with the $95\%$
+interval of $H$ drawn on the fused end. The text-only score shifts more than the fused
+score, and frozen text alone exceeds both published fused systems.}
+\label{fig:meldfrozen}
+\end{figure}
+
+\begin{sloppypar}
+Table~\ref{tab:meld} gives the result over twenty seeds. Weighted-F1 $H$ is $+0.04$
+(bootstrap $95\%$ interval $[-0.26,+0.33]$, permutation $p=0.82$, $d_z=0.05$), against
+$+2.81$ in the published bc-LSTM row; accuracy $H$ is $+0.26$ ($[-0.01,+0.53]$,
+$p=0.09$). With five seeds that difference had looked significant under a paired $t$-test
+($p=0.03$), although its permutation $p$ was already $0.125$; it is not significant with twenty. The choice of fusion style has a larger effect than adding audio: early
+concatenation gives $-0.78$ weighted F1 against text alone ($[-1.05,-0.49]$) and late
+averaging $-2.75$ ($[-3.06,-2.45]$), both $p<0.001$, so only per-modality encoders avoid a
+loss. Frozen text alone reaches $61.56$ weighted F1
+(Fig.~\ref{fig:meldfrozen}), above both published fused systems.
+Held-out and test accuracy agree ($63.73$ vs.\ $64.39$), unlike MOSI, where text and every
+fusion style reach $97$--$99\%$ held-out accuracy against $77$--$80\%$ on test. Adding
+a frozen CLIP~\cite{radford2021} image encoder averaged over eight whole frames per clip
+does not change this: video-only accuracy is near the majority-class accuracy baseline
+($48.42\%$ versus $48.12\%$); with video included, weighted-F1 $H$ is $+0.07$ points (five
+seeds, permutation $p=0.75$).
+\end{sloppypar}
+
+%------------------------------------------------------------------------------------
+\section{Case Study: Applying the Diagnostics}\label{sec:case}
+
+As an illustrative case study, we apply the diagnostics to a controlled synthetic
+missing-modality experiment and compare the resulting interpretation across metrics.
+We built a representative missing-modality framework with per-channel evidential heads, a
+vacuity-weighted fusion gate and asymmetric distillation from a complete-modality teacher,
+and evaluated it on a \emph{synthetic} tri-modal benchmark whose class priors and split
+sizes are taken from MELD but whose samples are generated, so that per-channel reliability
+is known (ten seeds, seven availability patterns). It achieved $+5.06$ weighted F1 over the distillation baseline in the
+visual-only condition, and $+3.90$ over the strongest system there, plain early fusion.
+On that benchmark $H=7.3$, so the two margins correspond to $69\%$ and $53\%$ of the
+observed fusion headroom; the system scored $36.0$ against a majority-class baseline of
+$31.0$ (the generator resamples the priors per
+split, so its baseline differs slightly from MELD's $31.3$), and four
+of the six systems compared scored below it. Under macro F1, which weights the
+rare classes but does not correct for chance, the margin shrank to $+0.66$. A five-seed
+re-run that also logged kappa and MCC gives, in the same condition, $+4.82$ weighted F1
+against $+2.47$ kappa points (we write kappa and MCC points for $100\times\Delta$). In that
+re-run, the comparison against a matched-capacity attention gate remained
+positive across all three metrics: averaged over the seven availability patterns, $+2.19$ weighted F1
+(paired $t$ over five seeds, $p=0.0095$), $+1.97$ kappa points ($p=0.011$) and $+1.84$ MCC points ($p=0.0077$). This
+margin is smaller but directionally consistent across metrics that reward
+different properties, making a metric-specific explanation less likely.
+
+%------------------------------------------------------------------------------------
+\section{Discussion}\label{sec:discussion}
+
+Three explanations fit Table~\ref{tab:headroom}, and
+our data cannot yet separate them. The first is redundancy on the labelled dimension:
+where channels carry overlapping information about the label, as acoustic and
+physiological signals do about arousal in KEMDy20, the best channel already holds most of
+what the others would add. The second is weak auxiliary channels: on MOSI, audio and video
+alone score below a constant classifier, and on MELD a whole-frame visual encoder is near
+the majority-class baseline, so fusion has little to extract from them; work on imbalanced multimodal
+learning adds that multimodal and unimodal objectives can conflict during training, which
+can leave a fused model short of what even its weaker channels hold~\cite{wei2024mmpareto}. The third is a dominant text
+channel: in conversational and sentiment corpora the transcript carries most of the label,
+and in our MELD re-measurement the text-only score increases more than the fused score,
+shrinking $H$ toward zero. The largest headroom belongs to SEED, where EEG and
+eye movements are nearly equally informative on their own ($78.51$ and $77.80$), which is
+consistent with the second and third explanations: neither channel is weak, and neither
+dominates.
+
+For published margins, utilisation provides a scale for interpreting a reported gain. A
+one-point margin on MELD consumes more than a third of the headroom in the published bc-LSTM row; on
+frozen features, where $H$ is indistinguishable from zero, a one-point gain would exceed the
+observed headroom and should not be attributed to fusion without additional matched
+ablations. This does not make such margins wrong, but reporting them beside the headroom
+they occupy helps readers distinguish a fusion result from a representation result.
+
+Even with matched architectures, our first-hand measurements exposed two pitfalls that a
+single results table does not reveal. Choosing the fusion
+style by its test mean inflated the MOSEI gain two- to fourfold (Section~\ref{sec:firsthand}),
+and model selection on a held-out split where the released features reach near-ceiling
+accuracy (MOSI's $99\%$ against $80\%$ on test) makes selection close to arbitrary. Both issues can
+be checked by reporting held-out and test results and by selecting configurations using
+held-out data only.
+
+Like the audits of standard splits~\cite{gorman2019}
+and statistical power~\cite{card2020}, this is a result about reporting; unlike them, its
+quantity can be read from tables that papers already print (Section~\ref{sec:audit}).
+
+%------------------------------------------------------------------------------------
+\section{Limitations}\label{sec:limits}
+
+The headroom $H$ is a property of systems, not of corpora. We measure the headroom
+realised by the systems a paper compares, not a bound; a better fusion method could enlarge it.
+The corpora span eleven years and different model families, but the sample is too small
+to support a trend with model capacity. Moreover, weak unimodal representations can
+increase the measured $H$, as illustrated by the MELD re-measurement in
+Section~\ref{sec:meld}.
+
+Our sample reads one paper per corpus, with two rows each for MELD, AMIGOS
+and KEMDy20. The metrics differ across rows (accuracy, weighted F1, UAR and F1), so
+values are comparable within a row, not across corpora.
+
+Our MOSI and MOSEI rows use features whose text and video
+extractors are reported to have been trained on the training split: held-out training
+videos reach far higher accuracy than test, which saturates model selection. The rows
+therefore describe fusion over those released features rather than a dataset-level
+estimate of fusion headroom. The MELD measurement avoids this limitation by using frozen
+encoders, although it covers only one corpus.
+
+%------------------------------------------------------------------------------------
+\section{Recommendations and Conclusion}
+
+We recommend the following reporting practices for authors, reviewers and benchmark
+designers. \emph{To authors of fusion and
+missing-modality papers}: for each ablation or degradation condition, report three numbers
+beside the metric the field expects: the majority-class baseline
+$2\pi_0^2/(1+\pi_0)$ from the evaluation label counts; the headroom $H$, matched on paper,
+protocol, model family and evaluation setting, with the utilisation $\Delta/H$ of any claimed margin
+whose $H$ is clearly positive; and a metric that resists majority collapse (kappa, MCC or
+balanced accuracy, the last with chance level $1/K$ rather than zero), reporting kappa and
+MCC together near the baseline. \emph{To
+reviewers}: two of the three can be checked from the submission itself, the baseline from the
+label counts the paper already prints and $H$ from its own ablation table, so a margin that
+appears in weighted F1 but does not persist under kappa or MCC, or one that claims most of the
+available headroom, can be queried without re-running anything; as a working heuristic, and
+not a result of this study, half the headroom is a reasonable point at which to ask where a
+gain comes from. \emph{To benchmark designers}: a corpus whose best single channel sits
+only a few points above that baseline, as in the AMIGOS comparison, provides limited
+dynamic range for separating fusion methods. These practices are in
+the spirit of consensus reporting checklists for machine-learning-based
+science~\cite{kapoor2024reforms}.
+
+In the matched comparisons examined here, the observed fusion headroom is generally
+small; weighted F1 should not be used alone to interpret differences of this scale when
+majority-class collapse is plausible; and on the one published row we could re-measure,
+using frozen modern representations reduces the observed headroom to a value
+indistinguishable from zero. Future work should repeat the first-hand measurements with frozen
+modern encoders on MOSI and MOSEI, and examine which corpus designs make fusion useful, a
+question that concerns how emotion is expressed across channels.
+
+\begin{credits}
+\subsubsection{\ackname}
+\sloppy
+The code that reproduces every first-hand measurement is available at
+\url{https://github.com/dtlong1979/fusion-headroom-mer-iceir2026}. The authors used Claude (Anthropic)
+to review and improve the language of the manuscript and as a coding assistant; all of
+this work was checked and supervised by the authors, who take full responsibility for the
+scientific content.
+
+\subsubsection{\discintname}
+The authors have no competing interests to declare that are relevant to the content of
+this article.
+\end{credits}
+
+\bibliographystyle{splncs04}
+\bibliography{references}
+
+\end{document}

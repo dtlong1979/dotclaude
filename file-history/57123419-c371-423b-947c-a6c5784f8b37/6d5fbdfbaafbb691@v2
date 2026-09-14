@@ -1,0 +1,89 @@
+from pathlib import Path
+
+P = Path(r"D:\dev\ClaudeResearch\paper\iceir\main.tex")
+t = P.read_text(encoding="utf-8")
+
+
+def rep(old, new, count=1):
+    global t
+    n = t.count(old)
+    assert n == count, (n, old[:80])
+    t = t.replace(old, new)
+
+
+# abstract: no causal "because", and a "therefore" that follows from what precedes it
+rep(r"""labels gives a headroom of $0.04$ weighted-F1 points against the published $2.81$,
+because the text-only baseline rises by about five. On MELD a constant classifier already reaches $31.3$
+weighted F1. A one-point margin on MELD therefore consumes about one third
+of the published fusion headroom, while with frozen features the estimated headroom is
+statistically indistinguishable from zero.""",
+    r"""labels gives a headroom of $0.04$ weighted-F1 points against the published $2.81$,
+while the text-only score rises by about five. A one-point margin on MELD thus consumes
+about one third of the published fusion headroom, whereas with frozen features the
+estimated headroom is statistically indistinguishable from zero; a constant classifier
+already reaches $31.3$ weighted F1 on the same test split.""")
+
+# contributions
+rep(r"""  in which the text-only score rises more than the fused score""",
+    r"""  in which the text-only score rises more than the fused score relative to the published row""")
+rep(r"""\item closed-form majority-class baselines and a reporting rule built on collapse-resistant metrics, whose""",
+    r"""\item closed-form majority-class baselines and reporting practices built on collapse-resistant metrics, whose""")
+
+# Sec. 3.3: MCC's denominator vanishes as lambda -> 0 (next paragraph), so it is not bounded away from zero
+rep(r"""with $D>0$ and a denominator bounded away from zero for $\lambda>0$;""",
+    r"""with $D>0$ and a positive denominator for $\lambda>0$;""")
+
+# Sec. 4
+rep(r"""For each we located a paper reporting unimodal ablations beside
+the fused system and read the cells from the published paper. A row was admitted only if""",
+    r"""For each we located a paper reporting unimodal ablations beside
+the fused system. A row was admitted only if""")
+rep(r"""paper whose unimodal rows use a different classifier from its fused row is recorded as an""",
+    r"""paper whose unimodal rows use a different model family from its fused row is recorded as an""")
+rep(r"""The KEMDy20 authors explain their case in a way that generalises:""",
+    r"""The KEMDy20 authors offer an explanation for their case:""")
+rep(r"""During preliminary extraction, three entries were
+initially mismatched;""",
+    r"""During preliminary extraction, three entries were
+mismatched;""")
+rep(r"""A margin reported in such a regime measures, in part, which system collapses onto
+the majority class less completely.""",
+    r"""A margin reported in such a regime can reflect, in part, which system collapses onto
+the majority class less completely.""")
+
+# Fig. 3 caption, without implying that only the baseline was re-measured
+rep(r"""\caption{MELD headroom before and after the unimodal baseline is re-measured. Each""",
+    r"""\caption{MELD headroom in the published rows and in our frozen-encoder re-measurement. Each""")
+
+# Sec. 6
+rep(r"""\section{What the Diagnostics Do to a Margin}\label{sec:case}""",
+    r"""\section{Case Study: Applying the Diagnostics}\label{sec:case}""")
+rep(r"""is known (ten seeds, seven availability patterns). It reported $+5.06$ weighted F1""",
+    r"""is known (ten seeds, seven availability patterns). It achieved $+5.06$ weighted F1""")
+rep(r"""In the
+five-seed re-run, the comparison""",
+    r"""In that
+re-run, the comparison""")
+
+# Discussion
+rep(r"""alone score below a constant classifier, and on MELD a whole-frame visual encoder sits at
+the baseline,""",
+    r"""alone score below a constant classifier, and on MELD a whole-frame visual encoder is near
+the majority-class baseline,""")
+rep(r"""eye movements are nearly equally informative on their own ($78.51$ and $77.80$), which is
+what the second and third explanations predict in the negative: neither channel is weak,
+and neither dominates.""",
+    r"""eye movements are nearly equally informative on their own ($78.51$ and $77.80$), which is
+consistent with the second and third explanations: neither channel is weak, and neither
+dominates.""")
+rep(r"""\textbf{Two sources of inflated first-hand headroom.} Even with matched architectures, our
+measurements exposed two mechanisms that no results table reveals.""",
+    r"""\textbf{Two pitfalls in first-hand headroom.} Even with matched architectures, our
+measurements exposed two mechanisms that a single results table does not reveal.""")
+rep(r"""and model selection on a held-out split that the features have already seen
+(MOSI's $99\%$ against $80\%$ on test) makes selection close to arbitrary.""",
+    r"""and model selection on a held-out split where the released features reach near-ceiling
+accuracy (MOSI's $99\%$ against $80\%$ on test) makes selection close to arbitrary.""")
+
+P.write_text(t, encoding="utf-8")
+print("ok")

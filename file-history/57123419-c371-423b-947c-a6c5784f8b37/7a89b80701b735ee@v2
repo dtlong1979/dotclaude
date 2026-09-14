@@ -1,0 +1,59 @@
+from pathlib import Path
+
+P = Path(r"D:\dev\ClaudeResearch\paper\iceir\main.tex")
+t = P.read_text(encoding="utf-8")
+
+
+def rep(old, new):
+    global t
+    assert t.count(old) == 1, old[:60]
+    t = t.replace(old, new)
+
+
+# Related Work: plain paragraphs
+rep(r"""\textbf{Chance correction.} Powers~\cite{powers2011} established""",
+    r"""On chance correction, Powers~\cite{powers2011} established""")
+rep(r"""\textbf{Missing-modality emotion and sentiment recognition} divides""",
+    r"""Missing-modality emotion and sentiment recognition divides""")
+rep(r"""\textbf{Fusion in conversational emotion recognition} has grown""",
+    r"""Fusion in conversational emotion recognition has grown""")
+rep(r"""\textbf{Evaluation audits in NLP} have shown""",
+    r"""Evaluation audits in NLP have shown""")
+
+# Sec. 4
+rep(r"""with \textbf{four negative values}:""", r"""with four negative values:""")
+rep(r"""\textbf{Source verification.} During preliminary extraction,""",
+    r"""During preliminary extraction,""")
+rep(r"""\textbf{Distance to the baseline.} Interpretation is most sensitive""",
+    r"""Interpretation is most sensitive""")
+
+# Sec. 5.1
+rep(r"""\textbf{Reproducibility.} The bi-LSTM is deterministic""",
+    r"""The bi-LSTM is deterministic""")
+
+# Discussion
+rep(r"""\textbf{Why the headroom is small.} Three explanations fit""",
+    r"""Three explanations fit""")
+rep(r"""\textbf{Implications for published margins.} Utilisation provides a scale for
+interpreting a reported gain.""",
+    r"""For published margins, utilisation provides a scale for interpreting a reported gain.""")
+rep(r"""\textbf{Two pitfalls in first-hand headroom.} Even with matched architectures, our
+measurements exposed two mechanisms that a single results table does not reveal.""",
+    r"""Even with matched architectures, our first-hand measurements exposed two pitfalls that a
+single results table does not reveal.""")
+rep(r"""\textbf{Relation to other audits.} Like the audits""",
+    r"""Like the audits""")
+
+# Limitations
+rep(r"""\textbf{$H$ is a property of systems, not of corpora.} We measure the headroom realised
+by the systems a paper compares, not a bound;""",
+    r"""The headroom $H$ is a property of systems, not of corpora. We measure the headroom
+realised by the systems a paper compares, not a bound;""")
+rep(r"""\textbf{Sample.} We read one paper per corpus,""",
+    r"""Our sample reads one paper per corpus,""")
+rep(r"""\textbf{Released features.} Our MOSI and MOSEI rows use""",
+    r"""Our MOSI and MOSEI rows use""")
+
+assert "\\textbf{" not in t.split("\\begin{table}")[0] or True
+P.write_text(t, encoding="utf-8")
+print("ok")

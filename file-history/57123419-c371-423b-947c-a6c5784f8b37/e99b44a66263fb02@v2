@@ -1,0 +1,30 @@
+from pathlib import Path
+
+P = Path(r"D:\dev\ClaudeResearch\paper\iceir\main.tex")
+t = P.read_text(encoding="utf-8")
+
+
+def rep(old, new):
+    global t
+    assert t.count(old) == 1, old[:60]
+    t = t.replace(old, new)
+
+
+rep(r"""\item a reading discipline for $H$ --- same paper, protocol, model family and evaluation
+  setting ---
+  and a demonstration""",
+    r"""\item a reading discipline for $H$ (same paper, protocol, model family and evaluation
+  setting) and a demonstration""")
+rep(r"""one, which is a reason to report both --- the position Delgado and
+Tibau~\cite{delgado2019} reach on other grounds --- rather than to choose between them.""",
+    r"""one, which is a reason to report both rather than to choose between them.""")
+rep(r"""predictor fit to the training split scores $37.90$ --- the same formula, $24$ points
+apart, depending on which $\pi_0$ is used.""",
+    r"""predictor fit to the training split scores $37.90$: the same formula gives values $24$
+points apart, depending on which $\pi_0$ is used.""")
+rep(r"""beside the metric the field expects --- the majority-class baseline""",
+    r"""beside the metric the field expects: the majority-class baseline""")
+
+assert "---" not in "\n".join(l for l in t.splitlines() if not l.startswith("%"))
+P.write_text(t, encoding="utf-8")
+print("ok")

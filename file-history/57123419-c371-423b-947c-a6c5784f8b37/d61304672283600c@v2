@@ -1,0 +1,82 @@
+from pathlib import Path
+
+P = Path(r"D:\dev\ClaudeResearch\paper\iceir\main.tex")
+t = P.read_text(encoding="utf-8")
+
+
+def rep(old, new):
+    global t
+    assert t.count(old) == 1, old[:60]
+    t = t.replace(old, new)
+
+
+rep(r"""Multimodal emotion recognition reports margins without reporting how much room those
+margins occupy. We measure two elementary quantities that set the scale of every such
+margin. The""",
+    r"""Papers on multimodal emotion recognition usually report margins over previous systems,
+but rarely the scale against which those margins should be read. We measure two simple
+quantities that provide this scale. The""")
+
+rep(r"""over the previous best. These margins decide which architectures the field adopts and
+which robustness claims it accepts.""",
+    r"""over the previous best. Such margins influence which architectures and robustness claims
+are adopted.""")
+
+rep(r"""quantities that set that scale are rarely reported. The \emph{baseline}: MELD's test split is""",
+    r"""quantities that set that scale are rarely reported. The first is the majority-class
+baseline. MELD's test split is""")
+rep(r"""papers emphasise report scores a few points above it. The \emph{headroom}: if a paper's""",
+    r"""papers emphasise report scores a few points above it. The second is the fusion headroom.
+If a paper's""")
+rep(r"""previous $59.25$ on a corpus where the headroom is $3.22$ points, the improvement
+is not one point out of the forty left to a perfect score but one point out of three.""",
+    r"""previous $59.25$ on a corpus where the headroom is $3.22$ points, the one-point
+improvement corresponds to about a third of the headroom, even though some forty points
+remain to a perfect score.""")
+
+rep(r"""On chance correction, Powers~\cite{powers2011} established that recall, precision,
+F-measure and accuracy are biased, that a system worse in informedness can score higher
+under any of them, and that chance levels must be reported.""",
+    r"""Powers~\cite{powers2011} showed that recall, precision, F-measure and accuracy are
+biased, that a system worse in informedness can score higher under any of them, and that
+chance levels should be reported.""")
+rep(r"""taxonomy~\cite{reinke2024}. We claim none of this as
+new. What we add is the measurement: no missing-modality emotion recognition paper we
+examined reports a chance level for any degradation condition.""",
+    r"""taxonomy~\cite{reinke2024}. These arguments are not new. Our contribution is empirical:
+none of the missing-modality emotion recognition papers we examined reports a chance level
+for any degradation condition.""")
+rep(r"""Missing-modality emotion and sentiment recognition divides into reconstruction of
+the absent channel~\cite{zhao2021,lian2023} and reweighting that leaves it absent and
+adjusts the fusion~\cite{zhang2024}; distillation from a complete-modality teacher spans
+both~\cite{li2024}.""",
+    r"""Methods for missing-modality emotion and sentiment recognition either reconstruct the
+absent channel~\cite{zhao2021,lian2023} or leave it absent and reweight the
+fusion~\cite{zhang2024}; distillation from a complete-modality teacher combines
+both~\cite{li2024}.""")
+rep(r"""We use exactly such ablations to supply
+the scale.""", r"""We use these ablations to provide
+that scale.""")
+
+rep(r"""Two assumptions are easy to lose:""", r"""Two details are easily overlooked:""")
+rep(r"""Selection matters. Late averaging posts the highest MOSEI test accuracy,""",
+    r"""The selection procedure also matters. Late averaging gives the highest MOSEI test accuracy,""")
+rep(r"""The baseline matters here too. The best constant predictor""",
+    r"""The majority-class baseline is also informative on MOSI. The best constant predictor""")
+rep(r"""The fusion style matters more than the channel: early""",
+    r"""The choice of fusion style has a larger effect than adding audio: early""")
+
+rep(r"""ablations. We do not suggest that such margins are wrong. We suggest
+that a margin should be reported beside the room it occupies, so that readers can tell a
+fusion result from a representation result.""",
+    r"""ablations. This does not make such margins wrong, but reporting them beside the headroom
+they occupy helps readers distinguish a fusion result from a representation result.""")
+
+rep(r"""modern encoders on MOSI and MOSEI, and ask which corpus designs would make fusion
+valuable, which is a question about how emotion is expressed across channels rather than
+about architectures.""",
+    r"""modern encoders on MOSI and MOSEI, and examine which corpus designs make fusion useful, a
+question that concerns how emotion is expressed across channels.""")
+
+P.write_text(t, encoding="utf-8")
+print("ok")
