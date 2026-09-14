@@ -1,0 +1,230 @@
+from pathlib import Path
+
+P = Path(r"D:\dev\ClaudeResearch\paper\iceir\main.tex")
+t = P.read_text(encoding="utf-8")
+
+
+def rep(old, new, count=1):
+    global t
+    n = t.count(old)
+    assert n == count, (n, old[:80])
+    t = t.replace(old, new)
+
+
+# 1, 33 abstract
+rep(r"""single modality, read from one table under one architecture; the \emph{majority-class""",
+    r"""single modality, read from matched results under the same protocol and model family; the \emph{majority-class""")
+rep(r"""weighted F1. A one-point margin on MELD therefore consumes a third
+of what fusion is worth in the published rows, while""",
+    r"""weighted F1. A one-point margin on MELD therefore consumes about one third
+of the published fusion headroom, while""")
+
+# 32 intro definition, and the same wording in the example
+rep(r"""is everything fusion is worth in that paper's hands, and a margin""",
+    r"""is the observed multimodal gain over the strongest unimodal result within that matched
+comparison, and a margin""")
+rep(r"""previous $59.25$ on a corpus where fusion is worth $3.22$ points in total, the improvement""",
+    r"""previous $59.25$ on a corpus where the headroom is $3.22$ points, the improvement""")
+
+# 30, 31
+rep(r"""The answer matters beyond bookkeeping. If fusion is worth only a few points, much of the""",
+    r"""This scaling matters for the interpretation of reported gains. If the headroom is only a
+few points, much of the""")
+rep(r"""can produce such differences by itself. Knowing the scale costs a subtraction and a closed
+form; not knowing it directs effort toward architectures whose benefit the measurement
+cannot resolve.""",
+    r"""can produce such differences by itself. Both quantities are inexpensive to compute, yet
+they clarify whether a reported difference is large relative to the fusion headroom
+available in the matched comparison.""")
+
+# 2 contribution 1, 3 (consistency), 6 contribution 4
+rep(r"""\item a reading discipline for $H$ --- same paper, table, protocol and architecture ---""",
+    r"""\item a reading discipline for $H$ --- same paper, protocol, model family and evaluation
+  setting ---""")
+rep(r"""  showing that part of its headroom was room left by a weak unimodal baseline""",
+    r"""  in which the text-only score rises more than the fused score""")
+rep(r"""\item a proof that kappa, multiclass MCC and balanced accuracy cannot be raised by
+  collapse onto the majority class, beside""",
+    r"""\item a proof that majority-class collapse cannot improve positive kappa or MCC, nor
+  balanced accuracy when it is above its chance level $1/K$, beside""")
+
+# 29
+rep(r"""underpowered~\cite{card2020}. This paper belongs to that genus: it measures how results
+are reported rather than proposing a method.""",
+    r"""underpowered~\cite{card2020}. Our study follows this line of evaluation-oriented audits:
+it examines how results are interpreted rather than proposing a new fusion architecture.""")
+
+# 3 definition, 4 requirements
+rep(r"""of modality $m$ alone, all read from the same table under the same architecture and
+protocol.""",
+    r"""of modality $m$ alone, all read from the same paper under the same protocol, model family
+and evaluation setting.""")
+rep(r"""Three requirements govern the reading. \emph{Same paper and table}: combining a unimodal
+score from one paper with a fused score from another compares training regimes, not
+modalities. \emph{Same protocol}: splits, label sets and metrics must match.
+\emph{Same architecture}: papers often report unimodal baselines with a shallow
+classifier and the fused system with a deep one, so the difference contains both fusion
+and architecture.""",
+    r"""Three requirements govern the reading. \emph{Same paper and evaluation setting}: the
+unimodal and fused results must come from the same study and matched experimental setting,
+although they may appear in different tables or figures. \emph{Same protocol}: splits,
+label sets and metrics must match. \emph{Same model family}: differences between a shallow
+unimodal classifier and a deeper fused model confound fusion with model capacity.""")
+
+# 7
+rep(r"""data-processing inequality, carries no more information about the label. Cohen's kappa is
+strictly increasing in $\lambda$ whenever it is positive, and so are multiclass MCC and
+balanced accuracy along the same family; none can be raised by collapse onto the majority class
+(balanced accuracy is affine in $\lambda$,""",
+    r"""data-processing inequality, carries no more information about the label. Cohen's kappa
+and multiclass MCC are strictly increasing in $\lambda$ when they are positive. Balanced
+accuracy is also increasing in $\lambda$ whenever it exceeds its chance level $1/K$. Thus,
+for above-chance classifiers, none of these metrics can be improved by collapse onto the
+majority class (balanced accuracy is affine in $\lambda$,""")
+
+# 9, 10 sample description (and its admission rule, kept consistent with 3-4)
+rep(r"""SEED-IV~\cite{zheng2019}) and EEG with peripheral physiology (AMIGOS~\cite{amigos},
+DEAP~\cite{koelstra2012}).""",
+    r"""SEED-IV~\cite{zheng2019}) and EEG with peripheral physiology (AMIGOS~\cite{amigos}).""")
+rep(r"""the unimodal and fused scores share one paper, one protocol and one architecture and are
+printed in the same results section; a""",
+    r"""the unimodal and fused scores share one paper, one protocol, one model family and one
+evaluation setting; a""")
+rep(r"""unimodal rows beside the fused row. Candidates were dropped for two reasons only: no
+matched unimodal row, and unreadable tables (DEAP).""",
+    r"""unimodal rows beside the fused row. Candidates were excluded when we could not identify a
+matched unimodal--fusion comparison satisfying the criteria above.""")
+
+# 5, 11 table caption
+rep(r"""\caption{Fusion headroom $H$ (points), matched on paper, table, protocol and
+architecture.""",
+    r"""\caption{Fusion headroom $H$ (points), matched on paper, protocol, model family and
+evaluation setting.""")
+rep(r"""printed cells. DEAP is omitted because its tables are raster images whose cells could not
+be read.}""",
+    r"""printed cells.}""")
+
+# 15, 16
+rep(r"""The range is $-1.8$ to $+9.1$ points (Fig.~\ref{fig:headroom}), and \textbf{four of the
+ten comparisons are negative}:""",
+    r"""Across the ten matched comparisons, $H$ ranges from $-1.8$ to $+9.1$ points
+(Fig.~\ref{fig:headroom}), with \textbf{four negative values}:""")
+rep(r"""The ordering also defies intuition.""",
+    r"""The observed ordering does not follow a simple pattern by modality type.""")
+
+# 13, 14
+rep(r"""\textbf{Reading at the source.} We first assembled this table from search summaries, and
+three entries were wrong, all in the same direction. KEMDy20 was recorded at $H=3.8$
+because the paper's ``$+3.8$ points'' is measured against its speech-only baseline, not
+the best single modality. MELD was recorded at about $6$ because summaries attributed the
+text-only cell to the bimodal system. SEED-IV was recorded at $14.78$, the
+cross-architecture reading above. Every correction moved $H$ downward.""",
+    r"""\textbf{Reading at the source.} During preliminary extraction, three entries were
+initially mismatched; verification against the original papers corrected all three
+downward. The KEMDy20 value had been measured against speech alone rather than the best
+single modality; the MELD text score had been assigned to the wrong modality combination;
+and the SEED-IV value mixed classifier families. Table~\ref{tab:headroom} reports the
+corrected values under the matching criteria of Section~\ref{sec:diag}.""")
+
+# 17
+rep(r"""\textbf{Distance to the baseline.} It matters where it is close. On MELD's""",
+    r"""\textbf{Distance to the baseline.} Interpretation is most sensitive when reported scores
+lie near the baseline. On MELD's""")
+
+# 18
+rep(r"""The MELD rows of Table~\ref{tab:headroom} rest on the features released with that paper,
+and a weak unimodal baseline biases $H$ upward. MELD's raw media are public, so this can
+be tested.""",
+    r"""The MELD rows of Table~\ref{tab:headroom} use the features released with that paper. We
+therefore test how $H$ changes when the unimodal representation is strengthened using
+frozen modern encoders, which MELD's public raw media allow.""")
+
+# 19
+rep(r"""interval of $H$ drawn on the fused end. What moved between the published rows and ours is
+the baseline: frozen text alone lands to the right of both published fused systems.}""",
+    r"""interval of $H$ drawn on the fused end. The text-only score shifts more than the fused
+score, and frozen text alone exceeds both published fused systems.}""")
+
+# 20, 21, 22
+rep(r"""On that benchmark $H=7.3$, so the two margins claimed $69\%$ and $53\%$ of
+everything fusion is worth; the system scored $36.0$ against a floor of $31.0$""",
+    r"""On that benchmark $H=7.3$, so the two margins correspond to $69\%$ and $53\%$ of the
+observed fusion headroom; the system scored $36.0$ against a majority-class baseline of
+$31.0$""")
+rep(r"""A
+margin that is not an artifact of the metric looks like this: smaller, and consistent
+across metrics that disagree about what to reward.""",
+    r"""The
+surviving margin is smaller but directionally consistent across metrics that reward
+different properties, making a metric-specific explanation less likely.""")
+
+# 25
+rep(r"""and a stronger text encoder moves the unimodal baseline more than the fused system, which
+is what the MELD re-measurement shows.""",
+    r"""and in our MELD re-measurement the text-only score increases more than the fused score,
+shrinking $H$ toward zero.""")
+
+# 24, 23
+rep(r"""\textbf{What this means for published margins.} Utilisation makes the stakes concrete.""",
+    r"""\textbf{Implications for published margins.} Utilisation provides a scale for
+interpreting a reported gain.""")
+rep(r"""\textbf{Two ways a first-hand headroom inflates.}""",
+    r"""\textbf{Two sources of inflated first-hand headroom.}""")
+
+# 26
+rep(r"""by the systems a paper compares, not a bound; a better fusion method could enlarge it. Two
+things temper this. The corpora span eleven years and very different architectures, and
+the range does not widen with capacity. And weak unimodal baselines bias $H$ upward, so
+the small values are, if anything, upper estimates --- which Section~\ref{sec:meld} tests
+on one row.""",
+    r"""by the systems a paper compares, not a bound; a better fusion method could enlarge it.
+The corpora span eleven years and different model families, but the sample is too small
+to support a trend with model capacity. Moreover, weak unimodal representations can
+increase the measured $H$, as illustrated by the MELD re-measurement in
+Section~\ref{sec:meld}.""")
+
+# 12
+rep(r"""values are comparable within a row, not across corpora. DEAP is missing because its tables are unreadable, which may not
+be random.""",
+    r"""values are comparable within a row, not across corpora.""")
+
+# 27, 28 (provenance of the MOSI/MOSEI extractors hedged as in the FJCAI paper)
+rep(r"""\textbf{Released features.} Our MOSI and MOSEI rows use features whose text and video
+extractors were trained on the training split: held-out training videos reach far higher
+accuracy than test, which saturates model selection. The rows describe fusion over those
+features. On the same release's IEMOCAP~\cite{busso2008} features, a model tested on
+session 4 instead of session 5 gains $31$ points of accuracy from the released text block,
+and replacing that block with any of three frozen encoders reverses the gap to about
+$-7$, which suggests that such features can mislead under protocols they were not built for.
+The MELD measurement avoids this, but covers a single corpus.""",
+    r"""\textbf{Released features.} Our MOSI and MOSEI rows use features whose text and video
+extractors are reported to have been trained on the training split: held-out training
+videos reach far higher accuracy than test, which saturates model selection. The rows
+therefore describe fusion over those released features rather than a dataset-level
+estimate of fusion headroom. The MELD measurement avoids this limitation by using frozen
+encoders, although it covers only one corpus.""")
+
+# recommendations: same matching criteria; 34
+rep(r"""$2\pi_0^2/(1+\pi_0)$ from the evaluation label counts; the headroom $H$, matched on paper,
+table, protocol and architecture, with""",
+    r"""$2\pi_0^2/(1+\pi_0)$ from the evaluation label counts; the headroom $H$, matched on paper,
+protocol, model family and evaluation setting, with""")
+rep(r"""\emph{To benchmark designers}: a corpus whose best single channel sits
+a few points above that baseline, as AMIGOS does, cannot separate fusion methods.""",
+    r"""\emph{To benchmark designers}: a corpus whose best single channel sits
+only a few points above that baseline, as in the AMIGOS comparison, provides limited
+dynamic range for separating fusion methods.""")
+
+# 36, 35, and the matching softening of the last clause (consistent with 18)
+rep(r"""In the matched comparisons we could read or measure, fusion is worth a few points at
+most; a metric that rewards collapse onto the majority class is the wrong instrument for
+differences that small; and part of the published headroom --- on the one row we could
+re-measure --- is room left by a weak unimodal baseline.""",
+    r"""In the matched comparisons examined here, the observed fusion headroom is generally
+small; weighted F1 should not be used alone to interpret differences of this scale when
+majority-class collapse is plausible; and on the one published row we could re-measure,
+stronger unimodal representations reduce the headroom to a value indistinguishable from
+zero.""")
+
+P.write_text(t, encoding="utf-8")
+print("ok")
