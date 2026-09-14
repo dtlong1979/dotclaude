@@ -1,0 +1,61 @@
+import json
+from pathlib import Path
+
+ROOT = Path(r"D:\dev\ClaudeResearch")
+P = ROOT / "paper" / "fjcai" / "main.tex"
+t = P.read_text(encoding="utf-8")
+b = json.loads((ROOT / "results" / "dialogue_bootstrap.json").read_text())
+lin = json.loads((ROOT / "results" / "iemocap_session_gap_linear.json").read_text())["blocks"]
+
+
+def ci(pair):
+    lo, hi = (100 * v for v in pair)
+    f = lambda v: f"{v:+.1f}".replace("-", "-")
+    return f"$[{f(lo)}, {f(hi)}]$"
+
+
+g = b["session_gap"]
+fill = {
+    "<<CI_text>>": ci(g["bert-base-uncased:released CNN (2017, label-fit)"]["ci95"]),
+    "<<CI_video>>": ci(g["bert-base-uncased:video (released 3D-CNN)"]["ci95"]),
+    "<<CI_audio>>": ci(g["bert-base-uncased:audio (unsupervised, reference)"]["ci95"]),
+    "<<CI_bert>>": ci(g["bert-base-uncased:frozen bert-base-uncased"]["ci95"]),
+    "<<CI_roberta>>": ci(g["roberta-base:frozen roberta-base"]["ci95"]),
+    "<<CI_deberta>>": ci(g["microsoft_deberta-v3-base:frozen microsoft/deberta-v3-base"]["ci95"]),
+}
+fill["<<GAPCI>>"] = fill["<<CI_text>>"]
+
+L = b["loso"]
+frozen = [L[f"iemocap_loso_dlg/{k}"]["inflation_ci95"] for k in ("bert", "roberta", "deberta")]
+lo = min(p[0] for p in frozen) * 100
+hi = max(p[1] for p in frozen) * 100
+fill["<<LOSOCI>>"] = (
+    "Dialogue-bootstrap 95\\% intervals for the inflation are "
+    f"{ci(L['iemocap_loso_dlg/released-text']['inflation_ci95'])} points for the released text, "
+    f"{ci(L['iemocap_loso_dlg/released-tav']['inflation_ci95'])} for the three released blocks "
+    f"fused, {ci(L['iemocap_loso_dlg/released-video']['inflation_ci95'])} for the visual block "
+    f"and {ci(L['iemocap_loso_dlg/released-audio']['inflation_ci95'])} for audio; for the frozen "
+    f"text encoders they span ${lo:+.1f}$ to ${hi:+.1f}$."
+)
+fill["<<RERUN>>"] = "differ from the tabulated ones by at most 2.1 points"
+secs = max(v["seconds"] for v in lin.values())
+fill["<<TIMING>>"] = (
+    f"fitting both models for one block took under {int(secs) + 1}\\,s on a desktop CPU "
+    "(Intel Core i7-12700)"
+)
+for k, v in fill.items():
+    assert t.count(k) == 1, k
+    t = t.replace(k, v)
+
+old = r"""text and $+11$ for the visual block; frozen text encoders give $-13$ to $-14$.}}"""
+gm = {k: v["gap_minus_audio"] * 100 for k, v in lin.items() if "gap_minus_audio" in v}
+new = (r"""text and $+11$ for the visual block; frozen text encoders give $-13$ to $-14$. With the
+linear probe it is """ + f"${gm['released-text']:+.0f}$ for text, ${gm['released-video']:+.0f}$ for "
+       + f"the visual block and ${gm['bert']:+.0f}$ for frozen BERT." + "}}")
+assert t.count(old) == 1
+t = t.replace(old, new)
+assert "<<" not in t
+P.write_text(t, encoding="utf-8")
+for k, v in fill.items():
+    print(k, v)
+print(new)

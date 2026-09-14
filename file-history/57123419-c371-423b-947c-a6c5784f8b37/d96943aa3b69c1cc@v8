@@ -1,0 +1,219 @@
+#!/usr/bin/env python3
+"""Build the code-only release of each conference paper.
+
+Each pack mirrors the repository layout, so relative imports keep working, and holds the
+code that reproduces the paper's experiments: no plotting code, no comments, no
+docstrings, and no argparse help text. Command-line defaults are set to the values the
+paper reports. Input data files keep only the fields the code reads. A pack may also carry
+result files (local data paths reduced to file names) and short documents that the paper
+refers the reader to. The README lists the files; requirements.txt lists packages.
+
+    python scripts/make_supplementary.py
+"""
+from __future__ import annotations
+
+import ast
+import json
+import shutil
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+
+UACMD = {
+    "src/uacmd/__init__.py": "package",
+    "src/uacmd/metrics.py": "accuracy, weighted and macro F1, kappa, MCC, majority-class baseline",
+}
+
+PACKS = {
+    "fusion-headroom-mer-iceir2026": {
+        "dest": "paper/iceir/supplementary",
+        "files": {
+            "scripts/fetch_features.py": "released MOSI, MOSEI and IEMOCAP feature files, with MD5 check",
+            "scripts/extract_meld_frozen.py": "frozen BERT, WavLM and CLIP features for MELD",
+            "experiments/headroom.py": "fusion headroom of the matched comparisons",
+            "experiments/theory_check.py": "majority-class baselines and collapse toward the majority class",
+            "experiments/mosi_mosei_headroom.py": "MOSI and MOSEI: unimodal, early and late fusion",
+            "experiments/mosi_mosei_midfusion.py": "MOSI and MOSEI: mid fusion",
+            "experiments/mosi_mosei_report.py": "MOSI and MOSEI headroom with held-out selection",
+            "experiments/paired_stats.py": "paired bootstrap interval, sign-flip permutation test, Cohen's d_z",
+            "experiments/iemocap_context.py": "bi-LSTM and batching utilities",
+            "experiments/meld_context.py": "MELD loader",
+            "experiments/meld_headroom.py": "MELD headroom on frozen features",
+            "experiments/run_synth.py": "synthetic missing-modality benchmark",
+            "experiments/synth_kappa_report.py": "case-study margins",
+            **UACMD,
+            "src/uacmd/baselines_recon.py": "reconstruction baseline",
+            "src/uacmd/evidential.py": "evidential heads",
+            "src/uacmd/gate.py": "fusion gates",
+            "src/uacmd/losses.py": "alignment and distillation losses",
+            "src/uacmd/masking.py": "modality availability patterns",
+            "src/uacmd/models.py": "encoders, teacher, student and baselines",
+            "src/uacmd/train.py": "training loops",
+            "src/uacmd/data/__init__.py": "package",
+            "src/uacmd/data/real.py": "MELD label order",
+            "src/uacmd/data/synth.py": "synthetic tri-modal data",
+        },
+        "defaults": {
+            "experiments/mosi_mosei_headroom.py": {"--seeds": 20},
+            "experiments/mosi_mosei_midfusion.py": {"--seeds": 20},
+            "experiments/meld_headroom.py": {"--seeds": 20},
+            "experiments/run_synth.py": {"--teacher-epochs": 30, "--student-epochs": 50},
+        },
+        "data": {
+            "docs/headroom-data.json": "docs/headroom-data.json",
+            "src/uacmd/data/meld_priors.json": "src/uacmd/data/meld_priors.json",
+        },
+        "json_keep": {
+            "docs/headroom-data.json": ("corpus", "modalities", "fused", "metric", "source",
+                                        "protocol", "same_architecture", "second_hand",
+                                        "first_hand", "case_study"),
+        },
+        "requirements": ("torch>=2.0", "numpy", "scipy", "scikit-learn", "pandas",
+                         "transformers", "torchvision", "pillow", "av"),
+    },
+    "iemocap-feature-leakage-fjcai2027": {
+        "dest": "paper/fjcai/supplementary",
+        "files": {
+            "scripts/fetch_features.py": "released MOSI, MOSEI and IEMOCAP feature files, with MD5 check",
+            "experiments/mosi_mosei_headroom.py": "bi-LSTM reader; MOSI and MOSEI held-out versus test",
+            "experiments/iemocap_text_reextract.py": "frozen-encoder text features; session-4 versus session-5 gap",
+            "experiments/iemocap_session_stats.py": "class balance per session",
+            "experiments/iemocap_loso.py": "leave-one-session-out with the bi-LSTM, per-emotion recall",
+            "experiments/iemocap_loso_linear.py": "leave-one-session-out with a linear probe",
+            "experiments/iemocap_matched_gap.py": "session gap with three training sessions per fold, PCA projection",
+            "experiments/iemocap_protocols.py": "leave-one-speaker-out and random dialogue-level cross-validation",
+            "experiments/iemocap_knn_diagnostic.py": "nearest-neighbour label agreement per session",
+            "experiments/iemocap_gap_linear.py": "session gap with a linear probe, timed",
+            "experiments/dialogue_bootstrap.py": "dialogue-level bootstrap intervals for the session gap and LOSO inflation",
+            "scripts/export_fold_seed_table.py": "one row per experiment, fold, seed and metric",
+            "experiments/iemocap_ranking.py": "rank agreement between protocols",
+            "experiments/dialoguecrn_loso.py": "DialogueCRN leakage stress test under leave-one-session-out",
+            "experiments/iemocap_feature_provenance.py": "utterance-level comparison of the released feature files",
+            "experiments/feature_file_md5.py": "MD5 digests of the feature files",
+            "experiments/iemocap_context.py": "frozen text fused with released audio and visual blocks",
+            **UACMD,
+        },
+        "defaults": {
+            "experiments/dialoguecrn_loso.py": {"--epochs": 100, "--patience": 20},
+        },
+        "data": {},
+        "json_keep": {},
+        "results": (
+            "results/iemocap_session_gap_*.json", "results/iemocap_session_gap_dlg/*.json",
+            "results/iemocap_session_gap_linear.json", "results/iemocap_session_stats.json",
+            "results/iemocap_loso/*.json", "results/iemocap_loso_mmgcn/*.json",
+            "results/iemocap_loso_dlg/*.json", "results/iemocap_loso_mmgcn_dlg/*.json",
+            "results/iemocap_loso_linear/*.json", "results/iemocap_matched_gap/*.json",
+            "results/iemocap_protocols/*.json", "results/iemocap_knn_diagnostic*.json",
+            "results/iemocap_ranking.json", "results/dialoguecrn_loso/*.json",
+            "results/dialoguecrn_repro/*.json", "results/iemocap_feature_provenance.json",
+            "results/iemocap_feature_files_md5.json", "results/iemocap_context_bert*.json",
+            "results/dialogue_bootstrap.json", "results/fjcai_fold_seed.csv",
+            "results/headroom_mosi_mosei_fixed.json",
+        ),
+        "docs": {
+            "docs/usage_audit.md": "paper/fjcai/release_docs/usage_audit.md",
+            "docs/dialoguecrn_stress_test.md": "paper/fjcai/release_docs/dialoguecrn_stress_test.md",
+            "docs/mosi_mosei_heldout.md": "paper/fjcai/release_docs/mosi_mosei_heldout.md",
+        },
+        "external": {
+            "https://github.com/zerohd4869/DialogueCRN": "DialogueCRN release (commit 2c2070d, MIT License), "
+                                                         "read by experiments/dialoguecrn_loso.py",
+        },
+        "requirements": ("torch>=2.0", "numpy", "scipy", "scikit-learn", "pandas",
+                         "transformers", "sentencepiece", "torch_geometric"),
+    },
+}
+
+STRIP_KEYWORDS = {"help", "description", "epilog"}
+
+
+def strip(source: str, defaults: dict) -> str:
+    """Drop comments, docstrings and argparse help text; apply the paper's defaults."""
+    tree = ast.parse(source)
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)):
+            body = node.body
+            if (body and isinstance(body[0], ast.Expr)
+                    and isinstance(body[0].value, ast.Constant)
+                    and isinstance(body[0].value.value, str)):
+                node.body = body[1:] or [ast.Pass()]
+        if isinstance(node, ast.Call):
+            node.keywords = [k for k in node.keywords if k.arg not in STRIP_KEYWORDS]
+            if (defaults and isinstance(node.func, ast.Attribute)
+                    and node.func.attr == "add_argument" and node.args
+                    and isinstance(node.args[0], ast.Constant)
+                    and node.args[0].value in defaults):
+                value = defaults[node.args[0].value]
+                node.keywords = [k for k in node.keywords if k.arg != "default"]
+                node.keywords.append(ast.keyword(arg="default", value=ast.Constant(value)))
+    return ast.unparse(ast.fix_missing_locations(tree)) + "\n"
+
+
+def sanitise(obj):
+    """Reduce local data paths to file names."""
+    if isinstance(obj, dict):
+        return {k: sanitise(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [sanitise(v) for v in obj]
+    if isinstance(obj, str) and len(obj) > 2 and obj[1] == ":" and obj[2] in "/\\":
+        return Path(obj.replace("\\", "/")).name
+    return obj
+
+
+def build(name: str, spec: dict) -> Path:
+    dest = ROOT / spec["dest"]
+    if dest.exists():
+        shutil.rmtree(dest)
+    for rel in spec["files"]:
+        target = dest / rel
+        target.parent.mkdir(parents=True, exist_ok=True)
+        source = (ROOT / rel).read_text(encoding="utf-8")
+        target.write_text(strip(source, spec["defaults"].get(rel, {})), encoding="utf-8")
+    for src, rel in spec["data"].items():
+        target = dest / rel
+        target.parent.mkdir(parents=True, exist_ok=True)
+        if src in spec["json_keep"]:
+            data = json.loads((ROOT / src).read_text(encoding="utf-8"))
+            keep = spec["json_keep"][src]
+            data = {"entries": [{k: e[k] for k in keep if k in e} for e in data["entries"]]}
+            target.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n",
+                              encoding="utf-8")
+        else:
+            shutil.copyfile(ROOT / src, target)
+    results = sorted({p for pattern in spec.get("results", ()) for p in ROOT.glob(pattern)})
+    for src in results:
+        rel = src.relative_to(ROOT).as_posix()
+        target = dest / rel
+        target.parent.mkdir(parents=True, exist_ok=True)
+        if src.suffix == ".json":
+            data = sanitise(json.loads(src.read_text(encoding="utf-8")))
+            target.write_text(json.dumps(data, indent=1) + "\n", encoding="utf-8")
+        else:
+            shutil.copyfile(src, target)
+    for rel, src in spec.get("docs", {}).items():
+        target = dest / rel
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(ROOT / src, target)
+    lines = [f"# {name}", ""]
+    lines += [f"- `{rel}`: {what}" for rel, what in spec["files"].items()]
+    lines += [f"- `{rel}`: input data" for rel in spec["data"].values()]
+    if results:
+        lines.append(f"- `results/`: {len(results)} result files, per fold and per seed")
+    lines += [f"- `{rel}`" for rel in spec.get("docs", {})]
+    lines += [f"- {url}: {what}" for url, what in spec.get("external", {}).items()]
+    (dest / "README.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    (dest / "requirements.txt").write_text("\n".join(spec["requirements"]) + "\n",
+                                           encoding="utf-8")
+    print(f"{spec['dest']}: {len(spec['files'])} code files, {len(spec['data'])} data files, "
+          f"{len(results)} result files")
+    return dest
+
+
+def main() -> None:
+    for name, spec in PACKS.items():
+        build(name, spec)
+
+
+if __name__ == "__main__":
+    main()
