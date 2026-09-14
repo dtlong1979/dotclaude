@@ -1,0 +1,23 @@
+# -*- coding: utf-8 -*-
+"""§⚙️A: ghi quyết định của giáo vụ về 2 cặp mã trùng tên (11/09/2026). Sửa tại chỗ."""
+import io
+
+P = r"D:\dev\FithouOne\.project\ARCHITECTURE.md"
+s = io.open(P, encoding="utf-8").read()
+
+CU = """- **Bẫy TÊN TRÙNG (vá 11/09)** — danh bạ có **8 họ tên trùng, 4 người đang dạy** (Trần Tiến Dũng ·
+  Bùi Anh Tuấn · Lương Cao Đông · Nguyễn Thanh Tùng). Trùng tên **không chỉ do đổi mã**: hai "Trần
+  Tiến Dũng" là HAI NGƯỜI THẬT — `CH0170` Phòng TC-HC (`ttdung`) · `CH0411` TT Công nghệ KTS
+  (`ttdung2`), đối chiếu `cas_canbo`. **ĐỪNG xoá bản ghi "thừa" khi chưa đối chiếu CAS.**"""
+MOI = """- **Bẫy TÊN TRÙNG (vá 11/09)** — danh bạ còn **6 họ tên trùng, 2 người đang dạy** (Trần Tiến Dũng ·
+  Bùi Anh Tuấn). Trùng tên **không chỉ do đổi mã**: hai "Trần Tiến Dũng" là HAI NGƯỜI THẬT —
+  `CH0170` Phòng TC-HC (`ttdung`) · `CH0411` TT Công nghệ KTS (`ttdung2`), đối chiếu `cas_canbo`.
+  **ĐỪNG xoá bản ghi "thừa" khi chưa đối chiếu CAS hoặc chưa có giáo vụ chốt.**
+  - Đã chốt 11/09 (giáo vụ): **Lương Cao Đông = `TG1299`** (xoá `CH0149`, 2 lớp Cấu trúc dữ liệu
+    `.4/.5` chuyển sang qua `sua_lop`) · **Nguyễn Thanh Tùng = `TG1152`** (xoá `KG0306`, không
+    tham chiếu). Cả hai cặp đều KHÔNG có trong danh bạ CAS nên không tự phân định được. Sao lưu
+    `*_bak_20260911_matrung`. Xoá mã cán bộ thì PHẢI chuyển hết tham chiếu trước (`lop_tin_chi`,
+    `lich_hoc`, `thanh_vien_hoi_thoai.username`…) — quét mọi cột văn bản, đừng đoán bảng."""
+assert s.count(CU) == 1, "khong tim thay doan Bay TEN TRUNG"
+io.open(P, "w", encoding="utf-8", newline="\n").write(s.replace(CU, MOI, 1))
+print("da cap nhat §⚙️A")
