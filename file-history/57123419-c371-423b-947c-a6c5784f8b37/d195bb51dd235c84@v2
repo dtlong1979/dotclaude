@@ -1,0 +1,44 @@
+from pathlib import Path
+
+P = Path(r"D:\dev\ClaudeResearch\paper\iceir\main.tex")
+t = P.read_text(encoding="utf-8")
+
+
+def rep(old, new, count=1):
+    global t
+    n = t.count(old)
+    assert n == count, (n, old[:80])
+    t = t.replace(old, new)
+
+
+rep(r"""small $H$, and a reader who applies the same three requirements to a different paper on
+the same corpus may obtain a different value; that is the claim we would want falsified,
+which is why the source and metric of every row are recorded with the data.""",
+    r"""small $H$. Applying the same criteria to a different paper on the same corpus may yield a
+different value; we therefore record the source and metric of every row to make the audit
+reproducible.""")
+rep(r"""\textbf{Reading at the source.}""", r"""\textbf{Source verification.}""")
+rep(r"""We built a missing-modality framework to the field's standard --- per-channel evidential
+heads, a vacuity-weighted fusion gate and asymmetric distillation from a complete-modality
+teacher --- on a controlled \emph{synthetic} tri-modal benchmark whose class priors and
+split sizes are taken from MELD but whose samples are generated, so that per-channel
+reliability is known; ten seeds and seven availability patterns.""",
+    r"""We built a representative missing-modality framework with per-channel evidential heads, a
+vacuity-weighted fusion gate and asymmetric distillation from a complete-modality teacher,
+and evaluated it on a \emph{synthetic} tri-modal benchmark whose class priors and split
+sizes are taken from MELD but whose samples are generated, so that per-channel reliability
+is known (ten seeds, seven availability patterns).""")
+rep(r"""The
+surviving margin is smaller but directionally consistent""",
+    r"""This
+margin is smaller but directionally consistent""")
+rep(r"""The rule below is addressed to three readers. \emph{To authors""",
+    r"""We recommend the following reporting practices for authors, reviewers and benchmark
+designers. \emph{To authors""")
+rep(r"""The rule is in
+the spirit of consensus reporting checklists""",
+    r"""These practices are in
+the spirit of consensus reporting checklists""")
+
+P.write_text(t, encoding="utf-8")
+print("ok")
