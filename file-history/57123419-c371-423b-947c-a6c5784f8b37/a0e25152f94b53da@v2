@@ -1,0 +1,145 @@
+from pathlib import Path
+
+P = Path(r"D:\dev\ClaudeResearch\paper\fjcai\main.tex")
+t = P.read_text(encoding="utf-8")
+
+
+def rep(old, new, count=1):
+    global t
+    n = t.count(old)
+    assert n == count, (n, old[:70])
+    t = t.replace(old, new)
+
+
+# abstract
+rep(r"frozen text encoders never trained on IEMOCAP labels the difference is about $-7$ points,",
+    r"frozen text encoders never trained on IEMOCAP labels it is between $-6.9$ and $-8.0$ points,")
+rep(r"five-fold LOSO the released text features reach 83.5\% accuracy against 59.4\% on the",
+    r"five-fold LOSO the released text features reach 83.5\% accuracy against 59.5\% on the")
+
+# uncertainty
+rep(r"""averaged over seeds. They come from a rerun that stores per-dialogue predictions, whose
+point estimates differ from the tabulated ones by at most 2.1 points. Results per fold and per seed are in the accompanying
+repository.""",
+    r"""averaged over seeds. Results per fold and per seed are in the accompanying repository.""")
+
+# session gap table and text
+rep(r"Released text (supervised) & 90.45 & 59.36 & $+31.10$ &", r"Released text (supervised) & 90.61 & 59.54 & $+31.07$ &")
+rep(r"Released visual (supervised) & 48.79 & 31.40 & $+17.38$ &", r"Released visual (supervised) & 48.77 & 33.09 & $+15.68$ &")
+rep(r"Released audio (unsupervised) & 54.12 & 48.02 & $+6.10$ &", r"Released audio (unsupervised) & 53.66 & 47.73 & $+5.93$ &")
+rep(r"Frozen BERT-base & 56.83 & 63.98 & $-7.14$ &", r"Frozen BERT-base & 56.61 & 64.59 & $-7.98$ &")
+rep(r"Frozen RoBERTa-base & 56.79 & 64.51 & $-7.72$ &", r"Frozen RoBERTa-base & 56.42 & 64.28 & $-7.87$ &")
+rep(r"Frozen DeBERTa-v3-base & 54.56 & 61.63 & $-7.07$ &", r"Frozen DeBERTa-v3-base & 54.78 & 61.72 & $-6.93$ &")
+rep(r"""The released text features give 90.45\% on session 4
+and 59.36\% on session 5""", r"""The released text features give 90.61\% on session 4
+and 59.54\% on session 5""")
+rep(r"three frozen encoders the gap is negative, between $-7.1$ and $-7.7$ points;",
+    r"three frozen encoders the gap is negative, between $-6.9$ and $-8.0$ points;")
+rep(r"different actors. The frozen encoders also reach 2.3 to 5.2 points higher accuracy than",
+    r"different actors. The frozen encoders also reach 2.2 to 5.1 points higher accuracy than")
+rep(r"unsupervised, drops by about as much as its session gap ($+6.1$);",
+    r"unsupervised, drops by about as much as its session gap ($+5.9$);")
+
+# LOSO text
+rep(r"""suspected leak affects. With the released text features, folds 1--4 score between 88.2\%
+and 90.2\%, fold 5 scores 59.36\%, and the five-fold mean is 83.52\%. Fusing all three
+released blocks, the configuration most papers report, gives a five-fold mean of 83.58\%
+against 57.59\%. The visual block alone inflates by 18 points;""",
+    r"""suspected leak affects. With the released text features, folds 1--4 score between 88.1\%
+and 91.9\%, fold 5 scores 59.54\%, and the five-fold mean is 83.51\%. Fusing all three
+released blocks, the configuration most papers report, gives a five-fold mean of 83.71\%
+against 57.24\%. The visual block alone inflates by 16 points;""")
+rep(r"""Unsupervised audio moves by two points. With frozen text encoders the five-fold
+mean is \emph{below} the standard split by 3.8 to 4.8 points (1.5 with BERT text plus
+released audio)""",
+    r"""Unsupervised audio moves by three points. With frozen text encoders the five-fold
+mean is \emph{below} the standard split by 3.8 to 5.2 points (1.4 with BERT text plus
+released audio)""")
+rep(r"""which moves with accuracy in every row: $+25.3$ for the released text, $+15.8$ for the
+visual block, $+1.5$ for audio and $+26.1$ for the three released blocks fused, against
+$-3.5$ to $-5.1$ for the frozen text encoders ($-2.2$ with the released audio added).""",
+    r"""which moves with accuracy in every row: $+24.9$ for the released text, $+14.4$ for the
+visual block, $+2.7$ for audio and $+26.5$ for the three released blocks fused, against
+$-3.4$ to $-5.6$ for the frozen text encoders ($-2.0$ with the released audio added).""")
+rep(r"every tabulated value is at most $2.4$ points.", r"every tabulated value is at most $2.1$ points.")
+
+rows = {
+    r"Text (supervised CNN) & 89.56 & 83.52 & 59.36 & $+24.17$ & $+24.42$ & $+0.30$":
+        r"Text (supervised CNN) & 89.50 & 83.51 & 59.54 & $+23.97$ & $+24.18$ & $+0.30$",
+    r"Visual (supervised 3D-CNN) & 54.09 & 49.56 & 31.40 & $+18.15$ & $+16.53$ & $+0.21$":
+        r"Visual (supervised 3D-CNN) & 53.20 & 49.18 & 33.09 & $+16.09$ & $+14.56$ & $+0.19$",
+    r"bc-LSTM release & Audio (unsupervised) & 50.67 & 50.14 & 48.02 & $+2.12$ & $+1.48$ & $+0.02$":
+        r"bc-LSTM release & Audio (unsupervised) & 51.70 & 50.90 & 47.73 & $+3.17$ & $+2.97$ & $+0.03$",
+    r"bc-LSTM release & Text + audio + visual & 90.08 & 83.58 & 57.59 & $+25.99$ & $+25.76$ & $+0.32$":
+        r"bc-LSTM release & Text + audio + visual & 90.33 & 83.71 & 57.24 & $+26.47$ & $+26.16$ & $+0.32$",
+    r"MMGCN release & Audio (1{,}582-d) & 49.02 & 49.45 & 51.14 & $-1.69$ & $-2.55$ & $-0.02$":
+        r"MMGCN release & Audio (1{,}582-d) & 48.33 & 48.78 & 50.56 & $-1.79$ & $-2.27$ & $-0.02$",
+    r"MMGCN release & Visual (342-d) & 35.32 & 35.61 & 36.76 & $-1.16$ & $-1.69$ & $-0.02$":
+        r"MMGCN release & Visual (342-d) & 34.74 & 34.82 & 35.10 & $-0.28$ & $-0.12$ & $-0.01$",
+    r"MMGCN release & Text + audio + visual & 86.26 & 81.53 & 62.62 & $+18.91$ & $+18.75$ & $+0.23$":
+        r"MMGCN release & Text + audio + visual & 85.85 & 81.33 & 63.26 & $+18.08$ & $+17.93$ & $+0.22$",
+    r"Frozen encoder & BERT-base text & 58.97 & 59.97 & 63.98 & $-4.00$ & $-4.64$ & $-0.05$":
+        r"Frozen encoder & BERT-base text & 58.45 & 59.68 & 64.59 & $-4.91$ & $-5.36$ & $-0.06$",
+    r"Frozen encoder & RoBERTa-base text & 59.77 & 60.72 & 64.51 & $-3.79$ & $-4.20$ & $-0.05$":
+        r"Frozen encoder & RoBERTa-base text & 59.57 & 60.51 & 64.28 & $-3.77$ & $-4.11$ & $-0.05$",
+    r"Frozen encoder & DeBERTa-v3-base text & 55.58 & 56.79 & 61.63 & $-4.84$ & $-5.53$ & $-0.06$":
+        r"Frozen encoder & DeBERTa-v3-base text & 55.21 & 56.51 & 61.72 & $-5.21$ & $-5.98$ & $-0.07$",
+    r"Frozen encoder & BERT text + released audio & 63.23 & 63.59 & 65.04 & $-1.45$ & $-2.21$ & $-0.02$":
+        r"Frozen encoder & BERT text + released audio & 63.07 & 63.42 & 64.82 & $-1.40$ & $-2.03$ & $-0.02$",
+}
+for a, b in rows.items():
+    rep(a, b)
+
+# random CV standard split reference
+rep(r"""Averaged over all test utterances, the released text reaches 83.9\% under this protocol
+against 59.4\% on the standard split.""",
+    r"""Averaged over all test utterances, the released text reaches 83.9\% under this protocol
+against 59.5\% on the standard split.""")
+
+# per-emotion
+rep(r"each of the six emotions gains between 17 and 43 points, most for \emph{happy}.",
+    r"each of the six emotions gains between 17 and 41 points, most for \emph{happy}.")
+rep(r"""frozen BERT the changes differ in sign, from $-18.5$ points for \emph{neutral} to $+7.0$
+for \emph{excited},""",
+    r"""frozen BERT the changes differ in sign, from $-17.6$ points for \emph{neutral} to $+3.9$
+for \emph{excited},""")
+emo = {
+    r"Happy & 31.94 & $+43.01$ & 31.02 & $+1.97$": r"Happy & 33.56 & $+40.56$ & 31.02 & $+1.81$",
+    r"Sad & 70.75 & $+17.00$ & 74.15 & $+3.14$": r"Sad & 71.29 & $+16.69$ & 76.19 & $+2.91$",
+    r"Neutral & 54.69 & $+24.38$ & 64.41 & $-18.45$": r"Neutral & 54.43 & $+24.82$ & 64.93 & $-17.60$",
+    r"Angry & 63.14 & $+21.99$ & 60.59 & $-8.86$": r"Angry & 62.55 & $+22.92$ & 61.18 & $-7.09$",
+    r"Excited & 58.97 & $+28.94$ & 69.57 & $+6.95$": r"Excited & 58.19 & $+29.63$ & 71.24 & $+3.90$",
+    r"Frustrated & 65.70 & $+19.89$ & 66.58 & $+4.31$": r"Frustrated & 66.67 & $+18.97$ & 65.79 & $+1.19$",
+}
+for a, b in emo.items():
+    rep(a, b)
+
+# provenance
+rep(r"""(audio 49.45\% against
+51.14\%, visual 35.61\% against 36.76\%)""", r"""(audio 48.78\% against
+50.56\%, visual 34.82\% against 35.10\%)""")
+
+# fusion
+rep(r"""and visual blocks to frozen BERT text lowers accuracy by 3.4 points without
+conversational context and by 6.5 points with it (five seeds).""",
+    r"""and visual blocks to frozen BERT text lowers accuracy by 3.2 points without
+conversational context and by 6.6 points with it (five seeds).""")
+rep(r"""separately gives a different picture: audio alone \emph{raises} accuracy by 1.2 and 1.1
+points, and the visual block alone lowers it by 6.2 and 8.6""",
+    r"""separately gives a different picture: audio alone changes accuracy by $+1.6$ and $+0.4$
+points, and the visual block alone lowers it by 6.6 and 8.9""")
+rep(r"Released audio (unsupervised) & $+1.21$ & $+1.07$", r"Released audio (unsupervised) & $+1.64$ & $+0.37$")
+rep(r"Released visual (supervised) & $-6.22$ & $-8.59$", r"Released visual (supervised) & $-6.59$ & $-8.90$")
+rep(r"Released audio + visual & $-3.40$ & $-6.51$", r"Released audio + visual & $-3.15$ & $-6.59$")
+
+# ranking
+rep(r"Kendall's $\tau=0.38$ ($p=0.12$)", r"Kendall's $\tau=0.35$ ($p=0.17$)", count=2)
+
+# diagnostic box and timing
+rep(r"text and $+11$ for the visual block; frozen text encoders give $-13$ to $-14$.",
+    r"text and $+10$ for the visual block; frozen text encoders give $-13$ to $-14$.")
+rep(r"fitting both models for one block took under 3\,s on a desktop CPU",
+    r"fitting both models for one block took 0.2 to 4.3\,s on a desktop CPU")
+
+P.write_text(t, encoding="utf-8")
+print("ok")
