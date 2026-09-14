@@ -1,0 +1,103 @@
+#!/usr/bin/env bash
+# Khối `footer` — MỘT lượt kiểm đầy đủ: gói `brands@1` + cổng máy chủ + kết xuất thật + Chromium HAI LƯỢT.
+#
+# Dùng: bash packages/blocks/footer/tests/chay.sh [thư-mục-kết-quả] [--nhanh]
+#   --nhanh: bỏ `kiem.sh` (chậm) — dùng khi đang sửa khối, KHÔNG dùng để kết luận.
+# Trước đó: docker compose up -d; docker build -t qcv2/playwright:1 tooling/local/playwright
+#
+# KHỐI NÀY KHÔNG NẰM TRÊN MỘT TRANG, và chỉ có ĐÚNG MỘT bản cho cả site: nó sống ở vùng toàn site `footer`
+# (`content/regions/footer.json`) và khai `singleton`. Vì thế trang thử cố ý RỖNG, và hai biến thể phải chạy
+# hai lượt — đổi nội dung vùng rồi tải lại, chứ không đặt hai chân trang cạnh nhau.
+set -uo pipefail
+ROOT="$(cd "$(dirname "$0")/../../../.." && pwd)"
+OUT="${1:-D:/tmp/qcv-footer}"
+NHANH="${2:-}"
+cd "$ROOT"
+mkdir -p "$OUT"
+# Các bộ kiểm Chromium dùng CHUNG một cây site; chạy chồng nhau là 409 theo đúng thiết kế khoá lạc quan.
+. "$ROOT/tooling/ci/khoa-cay-site.sh" "footer/chay.sh"
+LOI=0
+bao() { if [ "$1" -eq 0 ]; then echo "ĐẠT  $2"; else echo "HỎNG $2"; LOI=$((LOI+1)); fi; }
+SITE="tooling/local/sites/local/content"
+
+echo "=== 1. Chép trang thử VÀ nội dung vùng chân trang vào cây site local, bỏ bản nháp cũ ==="
+# `content/` của site local KHÔNG nằm trong git và là trạng thái DÙNG CHUNG giữa mọi bộ kiểm — một bộ kiểm khác
+# ghi đè vùng giữa chừng là chuyện đã xảy ra ở lượt đầu của khối `contact-bar`, và khi ấy mọi phép kiểm vẫn
+# « đạt » vì nó đo một khối khác. Vùng phải được chép lại như trang thử.
+cp "packages/blocks/footer/tests/kiem-footer.page.json" "$SITE/pages/kiem-footer.json"
+# Trang thử THỨ HAI, có một khối `entity-grid`: ca `bon-cot` của mục 9 đo việc CSS của khối khác trên cùng trang
+# không được rò vào biến `--qcv-p-cols` của chân trang — trang rỗng không tái hiện được chuyện đó.
+cp "packages/blocks/footer/tests/kiem-footer-ro.page.json" "$SITE/pages/kiem-footer-ro.json"
+cp "packages/blocks/footer/tests/footer.region.json" "$SITE/regions/footer.json"
+rm -f "$SITE/drafts/pages/kiem-footer.json" "$SITE/drafts/pages/kiem-footer-ro.json" "$SITE/drafts/regions/footer.json"
+
+echo "=== 2. Sinh chung.css rồi build: chép style.css + frontend.js của khối + brands.svg sang public/assets/blocks/ ==="
+MSYS_NO_PATHCONV=1 docker compose run --rm -v "$ROOT/packages/blocks:/rw" node node /rw/_runtime/sinh-chung-css.mjs
+docker compose run --rm node npm run build:studio >/dev/null
+docker compose exec -T php sh -lc 'rm -rf /srv/sites/local/public/_cache/pages/*'
+# Giới hạn tần suất của biểu mẫu là (mã biểu mẫu, IP) — 5 lượt / 10 phút, và mã biểu mẫu là id KHỐI. Chạy bộ kiểm
+# hai lần trong mười phút mà không xoá là lượt sau nhận 429 và phép kiểm « gửi được » đỏ vì môi trường.
+docker compose exec -T -u www-data php php artisan cache:clear >/dev/null
+
+echo "=== 3. Cổng gói nhãn hiệu brands@1 — bốn nơi phải khớp (map · sprite · màu+hình · enum của khối) ==="
+MSYS_NO_PATHCONV=1 docker compose run --rm --no-deps -w /work/packages/blocks/_runtime node node sinh-brands.mjs --kiem
+bao "$?" "sinh-brands.mjs --kiem"
+
+echo "=== 4. Cổng lược đồ (kể cả sáu fixture vùng toàn site của khối này, đi qua BlockGate::validateRegion) ==="
+docker compose exec -T -u www-data php php artisan qcv:kiem-luoc-do | tail -2
+bao "${PIPESTATUS[0]}" "qcv:kiem-luoc-do"
+echo "=== 5. Lint Blade/CSS và cổng danh tính (soi cả style.css lẫn Blade lẫn tests/*.mjs của khối) ==="
+docker compose exec -T -u www-data php php artisan qcv:kiem-blade | tail -2
+bao "${PIPESTATUS[0]}" "qcv:kiem-blade"
+docker compose exec -T -u www-data php php artisan qcv:kiem-danh-tinh | tail -2
+bao "${PIPESTATUS[0]}" "qcv:kiem-danh-tinh"
+
+if [ "$NHANH" != "--nhanh" ]; then
+  echo "=== 6. Mười lăm cổng ==="
+  bash tooling/ci/kiem.sh > "$OUT/kiem.log" 2>&1
+  bao "$?" "tooling/ci/kiem.sh (nhật ký: $OUT/kiem.log)"
+fi
+
+echo "=== 7. Kết xuất thật: trang công khai và trang ở chế độ Studio ==="
+curl -4 -s -o "$OUT/kiem-footer.html" -w "cong khai -> [%{http_code}] %{size_download} B  %{time_total}s\n" "http://qcv2.localhost:8081/kiem-footer"
+curl -4 -s -o "$OUT/kiem-footer-studio.html" -w "studio    -> [%{http_code}] %{size_download} B  %{time_total}s\n" "http://qcv2-qt.localhost:8081/kiem-footer?__studio=1"
+
+echo "=== 8. Chromium — hai lượt, một cho mỗi biến thể (chân trang là singleton của cả site) ==="
+# Xoá lại NGÂN SÁCH TẦN SUẤT ngay trước lượt gửi biểu mẫu thật (14d), không chỉ ở mục 2. Giới hạn là
+# (mã biểu mẫu, IP) — 5 lượt / 10 phút — mà mã biểu mẫu là id KHỐI, tức CỐ ĐỊNH giữa mọi lượt chạy: nhiều lượt
+# nối nhau (kể cả của một agent khác chạy song song) cộng dồn vào cùng một ngân sách, và mục 2 thì đã cách đây
+# vài phút. Đã đỏ thật 2026-09-13: `14d` ra {"form":false,"camOn":false,"loi":""} — KHÔNG kèm thông báo lỗi nào,
+# nên nó trông hệt một lỗi kết xuất và tốn nguyên một vòng truy tìm. Một cổng đỏ vì môi trường là một cổng sẽ bị tắt.
+docker compose exec -T -u www-data php php artisan cache:clear >/dev/null
+IP=$(docker inspect qcv2-caddy --format '{{(index .NetworkSettings.Networks "qcv2_default").IPAddress}}')
+CHUNG="$ROOT/packages/blocks/_runtime/kiem"
+HERE="$ROOT/packages/blocks/footer/tests"
+for BT in columns minimal; do
+  [ "$BT" = "minimal" ] && cp "packages/blocks/footer/tests/footer-minimal.region.json" "$SITE/regions/footer.json"
+  docker compose exec -T php sh -lc 'rm -rf /srv/sites/local/public/_cache/pages/*'
+  mkdir -p "$OUT/$BT"
+  MSYS_NO_PATHCONV=1 docker run --rm --network qcv2_default -v "$HERE:/work:ro" -v "$CHUNG:/chung:ro" -v "$OUT/$BT:/out" qcv2/playwright:1 \
+    sh -c "cp /chung/*.mjs /work/*.mjs /opt/pw/ && node /opt/pw/cong-khai.mjs $IP /out $BT" | tee "$OUT/$BT.log" | grep -E '^HỎNG|^THIẾU|đạt$|đạt ·'
+  bao "${PIPESTATUS[0]}" "cong-khai.mjs $BT (nhật ký + ảnh chụp: $OUT/$BT/)"
+done
+echo "=== 9. Điểm 4 — chân trang tự cân đối: MỘT nhóm với cols=2, HAI nhóm với cols=4; và BỐN nhóm với cols=4 trên trang có khối lưới ==="
+# Ba ca, ba trạng thái vùng: chân trang là singleton nên không đặt hai bản cạnh nhau được (cùng lý do với
+# hai biến thể ở mục 8). Hai ca đầu canh CHẶN TRẦN — số cột không vượt số nhóm thật; ca `bon-cot` chạy trên
+# trang `kiem-footer-ro` (có `entity-grid`) ở 1000 px, canh CSS khối khác không rò vào `--qcv-p-cols` của chân trang.
+for CA in mot-cot hai-cot bon-cot; do
+  cp "packages/blocks/footer/tests/footer-$CA.region.json" "$SITE/regions/footer.json"
+  docker compose exec -T php sh -lc 'rm -rf /srv/sites/local/public/_cache/pages/*'
+  mkdir -p "$OUT/$CA"
+  MSYS_NO_PATHCONV=1 docker run --rm --network qcv2_default -v "$HERE:/work:ro" -v "$CHUNG:/chung:ro" -v "$OUT/$CA:/out" qcv2/playwright:1 \
+    sh -c "cp /chung/*.mjs /work/*.mjs /opt/pw/ && node /opt/pw/tu-can-doi.mjs $IP /out $CA" | tee "$OUT/$CA.log" | grep -E '^HỎNG|^THIẾU|đạt$|đạt ·'
+  bao "${PIPESTATUS[0]}" "tu-can-doi.mjs $CA (nhật ký + ảnh chụp: $OUT/$CA/)"
+done
+
+# Trả vùng về biến thể đầy đủ: đó là trạng thái mà bộ kiểm của khối khác (và người mở trình duyệt) mong thấy.
+cp "packages/blocks/footer/tests/footer.region.json" "$SITE/regions/footer.json"
+docker compose exec -T php sh -lc 'rm -rf /srv/sites/local/public/_cache/pages/*'
+
+echo
+echo "=== TỔNG: $LOI hạng mục HỎNG ==="
+echo "Chỗ KHÔNG làm được vì nguyên nhân NGOÀI khối in ra dưới nhãn THIẾU và ghi ở BLOCK-MAU.md §7."
+exit $((LOI > 0))

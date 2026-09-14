@@ -1,0 +1,46 @@
+// Tiêu chí LOẠI của `can-tai.json` bước 4: kết xuất THẬT câu đủ dấu tiếng Việt ở 16 px và 32 px, rồi nhìn bằng
+// mắt xem dấu có nằm ĐÚNG trên nguyên âm có mũ không. Kèm hai phép đo máy: tệp phông có tải được (không 404),
+// và phông có THẬT SỰ được áp cho chữ trên trang (không phải rơi về ngăn xếp hệ thống).
+import { chromium } from 'playwright-core';
+const [ip, out] = process.argv.slice(2);
+const browser = await chromium.launch({
+  executablePath: '/usr/bin/chromium-browser',
+  args: [`--host-resolver-rules=MAP qcv2-mau.localhost ${ip}`, '--no-sandbox', '--disable-gpu'],
+});
+const page = await browser.newPage({ viewport: { width: 1280, height: 900 }, locale: 'vi-VN' });
+const phong = [];
+page.on('response', (r) => { if (r.url().includes('.woff2')) phong.push(`${r.status()} ${r.url().split('/').slice(-1)[0]}`); });
+await page.goto('http://qcv2-mau.localhost:8081/', { waitUntil: 'networkidle' });
+await page.waitForTimeout(600);
+
+const do_ = await page.evaluate(async () => {
+  await document.fonts.ready;
+  const h = document.querySelector('h1, h2, .hero__tieu-de, [class*="tieu-de"]');
+  return {
+    beVietnam16: document.fonts.check('16px "Be Vietnam Pro"'),
+    beVietnam700: document.fonts.check('700 32px "Be Vietnam Pro"'),
+    inter16: document.fonts.check('16px "Inter"'),
+    tokenHeading: getComputedStyle(document.documentElement).getPropertyValue('--font-heading').trim().slice(0, 40),
+    chuThat: h ? getComputedStyle(h).fontFamily.slice(0, 40) : '(không thấy tiêu đề)',
+    soPhongDaNap: [...document.fonts].filter((f) => f.status === 'loaded').map((f) => `${f.family} ${f.weight}`),
+  };
+});
+console.log(JSON.stringify({ yeuCauPhong: phong, ...do_ }, null, 1));
+
+// Tấm thử: hai cỡ × hai phông, nền trắng, chữ đen — để nhìn dấu cho rõ.
+await page.evaluate(() => {
+  const CAU = 'Cửa hàng của chúng tôi phục vụ ẩm thực, sức khoẻ và dịch vụ chuyên nghiệp';
+  const DAU = 'ế ồ ữ ẩ ệ ộ ở ừ ẫ ẳ đ ơ ư — Nghề nghiệp, chuyên biệt, thưởng thức';
+  const d = document.createElement('div');
+  d.id = 'thu-phong';
+  d.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#fff;color:#111;padding:28px;font-synthesis:none';
+  d.innerHTML = [
+    ['Be Vietnam Pro', 700, 32], ['Be Vietnam Pro', 400, 16],
+    ['Inter', 700, 32], ['Inter', 400, 16],
+  ].map(([f, w, s]) => `<p style="margin:0 0 14px;font-family:'${f}';font-weight:${w};font-size:${s}px;line-height:1.45">
+      <span style="font:12px monospace;color:#888">${f} ${w} / ${s}px</span><br>${CAU}<br>${DAU}</p>`).join('');
+  document.body.appendChild(d);
+});
+await page.waitForTimeout(400);
+await page.locator('#thu-phong').screenshot({ path: `${out}/thu-phong.png` });
+await browser.close();

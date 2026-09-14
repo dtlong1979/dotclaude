@@ -1,0 +1,42 @@
+{
+    "region": "footer",
+    "itemVersion": 1,
+    "blocks": [
+        {
+            "id": "b_footer",
+            "type": "footer",
+            "variant": "columns",
+            "props": {
+                "cols": "4",
+                "nhanTin": true,
+                "tone": "dark",
+                "space": "normal"
+            },
+            "slots": {
+                "thuongHieu": {
+                    "ten": "{site:name}",
+                    "moTa": "{site:slogan}"
+                },
+                "cot": [
+                    { "tieuDe": "Về đơn vị", "menu": "footer-1" },
+                    { "tieuDe": "Pháp lý", "menu": "legal" }
+                ],
+                "form": {
+                    "fields": [
+                        { "type": "email", "label": "Thư điện tử", "required": true }
+                    ],
+                    "submitLabel": "Đăng ký",
+                    "recipient": "{site:email}",
+                    "subject": "Đăng ký nhận tin từ {site:name}",
+                    "successMode": "inline",
+                    "success": "Đã ghi nhận."
+                },
+                "social": [
+                    { "mang": "facebook" }
+                ],
+                "dongCuoi": "© {site:name}."
+            }
+        }
+    ],
+    "_ghi_chu": "Hiện vật CỦA BỘ KIỂM (không phải nội dung trang thật). Ca TỔNG QUÁT còn lại của điểm 4: HAI nhóm liên kết trong khi `props.cols` để « 4 ». Lưới `.footer__cot` phải cho ĐÚNG HAI cột, không phải bốn cột với hai cột bỏ trống. Quy tắc là CHẶN TRẦN — số cột không vượt số nhóm thật — chứ không phải NÂNG: fixture `footer-mot-cot` giữ ca một nhóm, và không có fixture nào đòi CSS nâng số cột lên bằng số nhóm, vì chọn ít cột hơn số nhóm là lựa chọn hợp lệ."
+}
