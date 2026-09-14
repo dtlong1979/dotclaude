@@ -1,0 +1,99 @@
+from pathlib import Path
+
+P = Path(r"D:\dev\ClaudeResearch\paper\iceir\main.tex")
+t = P.read_text(encoding="utf-8")
+
+
+def rep(old, new, count=1):
+    global t
+    n = t.count(old)
+    assert n == count, (n, old[:80])
+    t = t.replace(old, new)
+
+
+rep(r"""of the published fusion headroom, while on frozen features fusion adds nothing
+measurable for a margin to consume. We give authors
+and reviewers three numbers that cost one subtraction and one closed form: the
+majority-class baseline, the headroom, and a metric that resists collapse --- which
+weighted F1 does not, since collapse
+toward the majority class raises it in $97.6\%$ of $9{,}261$ random confusion matrices while kappa
+never rises.""",
+    r"""of the published fusion headroom, while under frozen features the estimated headroom is
+statistically indistinguishable from zero. Collapse toward the majority class raises
+weighted F1 in $97.6\%$ of $9{,}261$ random confusion matrices with positive kappa, while
+kappa never rises. We therefore recommend reporting the majority-class baseline, fusion
+headroom, and at least one collapse-resistant metric alongside the primary metric.""")
+
+rep(r"""the derivations and a
+machine check are in the accompanying \texttt{theory\_check.py}).""",
+    r"""the derivations and a
+numerical verification script are provided in the accompanying \texttt{theory\_check.py}).""")
+
+rep(r"""Every cell was
+read from the paper's PDF rather than from abstracts or citing papers, and the table,
+page and metric of each row are recorded with the data.""",
+    r"""All reported values
+were verified against the original papers, and the source table or figure and metric of
+each row are recorded with the data.""")
+rep(r"""which is why the table, page and metric of every cell are recorded with the data.""",
+    r"""which is why the source and metric of every row are recorded with the data.""")
+
+rep(r"""Fusion gets three chances: early concatenation, late averaging of the""",
+    r"""We evaluate three fusion strategies: early concatenation, late averaging of the""")
+
+rep(r"""Fusion therefore adds nothing measurable on MOSI, and
+a gain on MOSEI that is measurable but below one point.""",
+    r"""On MOSI, the estimated headroom is small and negative, but the permutation test does not
+reject zero at the $0.05$ level; on MOSEI, the gain is measurable but below one point.""")
+
+rep(r"""a frozen CLIP~\cite{radford2021} image encoder averaged over eight whole frames per clip
+changes nothing: video alone scores at the majority-class baseline ($48.42$ against $48.12$), and with it
+$H$ is $+0.07$ weighted F1 (five seeds, permutation $p=0.75$).""",
+    r"""a frozen CLIP~\cite{radford2021} image encoder averaged over eight whole frames per clip
+does not change this: video-only accuracy is near the majority-class accuracy baseline
+($48.42\%$ versus $48.12\%$); with video included, weighted-F1 $H$ is $+0.07$ points (five
+seeds, permutation $p=0.75$).""")
+
+rep(r"""Complementarity is not the
+absence of shared content; it is different content on the labelled dimension.""",
+    r"""These results suggest that
+multimodal benefit depends on complementary label-relevant information rather than merely
+on distinct sensing channels.""")
+
+rep(r"""The diagnostics are meant to change how a margin is read, so we applied them to a margin
+of our own, asking whether a result that looks convincing in weighted F1 survives them.""",
+    r"""As an illustrative case study, we apply the diagnostics to a controlled synthetic
+missing-modality experiment and compare the resulting interpretation across metrics.""")
+
+rep(r"""One
+result survived all three checks in that re-run: averaged over the seven availability
+patterns and against a matched-capacity attention gate,""",
+    r"""In the
+five-seed re-run, the comparison against a matched-capacity attention gate remained
+positive across all three metrics: averaged over the seven availability patterns,""")
+
+rep(r"""frozen features, where $H$ cannot be told apart from zero, a margin of that size could not be
+credited to fusion at all and would have to come from somewhere else --- the text encoder,
+the training schedule, or chance.""",
+    r"""frozen features, where $H$ is indistinguishable from zero, a one-point gain would exceed the
+observed headroom and should not be attributed to fusion without additional matched
+ablations.""")
+
+rep(r"""Both are cheap
+to detect: report held-out beside test numbers, and choose on held-out data only.""",
+    r"""Both issues can
+be checked by reporting held-out and test results and by selecting configurations using
+held-out data only.""")
+
+rep(r"""exists in weighted F1 and vanishes under chance correction, or one""",
+    r"""appears in weighted F1 but does not persist under kappa or MCC, or one""")
+
+rep(r"""majority-class collapse is plausible; and on the one published row we could re-measure,
+stronger unimodal representations reduce the headroom to a value indistinguishable from
+zero.""",
+    r"""majority-class collapse is plausible; and on the one published row we could re-measure,
+using frozen modern representations reduces the observed headroom to a value
+indistinguishable from zero.""")
+
+P.write_text(t, encoding="utf-8")
+print("ok")

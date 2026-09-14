@@ -1,0 +1,30 @@
+from pathlib import Path
+
+P = Path(r"D:\dev\ClaudeResearch\paper\iceir\main.tex")
+t = P.read_text(encoding="utf-8")
+
+
+def rep(old, new, count=1):
+    global t
+    n = t.count(old)
+    assert n == count, (n, old[:80])
+    t = t.replace(old, new)
+
+
+rep(r"""while under frozen features the estimated headroom is
+statistically indistinguishable from zero.""",
+    r"""while with frozen features the estimated headroom is
+statistically indistinguishable from zero.""")
+rep(r"""Chance correction \and Missing modalities}""",
+    r"""Majority-class baseline \and Missing modalities}""")
+rep(r"""\subsection{Which Metric Survives Collapse}""",
+    r"""\subsection{Metrics Under Majority-Class Collapse}""")
+rep(r"""it does not survive twenty.""", r"""it is not significant with twenty.""")
+rep(r"""On MOSI, the estimated headroom is small and negative, but the permutation test does not
+reject zero at the $0.05$ level; on MOSEI, the gain is measurable but below one point.""",
+    r"""On MOSI the headroom is small and negative, and the bootstrap interval and the
+permutation test disagree on whether it differs from zero; on MOSEI the gain is
+measurable but below one point.""")
+
+P.write_text(t, encoding="utf-8")
+print("ok")
