@@ -30,19 +30,10 @@ Dùng lại mẫu đã có: TPAMI và TNNLS dùng `ieee-ieeetran.zip` (TPAMI th�
 
 Mẫu hội thảo đổi hằng năm (tên tệp `.sty` chứa năm). Trước mỗi kỳ nộp, tải lại bản của đúng năm đó; nộp bằng mẫu năm cũ dễ bị desk reject.
 
-## Nhóm tạp chí cho chủ đề RAG (bổ sung 14/09/2026)
-
-Không cần tải thêm mẫu mới cho 6/8 tạp chí:
-- IP&M, Knowledge-Based Systems, Information Fusion, ESWA, EAAI: dùng `elsevier-elsarticle.zip`.
-- IEEE TKDE: dùng `ieee-ieeetran.zip` với tuỳ chọn `compsoc`.
-
-ACM TOIS và ACM TIST dùng lớp `acmart` (định dạng `acmsmall`) — xem dòng ACM ở bảng dưới.
-
 ## Chưa tải sẵn, lấy theo liên kết
 
 | Venue | Cách lấy mẫu |
 |---|---|
-| ACM TOIS, ACM TIST (và mọi tạp chí ACM) | Overleaf: "ACM Primary Article Template", chọn `\documentclass[acmsmall]{acmart}`. Gói trên CTAN chỉ có mã nguồn `acmart.dtx`/`acmart.ins`, phải biên dịch mới ra `acmart.cls`; trang acm.org chặn tải tự động. |
 | AAAI | aaai.org/authorkit26 (máy chủ chặn tải tự động) hoặc Overleaf "AAAI 2026 Press Formatting Instructions" |
 | JAIR | Author kit trên jair.org (máy chủ chặn tải tự động) hoặc Overleaf |
 | Computational Linguistics | Mẫu trên cljournal.org |

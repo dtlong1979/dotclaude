@@ -12,41 +12,7 @@ Tải ngày 13/09/2026. Mỗi nhà xuất bản dùng chung một mẫu cho nhi�
 | `taylor-francis-interact.tar.gz` | Optimization và các tạp chí Taylor & Francis | `interactnlmsample.tex`, lớp `interact.cls` | Gói nguồn bài mẫu interact của Taylor & Francis |
 | `jcta-word.docx` | Journal of Computing Theories and Applications | mở trực tiếp bằng Word | Mẫu Word chính thức của JCTA |
 
-## Nhóm AI/NLP hàng đầu (bổ sung 14/09/2026)
-
-| Tệp | Dùng cho | Tệp cần mở đầu tiên | Nguồn |
-|---|---|---|---|
-| `acl-style-files.zip` | ACL, EMNLP, NAACL và các hội nghị qua ACL Rolling Review | `acl_latex.tex` | GitHub acl-org/acl-style-files |
-| `tacl-style.zip` | TACL | `tacl2021v1.sty` + `vi-du-bai-dung-mau-tacl.tex` (một bài TACL thật dùng mẫu, để xem cách dùng) | Trang transacl.org chặn tải; lấy từ nguồn LaTeX của bài arXiv 2405.11575. Bản mẫu trắng chính thức: transacl.org/tacl-submission-templates |
-| `iclr-master-template.zip` | ICLR | thư mục `iclr2026/` hoặc `iclr2027/` | GitHub ICLR/Master-Template |
-| `icml2026-style.zip` | ICML | `example_paper.tex`, lớp `icml2026.sty` | media.icml.cc |
-| `neurips-2025-styles.zip` | NeurIPS | `neurips_2025.tex` | media.neurips.cc; bản 2026 chưa phát hành lúc tải, thay khi có |
-| `ijcai-authorkit.zip` | IJCAI-ECAI 2026 | xem tệp hướng dẫn trong gói | ijcai.org/authors_kit |
-| `cvpr-author-kit.zip` | CVPR | `main.tex`, lớp `cvpr.sty` | GitHub cvpr-org/author-kit |
-| `tmlr-style-file.zip` | TMLR | `main.tex`, lớp `tmlr.sty` | GitHub JmlrOrg/tmlr-style-file |
-| `jmlr-style-file.zip` | JMLR | `sample.tex`, lớp `jmlr2e.sty` | GitHub JmlrOrg/jmlr-style-file |
-
-Dùng lại mẫu đã có: TPAMI và TNNLS dùng `ieee-ieeetran.zip` (TPAMI thêm tuỳ chọn `compsoc`); Artificial Intelligence (AIJ) dùng `elsevier-elsarticle.zip`.
-
-Mẫu hội thảo đổi hằng năm (tên tệp `.sty` chứa năm). Trước mỗi kỳ nộp, tải lại bản của đúng năm đó; nộp bằng mẫu năm cũ dễ bị desk reject.
-
-## Nhóm tạp chí cho chủ đề RAG (bổ sung 14/09/2026)
-
-Không cần tải thêm mẫu mới cho 6/8 tạp chí:
-- IP&M, Knowledge-Based Systems, Information Fusion, ESWA, EAAI: dùng `elsevier-elsarticle.zip`.
-- IEEE TKDE: dùng `ieee-ieeetran.zip` với tuỳ chọn `compsoc`.
-
-ACM TOIS và ACM TIST dùng lớp `acmart` (định dạng `acmsmall`) — xem dòng ACM ở bảng dưới.
-
 ## Chưa tải sẵn, lấy theo liên kết
-
-| Venue | Cách lấy mẫu |
-|---|---|
-| ACM TOIS, ACM TIST (và mọi tạp chí ACM) | Overleaf: "ACM Primary Article Template", chọn `\documentclass[acmsmall]{acmart}`. Gói trên CTAN chỉ có mã nguồn `acmart.dtx`/`acmart.ins`, phải biên dịch mới ra `acmart.cls`; trang acm.org chặn tải tự động. |
-| AAAI | aaai.org/authorkit26 (máy chủ chặn tải tự động) hoặc Overleaf "AAAI 2026 Press Formatting Instructions" |
-| JAIR | Author kit trên jair.org (máy chủ chặn tải tự động) hoặc Overleaf |
-| Computational Linguistics | Mẫu trên cljournal.org |
-| Nature Machine Intelligence | Không bắt buộc mẫu khi nộp lần đầu; theo hướng dẫn định dạng của Nature |
 
 | Tạp chí | Cách lấy mẫu |
 |---|---|

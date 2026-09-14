@@ -1,0 +1,139 @@
+# -*- coding: utf-8 -*-
+"""Mở rộng danh mục tạp chí: thêm cột loai / ty_le_accept / chu_ky_nop và 17 venue AI-NLP hàng đầu."""
+import csv, os
+from collections import Counter
+
+GOC = r'C:\Users\SingPC\.claude\skills\it-journal-tracker'
+P = os.path.join(GOC, 'du-lieu', 'tap-chi.csv')
+MAU = os.path.join(GOC, 'mau-bai')
+NGAY = '2026-09-14'
+
+rows = list(csv.DictReader(open(P, encoding='utf-8')))
+cols = list(rows[0])
+for c, sau in (('loai', 'ma'), ('ty_le_accept', 'nguon_thoi_gian'), ('chu_ky_nop', 'ty_le_accept')):
+    if c not in cols:
+        cols.insert(cols.index(sau) + 1, c)
+for r in rows:
+    r.setdefault('loai', 'Tạp chí')
+    r.setdefault('ty_le_accept', '')
+    r.setdefault('chu_ky_nop', 'Nộp liên tục')
+
+tacl = ('tacl-style.zip' if os.path.exists(os.path.join(MAU, 'tacl-style.zip'))
+        else 'transacl.org/tacl-submission-templates: tacl2021v1-template.tex + tacl2021v1.sty (chưa tải được)')
+
+
+def J(ma, ten, nxb, hang, cm, pv, mh, phi, kho, tg, ng, tl, ck, mau, gc, loai='Tạp chí'):
+    return dict(ma=ma, loai=loai, ten_tap_chi=ten, nha_xuat_ban=nxb, hang=hang, chi_muc=cm, pham_vi=pv,
+                mo_hinh=mh, phi_dang=phi, do_kho=kho, thoi_gian_thuc_te=tg, nguon_thoi_gian=ng,
+                ty_le_accept=tl, chu_ky_nop=ck, trang_thai='Chưa nộp', so_bai_da_nop='0', so_accept='0',
+                so_reject='0', ngay_nop_gan_nhat='', bai_dang_xu_ly='', mau_bai=mau, ghi_chu=gc, cap_nhat=NGAY)
+
+
+def C(ma, ten, nxb, pv, phi, tg, tl, ck, mau, gc):
+    return J(ma, ten, nxb, 'CORE A* (ICORE2026/CORE2023)', 'Kỷ yếu hội nghị', pv, 'hội thảo', phi, 'Rất cao',
+             tg, 'lịch hội nghị', tl, ck, mau, gc, loai='Hội thảo')
+
+
+REG = ('Nộp miễn phí; khi được nhận bắt buộc ít nhất một tác giả đăng ký; phí đăng ký đổi theo năm, '
+       'thường 600-1.200 USD - kiểm tra trang đăng ký')
+FREE = '0 USD (diamond open access)'
+
+MOI = [
+    J('TACL', 'Transactions of the Association for Computational Linguistics', 'MIT Press / ACL', 'Q1 (SJR 2025)',
+      'Scopus; ESCI; ACL Anthology', 'Xử lý ngôn ngữ tự nhiên; ngôn ngữ học tính toán', 'free', FREE, 'Rất cao',
+      'Vòng 1 khoảng 2 tháng; ví dụ NoviCode (TACL 12, 2024): nộp 01/2024 - chấp nhận 10/2024 (khoảng 9,5 tháng)',
+      'trang tạp chí; ví dụ do người dùng cung cấp', 'Khoảng 23% (2021)', 'Nộp liên tục, xét hằng tháng', tacl,
+      'Bài được chấp nhận được trình bày tại ACL/EMNLP/NAACL; quyết định A/B/C/D, trong đó C là sửa lớn và nộp lại'),
+    J('CL', 'Computational Linguistics', 'MIT Press / ACL', 'Q1 (SJR 2025)', 'SCIE; Scopus; DOAJ',
+      'Ngôn ngữ học tính toán; NLP lý thuyết và phân tích sâu', 'free', FREE, 'Rất cao',
+      'Khoảng 50 tuần từ nộp đến xuất bản', 'DOAJ', '', 'Nộp liên tục', 'Mẫu trên cljournal.org (chưa tải)',
+      'IF 2025 khoảng 13,4; nặng tính ngôn ngữ và lý thuyết'),
+    J('TMLR', 'Transactions on Machine Learning Research', 'JMLR Inc. / OpenReview', 'Có trong SJR (cần kiểm tra hạng)',
+      'Scopus; DBLP', 'Học máy nói chung', 'free', FREE, 'Cao',
+      'Trung vị 76 ngày (2022) và 91 ngày (2023, bài độ dài hội nghị) đến quyết định',
+      'số liệu ban biên tập TMLR công bố', 'Khoảng 50% (2023); 66% nếu không tính desk reject và rút bài',
+      'Nộp liên tục', 'tmlr-style-file.zip',
+      'Xét tính đúng đắn và độ vững của bằng chứng, không đòi tính mới đột phá; phản biện công khai trên OpenReview'),
+    J('JMLR', 'Journal of Machine Learning Research', 'JMLR Inc.', 'Q1 (SJR 2025)', 'SCIE; Scopus',
+      'Học máy lý thuyết; thuật toán; phần mềm mã nguồn mở (MLOSS)', 'free', FREE, 'Rất cao',
+      'Thường trên 200 ngày đến quyết định; bài MLOSS ngắn có thể 4-5 tháng',
+      'ban biên tập TMLR so sánh; ví dụ do người dùng cung cấp', '', 'Nộp liên tục', 'jmlr-style-file.zip',
+      'Cần nền tảng toán học rất vững hoặc phần mềm có tính chuẩn mực'),
+    J('JAIR', 'Journal of Artificial Intelligence Research', 'AI Access Foundation', 'Cần kiểm tra hạng',
+      'SCIE; Scopus', 'AI toàn diện: suy luận, lập kế hoạch, học máy, đa tác tử', 'free', FREE, 'Rất cao',
+      'Dự kiến 38,6 tuần (khoảng 8,8 tháng) đến chấp nhận', 'JAIR Transparent Publishing',
+      '13,4% (58,3% nếu qua vòng sàng lọc của tổng biên tập)', 'Nộp liên tục',
+      'Author kit trên jair.org hoặc Overleaf (chưa tải)',
+      'Không dùng Major Revision; bài cần sửa lớn bị từ chối kèm khuyến khích nộp lại'),
+    J('TPAMI', 'IEEE Transactions on Pattern Analysis and Machine Intelligence', 'IEEE Computer Society',
+      'Q1 (SJR 2025)', 'SCIE; Scopus', 'Thị giác máy tính; nhận dạng mẫu; học máy', 'hybrid',
+      'Đăng thường miễn phí trong 12 trang; quá 12 trang 220 USD/trang; chọn mở 2.800 USD (bảng giá IEEE 2026)',
+      'Rất cao', 'Ví dụ arXiv 2108.03553: nhận 22/10/2021 - 2 vòng sửa - chấp nhận 12/2022 (khoảng 14 tháng)',
+      'ví dụ do người dùng cung cấp', '', 'Nộp liên tục', 'ieee-ieeetran.zip (tuỳ chọn compsoc)',
+      'Yêu cầu thực nghiệm trên hầu hết benchmark lớn và so sánh rộng với các phương pháp hiện đại'),
+    J('AIJ', 'Artificial Intelligence', 'Elsevier', 'Q1 (SJR 2025)', 'SCIE; Scopus',
+      'AI nền tảng; logic; suy luận; tác tử', 'hybrid',
+      'Đăng thường miễn phí; chọn mở 3.650 USD; tự động mở sau 4 năm', 'Rất cao', '', '', '', 'Nộp liên tục',
+      'elsevier-elsarticle.zip', ''),
+    J('TNNLS', 'IEEE Transactions on Neural Networks and Learning Systems', 'IEEE Computational Intelligence Society',
+      'Q1 (SJR 2025)', 'SCIE; Scopus', 'Mạng nơ-ron; học sâu; hệ học', 'hybrid',
+      'Đăng thường miễn phí trong 10 trang; quá 10 trang 200 USD/trang; chọn mở 2.800 USD (bảng giá IEEE 2026)',
+      'Rất cao', '', '', '', 'Nộp liên tục', 'ieee-ieeetran.zip', ''),
+    J('NMI', 'Nature Machine Intelligence', 'Springer Nature', 'Q1 (SJR 2025)', 'SCIE; Scopus',
+      'AI liên ngành, tác động khoa học và xã hội', 'hybrid',
+      'Đăng thường miễn phí; chọn mở 12.850 USD / 10.850 EUR', 'Rất cao', '', '', 'Dưới 10% (ước tính)',
+      'Nộp liên tục', 'Không bắt buộc mẫu khi nộp lần đầu; theo hướng dẫn định dạng Nature',
+      'Nhiều bài bị từ chối tại vòng biên tập'),
+    C('ACL', 'Annual Meeting of the ACL', 'ACL', 'Xử lý ngôn ngữ tự nhiên',
+      REG + '; hội phí ACL bắt buộc (100 USD thường, 50 USD sinh viên)',
+      'Mỗi đợt ARR khoảng 10 tuần, sau đó cam kết vào hội nghị',
+      '18,9% main track (ACL 2026, 12.148 bài); Findings thêm 17,8%',
+      'Qua ACL Rolling Review: 5 đợt/năm; không còn kênh nộp trực tiếp', 'acl-style-files.zip',
+      'Bắt buộc mục Limitations; tác giả phải đăng ký làm reviewer, nếu không sẽ bị desk reject'),
+    C('EMNLP', 'Conference on Empirical Methods in Natural Language Processing', 'ACL / SIGDAT', 'NLP thực nghiệm',
+      REG + '; hội phí ACL bắt buộc', 'Mỗi đợt ARR khoảng 10 tuần, sau đó cam kết vào hội nghị',
+      '22,2% (EMNLP 2025, 8.174 bài)', 'Qua ACL Rolling Review; đợt dành cho EMNLP thường khoảng tháng 5',
+      'acl-style-files.zip', 'Như ACL'),
+    C('ICLR', 'International Conference on Learning Representations', 'ICLR',
+      'Học biểu diễn; học sâu; mô hình nền tảng', REG,
+      'Khoảng 4 tháng (hạn cuối tháng 9 - kết quả cuối tháng 1)', '27,4% (ICLR 2026, 13.763 bài có quyết định)',
+      'Hằng năm, hạn nộp cuối tháng 9', 'iclr-master-template.zip (thư mục iclr2026, iclr2027)',
+      'Phản biện công khai trên OpenReview'),
+    C('ICML', 'International Conference on Machine Learning', 'IMLS', 'Học máy lý thuyết và thuật toán', REG,
+      'Khoảng 3 tháng (hạn cuối tháng 1 - kết quả cuối tháng 4)', '26,6% (ICML 2026, 23.918 bài)',
+      'Hằng năm, hạn nộp cuối tháng 1', 'icml2026-style.zip', ''),
+    C('NEURIPS', 'Conference on Neural Information Processing Systems', 'NeurIPS Foundation', 'Học máy; AI nói chung',
+      REG, 'Khoảng 4 tháng (hạn giữa tháng 5 - kết quả cuối tháng 9)', '24,5% (NeurIPS 2025, 21.575 bài)',
+      'Hằng năm, hạn nộp giữa tháng 5', 'neurips-2025-styles.zip (thay bằng bản năm hiện hành khi có)', ''),
+    C('AAAI', 'AAAI Conference on Artificial Intelligence', 'AAAI', 'AI toàn diện',
+      'Nộp miễn phí; bắt buộc ít nhất một tác giả đăng ký mức trực tiếp và trình bày trực tiếp; '
+      'phí đổi theo năm - kiểm tra trang đăng ký',
+      'Khoảng 3 tháng (hạn đầu tháng 8 - kết quả tháng 11)', '17,6% (AAAI-26, 23.680 bài)',
+      'Hằng năm, hạn nộp khoảng đầu tháng 8', 'Author kit tại aaai.org/authorkit26 (chưa tải được)',
+      'Có vòng loại sớm; số bài nộp năm 2026 tăng khoảng gấp đôi'),
+    C('IJCAI', 'International Joint Conference on Artificial Intelligence', 'IJCAI', 'AI toàn diện', REG,
+      'Khoảng 3,5 tháng (hạn giữa tháng 1 - kết quả tháng 4-5)', '17,6% main track (IJCAI 2025, 5.806 bài)',
+      'Hằng năm, hạn nộp khoảng giữa tháng 1 (IJCAI-ECAI 2026: 19/01/2026)', 'ijcai-authorkit.zip',
+      'Có vòng loại sớm (summary reject)'),
+    C('CVPR', 'IEEE/CVF Conference on Computer Vision and Pattern Recognition', 'IEEE / CVF',
+      'Thị giác máy tính; đa phương thức', REG,
+      'Khoảng 3,5 tháng (hạn đầu tháng 11 - kết quả cuối tháng 2)', '25,4% (CVPR 2026, 16.092 bài)',
+      'Hằng năm, hạn nộp đầu tháng 11', 'cvpr-author-kit.zip', ''),
+]
+
+co = {r['ma'] for r in rows}
+rows += [m for m in MOI if m['ma'] not in co]
+with open(P, 'w', encoding='utf-8', newline='') as f:
+    w = csv.DictWriter(f, fieldnames=cols)
+    w.writeheader()
+    w.writerows(rows)
+
+rows = list(csv.DictReader(open(P, encoding='utf-8')))
+loi = [r['ma'] for r in rows if None in r.values() or len(r) != len(cols)]
+print('Tổng', len(rows), 'dòng,', len(cols), 'cột | dòng lỗi:', loi)
+print('Loại:', dict(Counter(r['loai'] for r in rows)))
+print('Mẫu TACL:', next(r['mau_bai'] for r in rows if r['ma'] == 'TACL'))
+thieu = [(r['ma'], r['mau_bai']) for r in rows
+         if r['mau_bai'].split(' ')[0].endswith(('.zip', '.docx', '.tar.gz'))
+         and not os.path.exists(os.path.join(MAU, r['mau_bai'].split(' ')[0]))]
+print('Tên tệp mẫu ghi trong CSV nhưng không có trong thư mục:', thieu)

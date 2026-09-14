@@ -1,6 +1,6 @@
 ---
 name: it-journal-tracker
-description: Danh mục tạp chí và hội thảo ngành CNTT/AI/NLP/truy xuất thông tin để nộp bài (từ nhóm khả thi cao đến nhóm Q1 hàng đầu, hội thảo CORE A* như ACL, EMNLP, NeurIPS, ICML, ICLR, AAAI, IJCAI, CVPR, và tạp chí theo chủ đề như RAG: TOIS, IP&M, TKDE, KBS, Information Fusion, ESWA), lọc được theo chủ đề nghiên cứu, kèm phí, thời gian phản biện thực tế, tỷ lệ chấp nhận, hạn nộp, mẫu bài tải sẵn và theo dõi tình trạng nộp (chưa nộp, đang phản biện, đã đăng, bị từ chối). Dùng khi cần chọn nơi nộp một bài mới, tra phí đăng hoặc phí đăng ký hội nghị, lấy template, cập nhật kết quả sau khi nộp hoặc nhận phản hồi, hay bổ sung venue mới vào danh mục.
+description: Danh mục tạp chí và hội thảo ngành CNTT/AI/NLP để nộp bài (từ nhóm khả thi cao đến nhóm Q1 hàng đầu và hội thảo CORE A* như ACL, EMNLP, NeurIPS, ICML, ICLR, AAAI, IJCAI, CVPR, TACL, JMLR, TPAMI), kèm phí, thời gian phản biện thực tế, tỷ lệ chấp nhận, hạn nộp, mẫu bài tải sẵn và theo dõi tình trạng nộp (chưa nộp, đang phản biện, đã đăng, bị từ chối). Dùng khi cần chọn nơi nộp một bài mới, tra phí đăng hoặc phí đăng ký hội nghị, lấy template, cập nhật kết quả sau khi nộp hoặc nhận phản hồi, hay bổ sung venue mới vào danh mục.
 ---
 
 # Danh mục và theo dõi tạp chí CNTT/AI
@@ -17,10 +17,6 @@ Mỗi dòng là một venue — tạp chí hoặc hội thảo, phân biệt ở
 | `phi_dang` | Phí xuất bản mở (APC) | Nộp miễn phí; ghi yêu cầu **đăng ký bắt buộc** khi được nhận và mức phí tham khảo |
 | `chu_ky_nop` | Thường là `Nộp liên tục` | Hạn nộp cố định trong năm, hoặc cơ chế đợt (ví dụ ACL Rolling Review) |
 | `ty_le_accept` | Nếu tạp chí công bố | Ghi rõ kỳ và số bài nộp, ví dụ `26,6% (ICML 2026, 23.918 bài)` |
-
-Cột `chu_de_goi_y` gắn nhãn chủ đề nghiên cứu mà venue đặc biệt hợp, bắt đầu bằng tên chủ đề rồi dấu hai chấm, ví dụ `RAG: GraphRAG; đồ thị tri thức`. Khi người dùng hỏi theo chủ đề (ví dụ "bài RAG nộp đâu"), lọc cột này trước, sau đó mới xét `pham_vi`. Khi nghiên cứu thêm một chủ đề mới, gắn nhãn theo cùng quy ước để lọc được.
-
-Hạng CCF phải lấy theo danh mục CCF mới nhất (bản thứ bảy, 03/2026), ghi kèm năm. Nhiều tài liệu tổng hợp gộp chung "CCF-A/B" cho cả nhóm, trong khi thực tế nhiều tạp chí Q1 chỉ là CCF-C.
 
 Với hội thảo, hạn nộp, tỷ lệ chấp nhận và phí đăng ký **đổi theo từng kỳ**. Trước khi khuyên nộp, tra trang call for papers của kỳ sắp tới; nếu số liệu trong CSV đã cũ hơn kỳ gần nhất thì cập nhật dòng đó.
 

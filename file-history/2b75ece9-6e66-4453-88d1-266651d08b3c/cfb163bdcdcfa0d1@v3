@@ -1,28 +1,12 @@
 ---
 name: it-journal-tracker
-description: Danh mục tạp chí và hội thảo ngành CNTT/AI/NLP/truy xuất thông tin để nộp bài (từ nhóm khả thi cao đến nhóm Q1 hàng đầu, hội thảo CORE A* như ACL, EMNLP, NeurIPS, ICML, ICLR, AAAI, IJCAI, CVPR, và tạp chí theo chủ đề như RAG: TOIS, IP&M, TKDE, KBS, Information Fusion, ESWA), lọc được theo chủ đề nghiên cứu, kèm phí, thời gian phản biện thực tế, tỷ lệ chấp nhận, hạn nộp, mẫu bài tải sẵn và theo dõi tình trạng nộp (chưa nộp, đang phản biện, đã đăng, bị từ chối). Dùng khi cần chọn nơi nộp một bài mới, tra phí đăng hoặc phí đăng ký hội nghị, lấy template, cập nhật kết quả sau khi nộp hoặc nhận phản hồi, hay bổ sung venue mới vào danh mục.
+description: Danh mục tạp chí ngành CNTT/AI có tính khả thi cao để nộp bài, kèm theo dõi tình trạng nộp (chưa nộp, đang phản biện, đã đăng, bị từ chối, số bài, ngày nộp). Dùng khi cần chọn tạp chí để nộp một bài mới, tra phí đăng và thời gian phản biện, cập nhật kết quả sau khi nộp/nhận phản hồi, hoặc bổ sung một tạp chí mới vào danh mục.
 ---
 
 # Danh mục và theo dõi tạp chí CNTT/AI
 
 Dữ liệu nằm ở `du-lieu/tap-chi.csv` (UTF-8, phân tách bằng dấu phẩy, mở được bằng Excel).
-Mỗi dòng là một venue — tạp chí hoặc hội thảo, phân biệt ở cột `loai`. Đọc tệp này trước khi trả lời bất kỳ câu hỏi nào về nơi nộp bài.
-
-## Tạp chí và hội thảo khác nhau thế nào trong dữ liệu
-
-| Cột | Với tạp chí | Với hội thảo |
-|---|---|---|
-| `hang` | Q1–Q4 theo SJR, ghi năm | Hạng CORE (ví dụ `CORE A*`), ghi kỳ xếp hạng |
-| `mo_hinh` | `hybrid` / `gold` / `free` | `hội thảo` |
-| `phi_dang` | Phí xuất bản mở (APC) | Nộp miễn phí; ghi yêu cầu **đăng ký bắt buộc** khi được nhận và mức phí tham khảo |
-| `chu_ky_nop` | Thường là `Nộp liên tục` | Hạn nộp cố định trong năm, hoặc cơ chế đợt (ví dụ ACL Rolling Review) |
-| `ty_le_accept` | Nếu tạp chí công bố | Ghi rõ kỳ và số bài nộp, ví dụ `26,6% (ICML 2026, 23.918 bài)` |
-
-Cột `chu_de_goi_y` gắn nhãn chủ đề nghiên cứu mà venue đặc biệt hợp, bắt đầu bằng tên chủ đề rồi dấu hai chấm, ví dụ `RAG: GraphRAG; đồ thị tri thức`. Khi người dùng hỏi theo chủ đề (ví dụ "bài RAG nộp đâu"), lọc cột này trước, sau đó mới xét `pham_vi`. Khi nghiên cứu thêm một chủ đề mới, gắn nhãn theo cùng quy ước để lọc được.
-
-Hạng CCF phải lấy theo danh mục CCF mới nhất (bản thứ bảy, 03/2026), ghi kèm năm. Nhiều tài liệu tổng hợp gộp chung "CCF-A/B" cho cả nhóm, trong khi thực tế nhiều tạp chí Q1 chỉ là CCF-C.
-
-Với hội thảo, hạn nộp, tỷ lệ chấp nhận và phí đăng ký **đổi theo từng kỳ**. Trước khi khuyên nộp, tra trang call for papers của kỳ sắp tới; nếu số liệu trong CSV đã cũ hơn kỳ gần nhất thì cập nhật dòng đó.
+Mỗi dòng là một tạp chí. Đọc tệp này trước khi trả lời bất kỳ câu hỏi nào về tạp chí.
 
 ## Khi người dùng hỏi "nộp bài này ở đâu"
 
@@ -48,8 +32,7 @@ Cập nhật đúng dòng trong CSV, không tạo dòng mới:
 Luôn đặt `cap_nhat` = ngày hôm nay (YYYY-MM-DD) cho dòng vừa sửa.
 
 Giá trị hợp lệ của `trang_thai`: `Chưa nộp`, `Đang phản biện`, `Đã đăng`, `Đã nộp, chưa đăng`.
-Giá trị hợp lệ của `do_kho`: `Thấp`, `Vừa`, `Cao`, `Rất cao`.
-Giá trị hợp lệ của `loai`: `Tạp chí`, `Hội thảo`.
+Giá trị hợp lệ của `do_kho`: `Thấp`, `Vừa`, `Cao`.
 
 ## Khi bổ sung một tạp chí mới
 
@@ -79,7 +62,5 @@ Trước khi soạn bài cho một tạp chí, đọc cột `mau_bai` trong CSV 
 - Phí niêm yết thay đổi hằng năm; luôn nhắc người dùng kiểm tra lại trước khi nộp.
 - Elsevier áp giá theo thu nhập quốc gia cho tạp chí mở hoàn toàn, nên mức thực trả của tác giả Việt Nam thường thấp hơn bảng niêm yết.
 - Với tạp chí `hybrid`, nếu không chọn xuất bản mở thì **không mất phí**. Đây là đường đi rẻ nhất để có bài Q1.
-- Cột `thoi_gian_thuc_te` ghi số liệu quan sát được (từ bài thật), đáng tin hơn thời gian nhà xuất bản công bố. Khi dùng số liệu này, nói rõ nguồn ở cột `nguon_thoi_gian`. Những dòng có nguồn "ví dụ do người dùng cung cấp" chưa được đối chiếu với bài gốc.
-- Tài liệu tổng hợp từ bên ngoài (kể cả do một AI khác soạn) thường dùng số liệu của các kỳ cũ. Khi người dùng dán một bảng như vậy, kiểm chứng từng số trước khi ghi vào CSV và báo lại chỗ sai.
-- Nhóm diamond open access (TACL, CL, TMLR, JMLR, JAIR) không mất phí ở mọi hình thức. Hội thảo hạng A* thì nộp miễn phí nhưng khi được nhận phải trả phí đăng ký, cần dự trù ngân sách đi lại nếu yêu cầu trình bày trực tiếp (ví dụ AAAI).
+- Cột `thoi_gian_thuc_te` ghi số liệu quan sát được (từ bài thật), đáng tin hơn thời gian nhà xuất bản công bố. Khi dùng số liệu này, nói rõ nguồn ở cột `nguon_thoi_gian`.
 - Không suy đoán hạng Q hay phí khi cột đang để trống; tra lại rồi mới trả lời.
