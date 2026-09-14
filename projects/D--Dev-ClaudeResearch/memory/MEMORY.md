@@ -1,0 +1,1 @@
+- [Paper human-style pass](paper-human-style-pass.md) — run skill 09 style review after every paper edit and before submission
