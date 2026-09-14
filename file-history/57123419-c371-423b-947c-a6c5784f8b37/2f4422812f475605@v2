@@ -1,0 +1,37 @@
+from pathlib import Path
+
+p = Path("paper/headroom.md")
+t = p.read_text(encoding="utf-8")
+
+
+def sub1(old, new):
+    global t
+    n = t.count(old)
+    assert n == 1, f"expected 1, found {n}: {old[:70]!r}"
+    t = t.replace(old, new)
+
+
+sub1("| MELD weighted F1 | **61.32** | 43.02 | 60.57 | 58.46 | **61.73** | **+0.41** |",
+     "| MELD weighted F1 | **61.56** | 43.25 | 60.78 | 58.80 | **61.59** | **+0.04** |")
+sub1("| MELD accuracy | **64.31** | 50.88 | 63.94 | 63.23 | **64.90** | **+0.58** |",
+     "| MELD accuracy | **64.39** | 51.32 | 63.98 | 63.41 | **64.65** | **+0.26** |")
+sub1("""*Means over five seeds. Bold marks the single modality and the fusion style chosen on
+held-out data; here they are also the best on test.*""",
+     """*Means over twenty seeds. Bold marks the single modality and the fusion style chosen on
+held-out data; here they are also the best on test.*""")
+sub1("""**What it says.** Weighted-F1 $H$ is $+0.41$ (95% CI $[-0.51, +1.33]$, $p = 0.28$),
+against $+2.81$ in the published row; accuracy $H$ is $+0.58$ ($[+0.09, +1.07]$,
+$p = 0.030$). Frozen text alone reaches 61.32 weighted F1, above the published
+text+audio system at 59.25.""",
+     """**What it says.** Over twenty seeds, weighted-F1 $H$ is $+0.04$ (bootstrap 95% interval
+$[-0.26, +0.33]$, permutation $p = 0.82$), against $+2.81$ in the published row;
+accuracy $H$ is $+0.26$ ($[-0.01, +0.53]$, $p = 0.09$), where five seeds had suggested a
+significant $+0.58$ ($p = 0.030$). Frozen text alone reaches 61.56 weighted F1, above the
+published text+audio system at 59.25.""")
+sub1("""(64.23 against
+64.31)""", """(63.73 against
+64.39)""")
+sub1("falls from 2.81 to 0.41:", "falls from 2.81 to 0.04:")
+
+p.write_text(t, encoding="utf-8")
+print("paper/headroom.md updated (MELD)")

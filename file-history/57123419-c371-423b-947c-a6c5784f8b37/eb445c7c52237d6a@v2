@@ -1,0 +1,41 @@
+from pathlib import Path
+
+p = Path("paper/iceir/main.tex")
+t = p.read_text(encoding="utf-8")
+subs = [
+    (r"""labels gives a headroom of $0.41$ weighted-F1 points against the published $2.81$,
+because the text-only baseline rises by almost five.""",
+     r"""labels gives a headroom of $0.04$ weighted-F1 points against the published $2.81$,
+because the text-only baseline rises by about five."""),
+    (r"""of what fusion is worth there, and more than all of it on frozen features.""",
+     r"""of what fusion is worth in the published rows, while on frozen features fusion adds nothing
+measurable for a margin to consume."""),
+    (r"""\caption{MELD with frozen encoders, means over five seeds.""",
+     r"""\caption{MELD with frozen encoders, means over twenty seeds."""),
+    (r"""MELD wF1 & \textbf{61.32} & 43.02 & 60.57 & 58.46 & \textbf{61.73} & $+0.41$ \\""",
+     r"""MELD wF1 & \textbf{61.56} & 43.25 & 60.78 & 58.80 & \textbf{61.59} & $+0.04$ \\"""),
+    (r"""MELD acc. & \textbf{64.31} & 50.88 & 63.94 & 63.23 & \textbf{64.90} & $+0.58$ \\""",
+     r"""MELD acc. & \textbf{64.39} & 51.32 & 63.98 & 63.41 & \textbf{64.65} & $+0.26$ \\"""),
+    (r"""Table~\ref{tab:meld} gives the result. Weighted-F1 $H$ is $+0.41$ ($[-0.51,+1.33]$,
+$p=0.28$), against $+2.81$ in the published
+bc-LSTM row; accuracy $H$ is $+0.58$ ($[+0.09,+1.07]$, $p=0.030$). The fusion style
+matters as much as the channel: early concatenation gives $-0.75$ weighted F1 against
+text alone and late averaging $-2.86$ ($p=0.001$), so only per-modality encoders recover
+any gain from audio at all. Frozen text alone reaches $61.32$ weighted F1""",
+     r"""Table~\ref{tab:meld} gives the result over twenty seeds. Weighted-F1 $H$ is $+0.04$
+(bootstrap $95\%$ interval $[-0.26,+0.33]$, permutation $p=0.82$, $d_z=0.05$), against
+$+2.81$ in the published bc-LSTM row; accuracy $H$ is $+0.26$ ($[-0.01,+0.53]$,
+$p=0.09$). With five seeds that accuracy difference had looked significant ($p=0.03$);
+it does not survive twenty. The fusion style matters more than the channel: early
+concatenation gives $-0.78$ weighted F1 against text alone ($[-1.05,-0.49]$) and late
+averaging $-2.75$ ($[-3.06,-2.45]$), both $p<0.001$, so only per-modality encoders avoid a
+loss. Frozen text alone reaches $61.56$ weighted F1"""),
+    (r"""Held-out and test accuracy agree ($64.23$ vs.\ $64.31$), unlike MOSI,""",
+     r"""Held-out and test accuracy agree ($63.73$ vs.\ $64.39$), unlike MOSI,"""),
+]
+for old, new in subs:
+    n = t.count(old)
+    assert n == 1, f"expected 1 match, found {n}: {old[:70]!r}"
+    t = t.replace(old, new)
+p.write_text(t, encoding="utf-8")
+print("applied", len(subs), "substitutions")

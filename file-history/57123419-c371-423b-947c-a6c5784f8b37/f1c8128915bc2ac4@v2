@@ -1,0 +1,53 @@
+from pathlib import Path
+
+p = Path("paper/iceir/main.tex")
+t = p.read_text(encoding="utf-8")
+missing = []
+
+
+def sub1(old, new):
+    global t
+    n = t.count(old)
+    if n != 1:
+        missing.append((n, old[:80]))
+        return
+    t = t.replace(old, new)
+
+
+sub1(r"""Mismatched architectures between
+unimodal and fused rows multiply $H$ by $2.7$ on SEED-IV, and on MELD a constant classifier
+already reaches $31.3$ weighted F1.""",
+     r"""On MELD a constant classifier already reaches $31.3$
+weighted F1.""")
+
+sub1(r"""\textbf{Reproducibility.} The bi-LSTM runs on four CPU threads and is deterministic given
+the seed: re-running MOSI in the same environment reproduced every seed of every
+configuration exactly. The frozen encoders of Section~\ref{sec:meld} run in half
+precision, inference only, on a single 6\,GB consumer GPU; extracting every MELD block
+takes about an hour. Feature files are pinned by checksum, and each number in this paper
+is recorded with the script that produced it.""",
+     r"""\textbf{Reproducibility.} The bi-LSTM is deterministic given the seed on four CPU threads;
+the frozen encoders of Section~\ref{sec:meld} run in half precision, inference only, on one
+6\,GB GPU. Feature files are pinned by checksum, and every number is recorded with the
+script that produced it.""")
+
+sub1(r"""\textbf{Relation to other audits.} Like the audits of standard splits~\cite{gorman2019}
+and statistical power~\cite{card2020}, this is a result about reporting. Unlike them, the
+quantity it adds can be computed from tables that papers already print, so an existing
+literature can be re-read without re-running any system, which is what
+Section~\ref{sec:audit} does.""",
+     r"""\textbf{Relation to other audits.} Like the audits of standard splits~\cite{gorman2019}
+and statistical power~\cite{card2020}, this is a result about reporting; unlike them, its
+quantity can be read from tables that papers already print (Section~\ref{sec:audit}).""")
+
+sub1(r"""\emph{To benchmark designers}: a corpus whose best single channel sits
+within a few points of that baseline --- AMIGOS, $6.4$ points above the random level printed
+in its own table --- cannot separate fusion methods, whatever the metric.""",
+     r"""\emph{To benchmark designers}: a corpus whose best single channel sits
+a few points above that baseline, as AMIGOS does, cannot separate fusion methods.""")
+
+if missing:
+    for n, s in missing:
+        print(f"NOT APPLIED (found {n}): {s!r}")
+p.write_text(t, encoding="utf-8")
+print("done; unapplied:", len(missing))

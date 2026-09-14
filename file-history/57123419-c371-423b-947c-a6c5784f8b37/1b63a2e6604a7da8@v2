@@ -1,0 +1,70 @@
+from pathlib import Path
+
+p = Path("paper/fjcai/main.tex")
+t = p.read_text(encoding="utf-8")
+missing = []
+
+
+def sub1(old, new):
+    global t
+    n = t.count(old)
+    if n != 1:
+        missing.append((n, old[:80]))
+        return
+    t = t.replace(old, new)
+
+
+sub1(r"folds 1--4 score between 88.3\% and 90.2\%", r"folds 1--4 score between 88.2\% and 90.2\%")
+sub1(r"84.0\% under this protocol", r"83.9\% under this protocol")
+
+sub1(r"""Training every model on exactly three
+sessions, averaged over the four such subsets per held-out session, the released text
+still gaps by $+30.2$ points of accuracy ($+31.2$ macro F1, $+32.2$ unweighted average
+recall) and the released visual block by $+19.0$, while frozen BERT gaps by $-3.9$.
+Projecting the frozen encoders onto 100 dimensions with a PCA fitted on the training
+sessions leaves them negative as well, $-4.9$ for BERT and $-6.0$ for RoBERTa.""",
+     r"""We therefore trained every model on exactly
+three sessions, averaging over the four such subsets for each held-out session, and
+compared the mean accuracy on held-out sessions 1--4 with that on session 5. The released
+text is $+30.2$ points higher on sessions 1--4 ($+31.2$ macro F1, $+32.2$ unweighted
+average recall) and the released visual block $+19.0$, while frozen BERT is $-3.9$.
+Under the same three-session design, projecting the frozen encoders onto 100 dimensions
+with a PCA fitted on the training sessions leaves them negative as well, $-4.9$ for BERT
+and $-6.0$ for RoBERTa.""")
+
+sub1(r"against $-3.5$ to $-5.1$ for the frozen encoders.",
+     r"against $-3.5$ to $-5.1$ for the three frozen text encoders ($-2.2$ with the released audio added).")
+
+sub1(r"""Every cell is a mean over three seeds, whose standard deviation is at
+most $2.4$ points.""",
+     r"""Every cell is a mean over three seeds; the seed standard deviation of
+every tabulated value is at most $2.4$ points.""")
+
+sub1(r"All experiments use one model:", r"Unless stated otherwise, the trained experiments use one model:")
+sub1(r"""trained with three seeds (five in
+Section~\ref{sec:conseq}).""",
+     r"""trained with three seeds (five for the fusion and MOSI/MOSEI
+experiments of Section~\ref{sec:conseq}).""")
+
+sub1(r"""The text and visual blocks of some of the most reused IEMOCAP features were fitted to the
+labels of four of its five sessions.""",
+     r"""The text block of some of the most reused IEMOCAP features, and on indirect evidence the
+visual block, behave as if fitted to the labels of four of its five sessions.""")
+
+sub1(r"clean text with the contaminated visual block already yields",
+     r"clean text with the visual block, which its session gap marks as label-fit, already yields")
+
+sub1(r"""while the best standard-split configuration, frozen BERT text with the
+released audio, falls to fourth.""",
+     r"""while the three leading standard-split configurations, all built on frozen
+encoders, fall to places 4 to 6.""")
+sub1(r"""what we report is
+the change of winner, not a stable reordering.""",
+     r"""what we report is
+which kind of configuration leads under each protocol, not a stable reordering.""")
+
+if missing:
+    for n, s in missing:
+        print(f"NOT APPLIED (found {n}): {s!r}")
+p.write_text(t, encoding="utf-8")
+print("done; unapplied:", len(missing))

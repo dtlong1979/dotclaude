@@ -1,0 +1,71 @@
+import importlib.util
+import json
+from pathlib import Path
+
+# 1. Give the 20-seed MELD result file the bootstrap interval the paper and figure quote.
+s = importlib.util.spec_from_file_location("p", "experiments/paired_stats.py")
+P = importlib.util.module_from_spec(s)
+s.loader.exec_module(P)
+mp = Path("results/meld_headroom_20seeds.json")
+d = json.loads(mp.read_text())
+for metric, rec in d["headroom"].items():
+    runs = d["runs"]
+    st = P.paired(runs[rec["best_fusion"]][metric]["runs"], runs[rec["best_unimodal"]][metric]["runs"])
+    rec.update({"ci95_bootstrap": st["ci95_bootstrap"], "p_permutation": st["p_permutation"],
+                "dz": st["dz"], "n_seeds": st["n"]})
+mp.write_text(json.dumps(d, indent=2))
+print("meld wF1 bootstrap", [round(x * 100, 2) for x in d["headroom"]["w_f1"]["ci95_bootstrap"]])
+
+# 2. Paper edits.
+p = Path("paper/iceir/main.tex")
+t = p.read_text(encoding="utf-8")
+missing = []
+
+
+def sub1(old, new):
+    global t
+    n = t.count(old)
+    if n != 1:
+        missing.append((n, old[:80]))
+        return
+    t = t.replace(old, new)
+
+
+sub1(r"reported with 95\% confidence intervals and paired $t$-tests",
+     r"reported with bootstrap 95\% intervals, sign-flip permutation $p$-values and the effect size $d_z$")
+
+sub1(r"""and $+1.04$ ($p=0.068$ and $0.057$).""",
+     r"""and $+1.04$ (paired-$t$ $p=0.068$ and $0.057$; permutation $p=0.125$ for both).""")
+
+sub1(r"interval $[-1.22,-0.07]$, permutation $p=0.06$",
+     r"interval $[-1.22,-0.07]$, which narrowly excludes zero, permutation $p=0.06$")
+
+sub1(r"""With five seeds that accuracy difference had looked significant ($p=0.03$);
+it does not survive twenty.""",
+     r"""With five seeds that difference had looked significant under a paired $t$-test
+($p=0.03$), although its permutation $p$ was already $0.125$; it does not survive twenty.""")
+
+sub1(r"$H$ is $+0.07$ weighted F1 ($p=0.83$)",
+     r"$H$ is $+0.07$ weighted F1 (five seeds, permutation $p=0.75$)")
+
+sub1(r"""It reported $+5.06$ weighted F1 over the strongest baseline in the
+visual-only condition. On that benchmark $H=7.3$, so the margin claimed $69\%$ of""",
+     r"""It reported $+5.06$ weighted F1 over the distillation baseline in the
+visual-only condition, and $+3.90$ over the strongest system there, plain early fusion.
+On that benchmark $H=7.3$, so the two margins claimed $69\%$ and $53\%$ of""")
+
+sub1(r"($p=0.0095$)", r"(paired $t$ over five seeds, $p=0.0095$)")
+
+sub1(r"""The ratio is meaningful only where $H$ is positive with an interval that
+excludes zero; where it is not,""",
+     r"""The ratio is meaningful only where $H$ is clearly positive: with an interval that
+excludes zero where seed variance is available, and as an indicative figure for published
+point estimates that report none. Where the interval covers zero,""")
+
+sub1(r"inflated the MOSEI gain several-fold", r"inflated the MOSEI gain two- to fourfold")
+
+if missing:
+    for n, s_ in missing:
+        print(f"NOT APPLIED (found {n}): {s_!r}")
+p.write_text(t, encoding="utf-8")
+print("done; unapplied:", len(missing))

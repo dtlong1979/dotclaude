@@ -1,0 +1,94 @@
+import json
+import re
+from pathlib import Path
+
+p = Path("paper/headroom.md")
+t = p.read_text(encoding="utf-8")
+
+summ = {c["corpus"]: c for c in json.load(open("results/mosi_mosei_summary_20seeds.json"))["fixed"]}
+mac = summ["MOSEI"]["headroom"]["macro_f1"]
+mac_s = f"{mac['H'] * 100:+.2f}"
+mac_p = mac.get("p_permutation", mac.get("p"))
+mac_p_s = "p < 0.001" if mac_p < 0.001 else f"p = {mac_p:.3f}"
+print("MOSEI macro-F1 H", mac_s, mac_p_s)
+
+
+def sub1(old, new):
+    global t
+    n = t.count(old)
+    assert n == 1, f"expected 1, found {n}: {old[:70]!r}"
+    t = t.replace(old, new)
+
+
+def resub(pattern, new, flags=0):
+    global t
+    found = re.findall(pattern, t, flags)
+    assert len(found) == 1, f"regex expected 1, found {len(found)}: {pattern[:60]!r}"
+    t = re.sub(pattern, lambda _: new, t, flags=flags)
+
+
+sub1("""  too.** Measured under one architecture with three fusion styles and five seeds, and
+  with the fusion style chosen on held-out data rather than on test, MOSI gives −1.60
+  accuracy and MOSEI +0.29. Held-out data cannot separate the two best styles on either
+  corpus, and the other one gives −1.06 and +0.86. Either way: no gain on MOSI, under
+  one point on MOSEI.""",
+     """  too.** Measured under one architecture with three fusion styles and twenty seeds,
+  and with the fusion style chosen on held-out data rather than on test, MOSI gives
+  −0.62 accuracy and MOSEI +0.68. Held-out data barely separate the two best styles on
+  either corpus, and the other one gives −0.29 and +0.37. Either way: no measurable gain
+  on MOSI, a measurable gain below one point on MOSEI.""")
+
+sub1("| CMU-MOSEI | measured here, Sec. 4.4 | accuracy | text 59.09 | 59.39 | **+0.29** |",
+     "| CMU-MOSEI | measured here, Sec. 4.4 | accuracy | text 59.05 | 59.73 | **+0.68** |")
+sub1("""| AMIGOS (arousal) | Miranda-Correa et al., TAC 2018, Tab. 7 | F1 ×100 | EEG 57.7 | 56.4 | **−1.30** |
+| CMU-MOSI | measured here, Sec. 4.4 | accuracy | text 80.53 | 78.94 | **−1.60** |""",
+     """| CMU-MOSI | measured here, Sec. 4.4 | accuracy | text 80.11 | 79.49 | **−0.62** |
+| AMIGOS (arousal) | Miranda-Correa et al., TAC 2018, Tab. 7 | F1 ×100 | EEG 57.7 | 56.4 | **−1.30** |""")
+
+table = """<!-- BEGIN MOSI MOSEI TABLE -->
+| | text | audio | video | early | late | mid | **H** |
+|---|---|---|---|---|---|---|---|
+| **MOSI** accuracy | **80.11** | 54.63 | 55.71 | 79.82 | 77.40 | **79.49** | **−0.62** |
+| **MOSI** weighted F1 | **79.93** | 54.74 | 56.20 | 79.77 | 77.37 | **79.47** | **−0.46** |
+| **MOSI** kappa | **0.571** | 0.105 | 0.107 | 0.569 | 0.520 | **0.564** | **−0.007** |
+| **MOSEI** accuracy | **59.05** | 58.56 | 53.14 | **59.73** | 60.48 | 59.42 | **+0.68** |
+| **MOSEI** weighted F1 | **57.90** | 52.56 | 48.15 | 58.69 | 55.31 | **58.52** | **+0.63** |
+| **MOSEI** kappa | **0.333** | 0.269 | 0.178 | 0.345 | 0.306 | **0.342** | **+0.009** |
+
+*Means over twenty seeds. Bold marks the single modality and the fusion style chosen on
+the held-out training videos; $H$ is their difference on test, computed from unrounded
+means, so it can differ by 0.01 from the difference of the rounded columns. Late
+averaging has the highest MOSEI test accuracy (60.48) but clearly not the highest
+held-out accuracy (65.05), which is why it is not the one counted. Early concatenation
+and per-modality encoders, by contrast, nearly tie on held-out accuracy on both corpora
+(MOSI 99.09 against 99.11, MOSEI 71.31 against 71.23); counted with the other of the
+two, accuracy $H$ would be $-0.29$ on MOSI and $+0.37$ on MOSEI. At five seeds the same
+selection gave $-1.60$ and $+0.29$; the MOSI value did not survive twenty seeds.*
+<!-- END MOSI MOSEI TABLE -->"""
+resub(r"<!-- BEGIN MOSI MOSEI TABLE -->.*?<!-- END MOSI MOSEI TABLE -->", table, re.S)
+
+words = ("""**What the numbers say.** On MOSI, no fusion style beats text alone on any metric. With
+the style chosen on held-out data the accuracy difference is $-0.62$ over twenty seeds
+(bootstrap 95% interval $[-1.22, -0.07]$, permutation $p = 0.06$, $d_z = -0.47$); the
+style it nearly ties with there gives $-0.29$ ($p = 0.22$). At five seeds, selecting
+hyper-parameters per configuration gave $-1.12$ ($p = 0.068$). Given how saturated
+MOSI's held-out split is (Section 7.4), the reading we defend is that fusion is worth
+nothing measurable on MOSI under this architecture, not that it is harmful.
+
+On MOSEI the gain is measurable and under one point. The two styles that nearly tie on
+held-out accuracy give $+0.68$ ($[+0.55, +0.82]$, $p < 0.001$, $d_z = 2.11$) and
+$+0.37$ ($p = 0.001$); at five seeds, selecting hyper-parameters per configuration gave
+$+1.04$ ($p = 0.057$). On macro F1 the selected style shows """ + mac_s + " (" + mac_p_s + """).
+Late averaging posts the highest test accuracy, about $+1.4$, but ranks last among the
+fusion styles on held-out accuracy, so it is not counted.""")
+resub(r"\*\*What the numbers say\.\*\* On MOSI.*?so it is not counted\.", words, re.S)
+
+sub1("""MOSEI yields between $+0.29$ and
+$+0.86$ accuracy — held-out data cannot separate the two styles that give them — and
+MOSI between $-1.60$ and $-1.06$.""",
+     """MOSEI yields between $+0.37$ and
+$+0.68$ accuracy — held-out data barely separate the two styles that give them — and
+MOSI between $-0.62$ and $-0.29$.""")
+
+p.write_text(t, encoding="utf-8")
+print("paper/headroom.md updated (MOSI/MOSEI)")

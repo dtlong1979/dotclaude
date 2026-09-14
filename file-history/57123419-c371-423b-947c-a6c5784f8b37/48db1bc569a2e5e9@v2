@@ -1,0 +1,39 @@
+import ast
+import io
+import re
+import sys
+import tokenize
+from pathlib import Path
+
+LEAKS = (r"[A-Za-z]:[/\\]", r"SingPC", r"dtlong", r"hou\.edu", r"dinhtuanlong", r"Claude",
+         r"anthropic", r"scratchpad")
+
+for d in map(Path, sys.argv[1:]):
+    bad = []
+    for f in sorted(d.rglob("*.py")):
+        src = f.read_text(encoding="utf-8")
+        rel = f.relative_to(d).as_posix()
+        for tok in tokenize.generate_tokens(io.StringIO(src).readline):
+            if tok.type == tokenize.COMMENT:
+                bad.append((rel, "comment", tok.string[:40]))
+        tree = ast.parse(src)
+        for n in ast.walk(tree):
+            if (isinstance(n, (ast.Module, ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))
+                    and n.body and isinstance(n.body[0], ast.Expr)
+                    and isinstance(n.body[0].value, ast.Constant)
+                    and isinstance(n.body[0].value.value, str)):
+                bad.append((rel, "docstring", ""))
+            if isinstance(n, ast.keyword) and n.arg in ("help", "description", "epilog"):
+                bad.append((rel, "argparse " + n.arg, ""))
+        for pat in LEAKS:
+            m = re.search(pat, src)
+            if m:
+                bad.append((rel, "leak " + pat, src[max(0, m.start() - 30):m.end() + 30].replace("\n", " ")))
+    for other in d.rglob("*"):
+        if other.is_file() and other.suffix not in (".py", ".json", ".md", ".txt"):
+            bad.append((other.relative_to(d).as_posix(), "unexpected file type", ""))
+        if other.is_file() and other.suffix == ".py" and "plot" in other.name:
+            bad.append((other.relative_to(d).as_posix(), "plotting code", ""))
+    print(f"== {d}: {len(bad)} violation(s)")
+    for b in bad:
+        print("  ", b)

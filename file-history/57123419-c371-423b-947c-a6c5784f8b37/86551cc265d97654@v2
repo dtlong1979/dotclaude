@@ -1,0 +1,23 @@
+import importlib.util
+import os
+import sys
+import traceback
+from pathlib import Path
+
+pack = Path(sys.argv[1]).resolve()
+os.chdir(pack)
+sys.path.insert(0, str(pack / "src"))
+failed = 0
+files = sorted(list((pack / "experiments").glob("*.py")) + list((pack / "scripts").glob("*.py")))
+for f in files:
+    name = "smoke_" + f.stem
+    try:
+        spec = importlib.util.spec_from_file_location(name, f)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        print(f"  ok   {f.relative_to(pack).as_posix()}")
+    except Exception as exc:
+        failed += 1
+        print(f"  FAIL {f.relative_to(pack).as_posix()}: {type(exc).__name__}: {exc}")
+        traceback.print_exc(limit=1)
+print(f"{pack.name}: {len(files) - failed}/{len(files)} modules import")

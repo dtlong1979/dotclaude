@@ -1,0 +1,55 @@
+from pathlib import Path
+
+p = Path("docs/memory/topic-02.md")
+t = p.read_text(encoding="utf-8")
+
+
+def sub1(old, new):
+    global t
+    n = t.count(old)
+    assert n == 1, f"expected 1, found {n}: {old[:60]!r}"
+    t = t.replace(old, new)
+
+
+sub1("""Hai dòng tự đo, chọn trên validation: **MOSI −1.60 đến −1.06, MOSEI +0.29 đến +0.86** —
+early và mid hoà nhau trên validation ở cả hai corpus.""",
+     """Hai dòng tự đo, **20 seed**, chọn trên validation: **MOSI −0,62 (kiểu còn lại −0,29), MOSEI
++0,68 (kiểu còn lại +0,37)** — early và mid gần hoà trên validation ở cả hai corpus. Ở 5 seed
+từng là MOSI −1,60 và MOSEI +0,29; con số MOSI đó không trụ được khi tăng seed.""")
+
+sub1("**Sàn lớp đa số.**",
+     "**Baseline lớp đa số** (không gọi là \"sàn\": hệ thống có thể nằm dưới nó, nên bài đã đổi tên).")
+
+sub1("**+0.41 weighted F1** (p = 0.28)",
+     "**+0,04 weighted F1** ở 20 seed (p_perm 0,82; ở 5 seed từng là +0,41)")
+sub1("text đóng băng một mình (61.32)", "text đóng băng một mình (61,56)")
+
+sub1("| 14 tr., đã qua review văn phong + kiểm số |",
+     "| 15 tr.; qua 2 vòng review + bản tự chấm; số tự đo ở 20 seed |")
+sub1("| 7 tr., đã qua review văn phong + kiểm số |",
+     "| 8 tr.; qua 2 vòng review + bản tự chấm; thêm DialogueCRN, khử confound, control PCA |")
+
+sub1("""bốn fold nhiễm bẩn trung bình 89,4 — cao hơn SOTA công bố trên
+  IEMOCAP khoảng 20 điểm.""",
+     """bốn fold nhiễm bẩn trung bình 89,4. (Câu "cao hơn SOTA công bố
+  khoảng 20 điểm" không có nguồn kiểm chứng nên đã bỏ khỏi bài — đừng đưa lại.)""")
+
+# The block appended earlier today belongs in the sections above; fold it away.
+marker = "\n**Kết quả 20 seed và khử confound (2026-09-14).**"
+i = t.find(marker)
+assert i != -1, "appended block not found"
+t = t[:i].rstrip("\n") + "\n"
+
+t += """- **Git Bash làm rơi dấu gạch ngược trong heredoc.** Script sửa LaTeX phải viết ra file (raw
+  string), không nhét vào `python - <<EOF`; và raw string Python không được kết thúc bằng
+  một `\\` lẻ.
+- **Khoảng cách phiên khi khử confound** (mọi mô hình train đúng 3 phiên,
+  `experiments/iemocap_matched_gap.py`): text phát hành +30,2, visual +19,0, BERT −3,9;
+  chiếu PCA 100 chiều thì BERT −4,9, RoBERTa −6,0. Câu biện luận cũ "confound có lợi cho kết
+  luận" sai chiều (bản khử confound nhỏ hơn 0,9 điểm) nên đã bỏ — đừng đưa lại.
+- **Đừng tin p của t-test ở 5 seed.** Permutation dấu ở n=5 có sàn 1/32; t-test cho p=0,016
+  ở chỗ permutation cho 0,062. Số first-hand của ICEIR giờ báo bootstrap + permutation + d_z
+  (`experiments/paired_stats.py`).
+"""
+p.write_text(t, encoding="utf-8")
+print("topic-02.md updated in place")

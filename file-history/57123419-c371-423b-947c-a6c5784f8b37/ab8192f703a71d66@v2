@@ -1,0 +1,124 @@
+import importlib.util
+import json
+import re
+from pathlib import Path
+
+
+def load(n, f):
+    s = importlib.util.spec_from_file_location(n, f)
+    m = importlib.util.module_from_spec(s)
+    s.loader.exec_module(m)
+    return m
+
+
+H = load("h", "experiments/mosi_mosei_headroom.py")
+P = load("p", "experiments/paired_stats.py")
+base = {c["corpus"]: c for c in json.load(open("results/headroom_mosi_mosei_20seeds.json"))}
+mids = {**json.load(open("results/headroom_mosi_mid_20seeds.json")),
+        **json.load(open("results/headroom_mosei_mid_20seeds.json"))}
+R = {}
+for name in ("MOSI", "MOSEI"):
+    runs = dict(base[name]["runs"])
+    runs["fused-mid (T+A+V)"] = mids[name]
+    R[name] = runs
+
+E, L, M = "fused-early (T+A+V)", "fused-late (T+A+V)", "fused-mid (T+A+V)"
+mosei_mid = P.paired(R["MOSEI"][M]["acc"]["runs"], R["MOSEI"]["text"]["acc"]["runs"])
+print("MOSEI mid-text acc:", P.fmt(mosei_mid), "p_t", round(mosei_mid["p_t"], 4))
+p_mid = mosei_mid["p_permutation"]
+p_mid_s = "p<0.001" if p_mid < 0.001 else f"p={p_mid:.2f}"
+
+t = Path("paper/iceir/main.tex").read_text(encoding="utf-8")
+
+
+def sub1(old, new):
+    global t
+    n = t.count(old)
+    assert n == 1, f"expected 1, found {n}: {old[:70]!r}"
+    t = t.replace(old, new)
+
+
+def resub(pattern, new, flags=0):
+    global t
+    found = re.findall(pattern, t, flags)
+    assert len(found) == 1, f"regex expected 1, found {len(found)}: {pattern[:60]!r}"
+    t = re.sub(pattern, lambda _: new, t, flags=flags)
+
+
+# Table 1: new first-hand values, and MOSI moves above AMIGOS arousal to keep the order.
+resub(r"^CMU-MOSEI & first-hand & acc\. & text 59\.09 & 59\.39 & \$\+0\.29\$ \\\\$",
+      r"CMU-MOSEI & first-hand & acc. & text 59.05 & 59.73 & $+0.68$ \\", re.M)
+resub(r"^(AMIGOS \(arousal\) &[^\n]*\\\\)\nCMU-MOSI & first-hand & acc\. & text 80\.53 & 78\.94 & \$-1\.60\$ \\\\$",
+      "CMU-MOSI & first-hand & acc. & text 80.11 & 79.49 & $-0.62$ \\\\\n"
+      r"AMIGOS (arousal) & \cite{amigos}, Tab.~7 & F1 & EEG 57.7 & 56.4 & $-1.30$ \\", re.M)
+
+# Table 2 rows.
+rows = {
+    "MOSI acc.": r"MOSI acc. & \textbf{80.11} & 54.63 & 55.71 & 79.82 & 77.40 & \textbf{79.49} & $-0.62$ \\",
+    "MOSI wF1": r"MOSI wF1 & \textbf{79.93} & 54.74 & 56.20 & 79.77 & 77.37 & \textbf{79.47} & $-0.46$ \\",
+    "MOSI kappa": r"MOSI kappa & \textbf{0.571} & 0.105 & 0.107 & 0.569 & 0.520 & \textbf{0.564} & $-0.007$ \\",
+    "MOSEI acc.": r"MOSEI acc. & \textbf{59.05} & 58.56 & 53.14 & \textbf{59.73} & 60.48 & 59.42 & $+0.68$ \\",
+    "MOSEI wF1": r"MOSEI wF1 & \textbf{57.90} & 52.56 & 48.15 & 58.69 & 55.31 & \textbf{58.52} & $+0.63$ \\",
+    "MOSEI kappa": r"MOSEI kappa & \textbf{0.333} & 0.269 & 0.178 & 0.345 & 0.306 & \textbf{0.342} & $+0.009$ \\",
+}
+for key, line in rows.items():
+    resub(r"^" + re.escape(key) + r" &[^\n]*$", line, re.M)
+
+sub1(r"\caption{MOSI and MOSEI, means over five seeds.",
+     r"\caption{MOSI and MOSEI, means over twenty seeds.")
+sub1(r"with five seeds ($0$--$4$)", r"with twenty seeds ($0$--$19$)")
+sub1(r"$98$--$99\%$ held-out accuracy against $78$--$81\%$ on test",
+     r"$97$--$99\%$ held-out accuracy against $77$--$80\%$ on test")
+
+new_block = (
+    r"Table~\ref{tab:mosi} shows that no fusion style beats text alone on MOSI. With the style" "\n"
+    r"chosen on held-out data, accuracy $H$ is $-0.62$ over twenty seeds (bootstrap $95\%$" "\n"
+    r"interval $[-1.22,-0.07]$, permutation $p=0.06$, $d_z=-0.47$); on MOSEI it is $+0.68$" "\n"
+    r"($[+0.55,+0.82]$, $p<0.001$, $d_z=2.11$). Held-out data barely separate early from mid" "\n"
+    r"fusion on either corpus (held-out accuracy $99.09$ vs.\ $99.11$ on MOSI, $71.31$ vs.\ " "\n"
+    r"$71.23$ on MOSEI); counted with the other style, $H$ is $-0.29$ ($p=0.22$) and $+0.37$" "\n"
+    "($" + p_mid_s + "$). At five seeds, selecting hyper-parameters per configuration gave $-1.12$\n"
+    r"and $+1.04$ ($p=0.068$ and $0.057$). Fusion therefore adds nothing measurable on MOSI, and" "\n"
+    r"a gain on MOSEI that is measurable but below one point." "\n\n"
+    r"Selection matters. Late averaging posts the highest MOSEI test accuracy, $+1.43$ over" "\n"
+    r"text, yet ranks last among the fusion styles on held-out accuracy ($65.05$). Choosing the" "\n"
+    r"fusion style by its test mean would have reported a gain two to four times larger than" "\n"
+    r"the ones the held-out data support."
+)
+resub(r"Table~\\ref\{tab:mosi\} shows that no fusion style beats text alone on MOSI\..*?held-out data support\.",
+      new_block, re.S)
+
+Path("paper/iceir/main.tex").write_text(t, encoding="utf-8")
+print("main.tex updated")
+
+# docs/headroom-data.json, which the paper checker reads.
+dp = Path("docs/headroom-data.json")
+data = json.loads(dp.read_text(encoding="utf-8"))
+vals = {
+    "MOSI (measured here)": ("MOSI", M,
+        "Accuracy H with the fusion style chosen on held-out data: -0.62, bootstrap 95% interval "
+        "[-1.22, -0.07], permutation p = 0.06, d_z = -0.47, over 20 paired seeds (per-modality "
+        "encoders). Early concatenation ties with it on held-out accuracy (99.09 vs 99.11) and gives "
+        "-0.29 (p = 0.22). At 5 seeds the same selection gave -1.60 (p = 0.042), which did not survive "
+        "twenty seeds. None of the three fusion styles beats text alone on test. Audio-only and "
+        "video-only both fall below the best constant predictor, which scores 62.10."),
+    "MOSEI (measured here)": ("MOSEI", E,
+        "Accuracy H with the fusion style chosen on held-out data: +0.68, bootstrap 95% interval "
+        "[+0.55, +0.82], permutation p < 0.001, d_z = 2.11, over 20 paired seeds (early "
+        "concatenation). Mid fusion ties with it on held-out accuracy (71.23 vs 71.31) and gives "
+        "+0.37. Late averaging has the best test accuracy (+1.43) but the lowest held-out accuracy. "
+        "At 5 seeds the selection had chosen mid fusion and given +0.29. Best constant predictor "
+        "scores 49.09."),
+}
+for e in data["entries"]:
+    if e["corpus"] in vals:
+        corpus, fused_key, note = vals[e["corpus"]]
+        runs = R[corpus]
+        e["modalities"] = {m: round(runs[m]["acc"]["mean"] * 100, 4) for m in ("text", "audio", "video")}
+        e["fused"] = round(runs[fused_key]["acc"]["mean"] * 100, 4)
+        e["note"] = note
+        e["protocol"] = e["protocol"].replace("5 seeds", "20 seeds")
+        h = e["fused"] - max(e["modalities"].values())
+        print(e["corpus"], e["modalities"], e["fused"], "H", f"{h:+.4f}", f"{h:+.2f}")
+dp.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+print("headroom-data.json updated")
