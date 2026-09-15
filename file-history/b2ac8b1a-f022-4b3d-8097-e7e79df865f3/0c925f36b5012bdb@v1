@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: feedback
   originSessionId: b2ac8b1a-f022-4b3d-8097-e7e79df865f3
-  modified: 2026-09-15T06:37:09.499Z
+  modified: 2026-08-05T13:36:21.759Z
 ---
 
 Tiêu chuẩn user yêu cầu cho MỌI bài nghiên cứu (manuscript, đề cương, review) khi tôi soạn hoặc rà:
@@ -22,17 +22,6 @@ Tiêu chuẩn user yêu cầu cho MỌI bài nghiên cứu (manuscript, đề c�
    - **Bỏ throat-clearing/dẫn dắt máy móc:** *"Điều quan trọng là phải..."*, *"Có N điều cần nói thẳng..."* → vào thẳng nội dung.
    - **Nêu giới hạn MỘT LẦN, gọn;** không lặp "đóng góp là ở A chứ không phải B" nhiều lần trong bài.
    - **Đừng khẳng định điều hiển nhiên / thông báo trước thứ sẽ tự có ở phần liên quan.** Cắt các câu kiểu *"Every number is produced by committed code"* (ở abstract), *"We report negative and boundary results"* (ở intro), *"answered by committed experiments"*. Dữ liệu/số/kết quả tái lập MẶC NHIÊN nằm ở đúng phần của nó (Reproducibility, Results…) — không cần nói trước hay tự cam kết. Thông tin tái lập chỉ nêu MỘT LẦN ở mục Reproducibility, không rải khắp bài.
-
-7. **Rigor kỹ thuật (bài systems/thuật toán) — chuẩn user áp cho CertiHeal-Edge, dùng lại cho mọi bài có protocol/định lý/thực nghiệm:**
-   - **Protocol không được nêu "4 invariants mong muốn" rồi thôi.** Muốn khẳng định atomicity/safety phải có **state machine cụ thể** (vd FREE→PREPARED→COMMITTED) kèm: episode ID, xử lý message idempotent, prepare/commit ack, timeout+abort, trạng thái SAU coordinator-failure, quy tắc duplicate/delayed commit, và **proposition chứng minh bằng invariant induction** HOẶC **exhaustive fault-injection tại các điểm chết trong commit**. "tentative-then-atomic" KHÔNG tự cho atomicity khi coordinator chết giữa chừng.
-   - **Định lý/Appendix phải chứng minh trên ĐÚNG graph mà Algorithm chạy.** Nếu Method đổi sang virtual super-source ($G_F=G[V\setminus F]$, $\sigma_F$, boundary $B_F=N(F)\setminus F$) thì Theorem/Lemma KHÔNG được còn "u=1 on F"/"failed node emits demand" — reviewer lý thuyết sẽ bắt đang chứng minh trên graph khác.
-   - **Đừng nói "X resolves Y" khi X mới chỉ chứng trên harness có kiểm soát, chưa trên hệ đích.** Sửa thành "…is unreliable, motivating X; a separate implementation of X produced no [bad outcome] in the tested configurations" và ghi rõ "expected but not yet measured on [hệ đích]".
-   - **Confusion matrix:** báo cáo **class imbalance** (vd 48/52 episode nằm trong certificate → hầu như luôn dự đoán feasible); nếu **specificity=0 vì không có true negative** phải nói thẳng và đề xuất điều chỉnh schedule để có đủ cả lớp feasible/infeasible. Một schedule + một seed là chưa đủ — cần **3–5 schedule độc lập + bootstrap CI theo episode**.
-   - **Gọi tên metric đúng theo đối tượng phát hành nó.** Baseline không phát certificate thì 2/15 lần hỏng KHÔNG phải "false-safe rate" mà là "failure rate within model-certified configurations".
-   - **Notation hygiene:** một ký hiệu một nghĩa (đừng để $\Delta$ vừa là message-delay bound vừa là "reserve $\Delta$ units" → đổi demand thành $q_r$); định nghĩa mọi hạng tử trong công thức (vd $s_v$ ở certified mode = 0 cho interior).
-   - **Qualifier phải lan sang MỌI chỗ:** nếu $C_{rob}$ chỉ tính $F\subseteq V\setminus S$ thì "non-spare failures" phải có ở Abstract + contribution + captions + Conclusion, không chỉ ở định nghĩa.
-   - **Positioning đóng góp theo cái baseline mạnh KHÔNG làm được:** nếu peer-heuristic mạnh đã lấy phần lớn availability thì đóng góp khác biệt phải đặt ở no-double-booking + commitment/certificate, không phải "recovery under partition".
-   - **Giả thiết ẩn phải nêu:** vd stateful service trên node fail-stop → state không còn truy cập được; phải nói state đã replicated / external storage, hoặc certificate chỉ bảo đảm placement chứ không bảo đảm state recovery.
 
 **Why:** User (Đinh Tuấn Long) là nhà nghiên cứu nhắm tạp chí Q1, coi liêm chính khoa học là ưu tiên số một. Đã nhiều lần chỉnh khi tôi: (a) thêm câu tự-phòng-thủ thừa (vụ "giải trình hoãn baseline AI" — user phản đối vì đó chỉ là hướng chưa đưa vào, không nợ ai); (b) để nhận định thiếu minh chứng ("[27] giòn" khi chưa test [27]); (c) để mâu thuẫn đo (0.7 s "đo trực tiếp" vs "liveness-probe mô phỏng"); (d) văn phong máy móc/tự-biện-hộ — user tự viết lại toàn bộ bản CertiHeal-Edge để cắt câu meta và viết thẳng vào việc mình làm (xem mục 6).
 
