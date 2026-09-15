@@ -1,0 +1,54 @@
+# K3s experiments — CHUAN BI (chay khi testbed san sang)
+
+Hai thi nghiem bo sung theo phan bien, backing cho §IV-D cua bai CertiHeal-Edge. **Chua chay** trong phien
+chuan bi (chua co cluster). Script da compile + test logic bang du lieu tong hop.
+
+## Yeu cau testbed
+- k3d/K3s cluster, namespace `certiheal`, deployment `roles` (nhu chaos_A.py da dung).
+- `pip install kubernetes`; `kubectl` + `docker` tren PATH; `~/.kube/config` tro dung cluster.
+- Chay tren MOT may cung du (node phat hien dong qua k8s API). Neu muon quy mo 16-node WAN nhu bai:
+  dung lai bo dong bo hai may `chaos_A.py` + `chaos_B.ps1` (shared seed) — reservation runner giu cung LCG.
+
+## Thi nghiem #1 — fail-closed reservation tren K3s (3 arm)
+Muc tieu: cho thay reading MODEL certificate truc tiep tu telemetry la unreliable (false-safe 12–35%),
+con **fail-closed reservation keo false-safe ve ~0** tren Kubernetes that (khong chi tren container fabric).
+
+```
+# cung mot seed cho ba arm de so sanh cong bang
+python k3s_reservation.py --arm certonly    --seed 101 --duration 3600
+python k3s_reservation.py --arm dryrun       --seed 101 --duration 3600
+python k3s_reservation.py --arm reservation  --seed 101 --duration 3600
+python analyze_reservation.py            # in bang confusion + false-safe [95% CI] cho 3 arm
+```
+
+Ba arm:
+- **certonly**: doc `notready<=cert` (model certificate), remap mu (xoa orphan pod, scheduler mac dinh dat lai). = hanh vi chaos_A.py hien tai.
+- **dryrun**: verdict "feasible" dua tren admission THAT (bin-pack orphan demand vao allocatable con trong), khong phai model cert.
+- **reservation**: GATE remap — chi commit so pod ma capacity con nhan; con lai bao UNSERVED (fail-closed, khong hua qua suc chua).
+
+Ky vong: `certonly` false-safe cao; `dryrun`/`reservation` ~0. Neu dung => cau §IV-D chuyen tu "expected"
+sang "measured on Kubernetes", tang manh kha nang chap nhan.
+
+## Thi nghiem #2 — nhieu schedule doc lap + bootstrap CI
+Muc tieu: thay 1 schedule/1 seed hien tai bang **3–5 schedule doc lap**, bao false-safe theo episode voi
+khoang tin cay bootstrap.
+
+```
+for s in 101 102 103 104 105; do
+  python k3s_reservation.py --arm certonly    --seed $s --duration 3600
+  python k3s_reservation.py --arm reservation  --seed $s --duration 3600
+done
+python analyze_reservation.py            # gop moi seed, bootstrap CI 95% theo episode cho tung arm
+```
+
+`analyze_reservation.py` da gop tat ca `results_res_<arm>_<seed>.json`, nen chi can chay nhieu seed roi phan tich mot lan.
+Chinh nguong "hang": `python analyze_reservation.py 1` (>=1 mau Pending, chat hon) hoac mac dinh 3.
+
+## Luu y class-imbalance
+Lich chaos hien tai it khi day qua ranh gioi certificate (48/52 episode nam trong certificate), nen lop
+"infeasible" thieu. De do specificity cho ra hon, tang `HOLD_MAX`/`k` trong `gen_schedule` (giet sau/lau hon)
+de co them episode vuot certificate — sua GAP/HOLD/KEEP_ALIVE o dau `k3s_reservation.py`.
+
+## Xuat ra
+- `results_res_<arm>_<seed>.json` — time-series moi lan chay (cert, admit_fit, demand, avail_slots, committed, unserved, pending, notready).
+- `results_reservation_summary.json` — confusion + false-safe [95% CI] cho tung arm (dung de viet vao §IV-D).

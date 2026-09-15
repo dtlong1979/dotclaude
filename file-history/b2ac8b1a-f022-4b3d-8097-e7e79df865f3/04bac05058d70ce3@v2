@@ -1,0 +1,154 @@
+# -*- coding: utf-8 -*-
+"""
+THI NGHIEM K3s #1 (CHUAN BI - chay khi testbed san sang): so sanh 3 ARM tren CUNG mot lich chaos,
+do false-safe theo EPISODE. Muc tieu: cho thay fail-closed reservation keo false-safe ve ~0 tren
+Kubernetes that (khong chi tren container fabric).
+
+  ARM certonly    : doc MODEL certificate tu telemetry (notready<=cert) roi remap mu (xoa orphan pod,
+                    de scheduler mac dinh dat lai). = hanh vi hien tai cua chaos_A.py.
+  ARM dryrun      : truoc khi tuyen bo "feasible", KIEM bang admission that (bin-pack orphan demand vao
+                    allocatable con trong cua node Ready). Verdict = admission, KHONG phai model cert.
+  ARM reservation : GATE remap - chi commit (xoa+dat lai) so orphan pod ma capacity con nhan; phan con
+                    lai danh dau UNSERVED. Fail-closed: khong bao gio hua qua suc chua that.
+
+Moi tick log: cert (model), admit_fit (bool), demand, avail_slots, committed, unserved, pending, notready.
+=> analyze_reservation.py tinh confusion + false-safe + bootstrap CI cho tung arm.
+
+Chay (mot may, k3d cluster da co namespace 'certiheal' deploy 'roles'):
+  python k3s_reservation.py --arm certonly    --seed 101 --duration 3600
+  python k3s_reservation.py --arm dryrun       --seed 101 --duration 3600
+  python k3s_reservation.py --arm reservation  --seed 101 --duration 3600
+Lap lai voi --seed 102..105 cho bootstrap Cai (thi nghiem #2). Xuat results_res_<arm>_<seed>.json.
+
+LUU Y: chua chay duoc trong phien chuan bi (chua co cluster). Logic k8s-API giu GIONG chaos_A.py da chay.
+"""
+import subprocess, time, json, os, sys, argparse
+from kubernetes import client, config
+
+NS = "certiheal"; DEP = "roles"; OUT = os.path.dirname(os.path.abspath(__file__))
+GAP_MIN, GAP_MAX, HOLD_MIN, HOLD_MAX, KEEP_ALIVE = 45, 150, 30, 180, 4
+
+ap = argparse.ArgumentParser()
+ap.add_argument("--arm", choices=["certonly", "dryrun", "reservation"], required=True)
+ap.add_argument("--seed", type=int, default=101)
+ap.add_argument("--duration", type=int, default=3600)
+ap.add_argument("--start", type=float, default=0.0)   # epoch de dong bo hai may (tuy chon)
+A = ap.parse_args()
+
+# --- LCG so nguyen (giong chaos_A.py) de lich tai lap duoc tu seed ---
+_st = A.seed & 0x7FFFFFFF
+def nxt():
+    global _st; _st = (1103515245 * _st + 12345) & 0x7FFFFFFF; return _st
+def rint(a, b): return a + (nxt() % (b - a + 1))
+
+config.load_kube_config(); v1 = client.CoreV1Api(); appsv1 = client.AppsV1Api()
+def sh(c): return subprocess.run(c, shell=True, capture_output=True, text=True)
+def is_worker(n):
+    lbl = n.metadata.labels or {}
+    return "node-role.kubernetes.io/control-plane" not in lbl and not n.metadata.name.endswith("server-0")
+def nready(n): return any(c.type == "Ready" and c.status == "True" for c in (n.status.conditions or []))
+def cap_of(n):
+    a = (n.status.allocatable or {}).get("cpu", "0"); c = int(a[:-1]) / 1000 if a.endswith("m") else float(a)
+    return int(c // 3)                                   # 1 role ~ 3 don vi cpu (giong chaos_A.py)
+def role_pods():
+    return [p for p in v1.list_namespaced_pod(NS).items if (p.metadata.labels or {}).get("app") == "role"]
+def orphan_pods(node):
+    return [p.metadata.name for p in role_pods() if p.spec.node_name == node]
+
+# --- node worker phat hien DONG (khong hardcode) de script chay duoc tren cluster bat ky ---
+def worker_nodes(): return [n for n in v1.list_node().items if is_worker(n)]
+NODE_NAMES = sorted(n.metadata.name for n in worker_nodes())
+def container_of(n): return n                            # ten container == ten node (k3d agent)
+
+def gen_schedule(nodes):
+    ev = []; down = {}; alive = set(nodes); t = 120
+    while t < A.duration - 120:
+        for n, rt in list(down.items()):
+            if rt <= t: alive.add(n); del down[n]
+        t += rint(GAP_MIN, GAP_MAX)
+        r = nxt() % 100; k = 1 if r < 55 else (2 if r < 85 else 3)
+        k = min(k, len(alive) - KEEP_ALIVE)
+        if k < 1: continue
+        pool = [n for n in nodes if n in alive]; vics = []
+        for _ in range(k): vics.append(pool.pop(nxt() % len(pool)))
+        hold = rint(HOLD_MIN, HOLD_MAX)
+        for vname in vics:
+            ev.append((t, "kill", vname)); alive.discard(vname); down[vname] = t + hold
+            ev.append((t + hold, "rejoin", vname))
+    ev.sort(key=lambda e: (e[0], e[2])); return ev
+
+SCHED = gen_schedule(NODE_NAMES)
+kills = sum(1 for e in SCHED if e[1] == "kill")
+print(f"[RES-{A.arm}] seed={A.seed} dur={A.duration}s nodes={len(NODE_NAMES)} | {len(SCHED)} su kien ({kills} kill)", flush=True)
+
+if A.start > 0:
+    while time.time() < A.start: time.sleep(0.3)
+t0 = time.time(); ts = []; done = set()
+while time.time() - t0 < A.duration:
+    dt = time.time() - t0
+    for i, (et, act, node) in enumerate(SCHED):
+        if i in done or et > dt: continue
+        done.add(i)
+        sh(f"docker {'stop' if act == 'kill' else 'start'} {container_of(node)}")
+        print(f"  t+{dt:6.0f}s [{act.upper()}] {node}", flush=True)
+
+    nodes = worker_nodes()
+    ready = [n for n in nodes if nready(n) and not n.spec.unschedulable]
+    notready = [n for n in nodes if not nready(n)]
+    dep = appsv1.read_namespaced_deployment_status(DEP, NS)
+    avail = dep.status.available_replicas or 0; desired = dep.spec.replicas
+
+    # --- MODEL certificate (giong chaos_A.py): so node co the mat ma van du cho ---
+    caps = sorted([cap_of(n) for n in ready], reverse=True)
+    cert = 0
+    for k in range(len(caps) + 1):
+        if sum(caps[:len(caps) - k]) >= desired: cert = k
+        else: break
+
+    # --- demand mo coi + slot con trong that (admission that) ---
+    pods = role_pods()
+    pending = [p for p in pods if p.status.phase == "Pending" or p.spec.node_name is None]
+    ready_names = {n.metadata.name for n in ready}
+    on_ready = {}                                        # so pod dang chay tren moi node Ready
+    for p in pods:
+        if p.spec.node_name in ready_names and p.status.phase == "Running":
+            on_ready[p.spec.node_name] = on_ready.get(p.spec.node_name, 0) + 1
+    avail_slots = sum(max(0, cap_of(n) - on_ready.get(n.metadata.name, 0)) for n in ready)
+    orphan = []                                          # pod tren node NotReady (can di doi) + pending
+    for n in notready: orphan += orphan_pods(n.metadata.name)
+    demand = len(orphan) + len(pending)
+    admit_fit = avail_slots >= demand                    # bin-pack dong nhat: tong slot >= demand
+
+    committed = unserved = 0
+    # --- HANH DONG theo ARM ---
+    if A.arm in ("certonly", "dryrun"):
+        # remap mu: cordon node NotReady, xoa moi orphan pod -> scheduler mac dinh dat lai
+        for n in notready:
+            orph = orphan_pods(n.metadata.name)
+            if orph:
+                sh(f"kubectl cordon {n.metadata.name}")
+                for p in orph: sh(f"kubectl -n {NS} delete pod {p} --grace-period=0 --force")
+        committed = len(orphan)                          # tuyen bo phuc vu het (co the qua suc chua)
+    else:  # reservation: CHI commit so pod ma slot con nhan; con lai UNSERVED (fail-closed)
+        budget = avail_slots
+        for n in notready:
+            orph = orphan_pods(n.metadata.name)
+            if orph: sh(f"kubectl cordon {n.metadata.name}")
+            for p in orph:
+                if budget > 0:
+                    sh(f"kubectl -n {NS} delete pod {p} --grace-period=0 --force"); budget -= 1; committed += 1
+                else:
+                    unserved += 1                        # khong hua: giu nguyen, bao unserved
+    for n in ready:
+        if n.spec.unschedulable: sh(f"kubectl uncordon {n.metadata.name}")
+
+    ts.append(dict(t=round(dt, 1), avail=avail, desired=desired, pending=len(pending),
+                   ready=len(ready), notready=len(notready), cert=cert,
+                   demand=demand, avail_slots=avail_slots, admit_fit=admit_fit,
+                   committed=committed, unserved=unserved))
+    time.sleep(2)
+
+json.dump(dict(arm=A.arm, seed=A.seed, duration=A.duration, nodes=len(NODE_NAMES),
+               schedule=[list(e) for e in SCHED], timeseries=ts),
+          open(os.path.join(OUT, f"results_res_{A.arm}_{A.seed}.json"), "w"), ensure_ascii=False)
+print(f"=== RES-{A.arm} seed={A.seed} DONE === {len(ts)} diem -> results_res_{A.arm}_{A.seed}.json", flush=True)

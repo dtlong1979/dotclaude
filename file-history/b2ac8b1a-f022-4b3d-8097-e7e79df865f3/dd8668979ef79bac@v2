@@ -1,0 +1,83 @@
+# -*- coding: utf-8 -*-
+"""
+PHAN TICH thi nghiem K3s #1 + #2 (CHUAN BI): doc results_res_<arm>_<seed>.json ->
+- Episode-level confusion + false-safe cho tung ARM (certonly / dryrun / reservation).
+- Bootstrap 95% CI cho false-safe rate (resample episode; gop nhieu seed = thi nghiem #2 multi-schedule).
+Ky vong: certonly false-safe 12-35%; dryrun va reservation ~0 -> fail-closed keo false-safe ve 0 tren K3s.
+
+  python analyze_reservation.py [HANG_MIN_SAMPLES=3]
+"""
+import json, os, glob, random, sys
+D = os.path.dirname(os.path.abspath(__file__))
+HANG = int(sys.argv[1]) if len(sys.argv) > 1 else 3      # so mau lien tiep Pending>0 => coi la "hang"
+random.seed(0)
+
+def episodes(ts):
+    """doan lien tiep avail<desired (mot su co)."""
+    out = []; i = 0
+    while i < len(ts):
+        if ts[i]["avail"] < ts[i]["desired"]:
+            j = i
+            while j < len(ts) and ts[j]["avail"] < ts[j]["desired"]: j += 1
+            out.append(ts[i:j]); i = j
+        else: i += 1
+    return out
+
+def has_hang(ep):
+    run = 0
+    for s in ep:
+        run = run + 1 if s["pending"] > 0 else 0
+        if run >= HANG: return True
+    return False
+
+def declared_feasible(ep, arm):
+    if arm == "certonly":    return all(s["notready"] <= s["cert"] for s in ep)   # model cert khong bi vuot
+    if arm == "dryrun":      return all(s.get("admit_fit", True) for s in ep)     # admission that chap nhan
+    if arm == "reservation": return all(s.get("unserved", 0) == 0 for s in ep)   # da commit het (hua phuc hoi day du)
+    return False
+
+def confusion(eps, arm):
+    TP = FP = TN = FN = 0; feas_labels = []
+    for ep in eps:
+        feas = declared_feasible(ep, arm); hang = has_hang(ep)
+        if feas: feas_labels.append(1 if hang else 0)
+        if feas and not hang: TP += 1
+        elif feas and hang:   FP += 1        # FALSE-SAFE: hua feasible nhung role treo
+        elif (not feas) and hang: TN += 1    # doan dung la se hong
+        else: FN += 1
+    return dict(TP=TP, FP=FP, TN=TN, FN=FN), feas_labels
+
+def boot_ci(labels, B=5000):
+    """CI 95% cho false-safe rate = mean(labels) (labels: 1=hang trong episode duoc tuyen feasible)."""
+    if not labels: return (0.0, 0.0, 0.0)
+    n = len(labels); point = sum(labels) / n; samp = []
+    for _ in range(B):
+        s = sum(labels[random.randrange(n)] for _ in range(n)) / n; samp.append(s)
+    samp.sort()
+    return (round(100 * point, 1), round(100 * samp[int(.025 * B)], 1), round(100 * samp[int(.975 * B)], 1))
+
+runs = {}
+for f in sorted(glob.glob(os.path.join(D, "results_res_*.json"))):
+    d = json.load(open(f, encoding="utf-8")); runs.setdefault(d["arm"], []).append(d)
+
+if not runs:
+    print("Chua co results_res_*.json — chay k3s_reservation.py truoc (khi testbed san sang)."); raise SystemExit
+
+print(f"=== K3s reservation experiment (hang>={HANG} mau) ===")
+print(f"{'arm':<12} {'seeds':>5} {'episodes':>8} {'feas':>5} {'TP':>4} {'FP':>4} {'TN':>4} {'FN':>4} {'false-safe% [95% CI]':>24}")
+summary = {}
+for arm in ("certonly", "dryrun", "reservation"):
+    if arm not in runs: continue
+    all_eps = []; seeds = []
+    for d in runs[arm]:
+        all_eps += episodes(d["timeseries"]); seeds.append(d["seed"])
+    conf, labels = confusion(all_eps, arm)
+    fs, lo, hi = boot_ci(labels)
+    nfeas = conf["TP"] + conf["FP"]
+    print(f"{arm:<12} {len(seeds):>5} {len(all_eps):>8} {nfeas:>5} {conf['TP']:>4} {conf['FP']:>4} {conf['TN']:>4} {conf['FN']:>4}   {fs:>6}  [{lo}, {hi}]")
+    summary[arm] = dict(seeds=sorted(seeds), episodes=len(all_eps), feasible=nfeas,
+                        confusion=conf, false_safe_pct=fs, ci95=[lo, hi])
+json.dump(dict(hang_min_samples=HANG, arms=summary),
+          open(os.path.join(D, "results_reservation_summary.json"), "w"), ensure_ascii=False, indent=1)
+print("\n-> results_reservation_summary.json")
+print("Doc: neu certonly false-safe cao (12-35%) con dryrun/reservation ~0 => fail-closed hoat dong tren K3s.")
