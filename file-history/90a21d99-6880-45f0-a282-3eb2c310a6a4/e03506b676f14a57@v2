@@ -1,0 +1,20 @@
+# Thử nghiệm nhỏ #01 — hướng dẫn chạy
+
+**35 file** trong `inputs/` (`paper_01.md` … `paper_35.md`) = 7 điều kiện × 5 lượt, đã xáo thứ tự. Mỗi file chứa sẵn **prompt reviewer + bài cần review**.
+
+## Cách chạy (mỗi file)
+1. Mở **một cuộc hội thoại MỚI** (không dùng lại hội thoại cũ). Tắt memory / cá nhân hóa nếu có.
+2. Dùng **cùng một model** cho cả 35 lượt; ghi lại tên model.
+3. Tải file `paper_XX.md` lên (hoặc dán toàn bộ nội dung). Không thêm lời dặn nào khác.
+4. Model sẽ trả về file `review_paper_XX.md` (hoặc một khối Markdown — lưu lại đúng tên đó).
+5. Lưu review vào `outputs/`.
+
+Chạy theo thứ tự số 01 → 35 là được (thứ tự đã được xáo sẵn).
+
+## Không làm
+- **KHÔNG tải lên / dán `_KEY_DO_NOT_UPLOAD.csv`** — đó là bảng giải mã điều kiện.
+- Không sửa nội dung file input.
+- Không chạy nhiều file trong cùng một hội thoại.
+
+## Gửi lại
+Chép 35 file `review_paper_XX.md` vào `outputs/` (hoặc gửi lại qua chat), kèm tên model và ngày chạy. Main loop sẽ ghép với bảng giải mã và phân tích.

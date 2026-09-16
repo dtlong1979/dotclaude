@@ -1,0 +1,72 @@
+"""Gom câu từ 3 nguồn (research/08, 11, 12) và chấm điểm DỰ ĐOÁN tác động theo các
+thành phần ngôn ngữ trong research/09. Đây là heuristic để chọn câu thử nghiệm,
+KHÔNG phải kết quả đo. Không đọc/ghi thông tin nguồn (URL) ra output."""
+import json, re, pathlib, collections
+
+ROOT = pathlib.Path(__file__).resolve().parents[2]
+D = ROOT / "data"
+
+ABSOLUTE = re.compile(r"\b(fully|completely|entirely|all|any|always|never|first|only|clearly|undoubtedly|unprecedented|state[- ]of[- ]the[- ]art|significantly|substantially|dramatically|without any)\b", re.I)
+RUBRIC = re.compile(r"\b(novel|novelty|original|rigou?r|rigorous|robust|sound|soundness|significan|comprehensive|well[- ]designed|contribution|impact)\w*", re.I)
+MINIMIZE = re.compile(r"\b(minor|merely|only a|slight|does not detract|not (be )?(seen|considered|regarded|viewed) as|negligible|marginal)\b", re.I)
+HEDGE = re.compile(r"\b(may|might|could|possibly|potentially|we believe|appears?|suggests?|to some extent|partially)\b", re.I)
+
+
+def norm_cat(c):
+    return c if c and re.fullmatch(r"C\d+", str(c)) else None
+
+
+def load():
+    out = []
+    for r in map(json.loads, open(D / "found_sentences/sentences.jsonl", encoding="utf-8")):
+        if r.get("direction") != "favorable":
+            continue
+        out.append(dict(src="08", id=r["tmp_id"], cat=None, E="E0" if r.get("has_evidence_nearby") == "no" else "E~",
+                        V=r.get("explicitness") == "E3", D=bool(re.search(r"\bshould|must\b", r["sentence"], re.I)),
+                        period="<=2022" if (r.get("year") or 0) <= 2022 else ">=2023", field=r.get("field"),
+                        section=r.get("section"), unsure=r.get("verbatim_check") != "webfetch_extract" and False,
+                        s=r["sentence"]))
+    for r in map(json.loads, open(D / "found_sentences/close_reading.jsonl", encoding="utf-8")):
+        out.append(dict(src="11", id=r["tmp_id"], cat=norm_cat(r.get("category")), E=r.get("attr_E"),
+                        V=str(r.get("addressee")).startswith("V"), D=str(r.get("deontic")) == "1",
+                        period=r.get("period"), field=r.get("field"), section=r.get("section"), unsure=False, s=r["sentence"]))
+    for r in map(json.loads, open(D / "semantic_expand/labeled_candidates.jsonl", encoding="utf-8")):
+        c = norm_cat(r.get("category"))
+        if not c or r.get("direction") not in ("fav", None):
+            continue
+        out.append(dict(src="12", id=r["tmp_id"], cat=c, E=r.get("attr_E"), V=r.get("addressee") == "V",
+                        D=str(r.get("deontic")) in ("1", "1.0"), period=r.get("period"), field=r.get("field"),
+                        section=r.get("section"), unsure=bool(r.get("flag")), s=r["sentence"]))
+    return out
+
+
+def score(x):
+    s, why = 0, []
+    if x["V"]: s += 3; why.append("nói với người chấm")
+    if x["D"]: s += 2; why.append("tình thái nghĩa vụ")
+    if x["E"] == "E0": s += 2; why.append("không kèm bằng chứng")
+    if x["cat"] in ("C10", "C7", "C9", "C8") or MINIMIZE.search(x["s"]): s += 2; why.append("giảm nhẹ hạn chế / lái đánh giá")
+    if ABSOLUTE.search(x["s"]): s += 1; why.append("khẳng định tuyệt đối")
+    if RUBRIC.search(x["s"]): s += 1; why.append("trùng từ khóa tiêu chí chấm")
+    if HEDGE.search(x["s"]): s -= 1; why.append("có rào đón (giảm)")
+    return s, why
+
+
+if __name__ == "__main__":
+    rows = load()
+    seen, uniq = set(), []
+    for x in rows:
+        k = re.sub(r"\W+", " ", x["s"].lower()).strip()[:120]
+        if k in seen:
+            continue
+        seen.add(k)
+        x["score"], x["why"] = score(x)
+        uniq.append(x)
+    uniq.sort(key=lambda x: -x["score"])
+    outp = D / "sample_sentences" / "scored.jsonl"
+    outp.parent.mkdir(parents=True, exist_ok=True)
+    with open(outp, "w", encoding="utf-8") as f:
+        for x in uniq:
+            f.write(json.dumps(x, ensure_ascii=False) + "\n")
+    print(len(rows), "->", len(uniq), "unique")
+    print(collections.Counter(x["score"] for x in uniq))

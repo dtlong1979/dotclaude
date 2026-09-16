@@ -1,0 +1,21 @@
+# Thử nghiệm nhỏ #01 — hướng dẫn chạy
+
+- `inputs/paper_01.md` … `paper_35.md`: **chỉ chứa nội dung bài** (7 điều kiện × 5 lượt, đã xáo thứ tự).
+- `PROMPT_REVIEW.md`: **prompt reviewer** — copy nguyên văn vào ô chat.
+
+## Cách chạy (mỗi file)
+1. Mở **một cuộc hội thoại MỚI**. Tắt memory / cá nhân hóa nếu có.
+2. Dùng **cùng một model** cho cả 35 lượt; ghi lại tên model.
+3. **Đính kèm** file `paper_XX.md` + **dán nguyên văn** nội dung `PROMPT_REVIEW.md`. Không thêm lời dặn nào khác.
+4. Lưu kết quả thành `review_paper_XX.md` (model tự tạo file, hoặc lưu khối Markdown với đúng tên đó) vào `outputs/`.
+
+Chạy theo thứ tự 01 → 35 (thứ tự đã được xáo sẵn).
+
+## Không làm
+- **KHÔNG tải lên / dán `_KEY_DO_NOT_UPLOAD.csv`** — bảng giải mã điều kiện.
+- Không sửa nội dung file input hay prompt.
+- Không chạy nhiều file trong cùng một hội thoại.
+- Nếu model từ chối, cảnh báo, hoặc nhận xét về câu lạ trong bài: **vẫn lưu nguyên văn** — đó cũng là dữ liệu.
+
+## Gửi lại
+35 file `review_paper_XX.md` + tên model + ngày chạy.
