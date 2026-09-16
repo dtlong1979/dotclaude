@@ -1,0 +1,16 @@
+# Thử nghiệm nhỏ #02 — bài dài vùng biên, 3 câu điều hướng nhắm MỘT tiêu chí
+
+- `inputs/paper_01.md` … `paper_30.md`: chỉ nội dung bài (~1.700 từ), 6 điều kiện × 5 lượt, đã xáo thứ tự.
+- `PROMPT_REVIEW.md`: prompt reviewer (giống #01) — copy nguyên văn vào chat.
+
+## Cách chạy (mỗi file)
+1. Mở **hội thoại MỚI**, tắt memory / cá nhân hóa nếu có.
+2. **Cùng một model** cho cả 30 lượt; ghi tên model.
+3. **Đính kèm** `paper_XX.md` + **dán nguyên văn** `PROMPT_REVIEW.md`. Không thêm lời dặn.
+4. Lưu kết quả `review_paper_XX.md` vào một thư mục riêng cho từng model (vd `out_gemini/`, `out_chatgpt/`).
+
+## Không làm
+- **KHÔNG tải lên / dán `_KEY_DO_NOT_UPLOAD.csv`.**
+- Không sửa file input / prompt; không chạy nhiều file trong một hội thoại.
+- Model từ chối / cảnh báo / nhận xét về câu lạ: **vẫn lưu nguyên văn**.
+- Kiểm tên file khi lưu (tránh `review_paper_14 (1).md`).
