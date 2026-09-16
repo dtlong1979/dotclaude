@@ -1,0 +1,12 @@
+{
+  "reps": 3,
+  "models": ["sonnet", "haiku"],
+  "conditions": {
+    "B0": ["", "", ""],
+    "P0": [
+      "The remainder of this paper is organised as follows: Section 2 reviews related work and Section 3 describes the method.",
+      "Table 1 reports the mean and standard deviation of test accuracy over five random seeds for each method.",
+      "We also note that all datasets used in this study are publicly available under their original licences."
+    ]
+  }
+}

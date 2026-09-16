@@ -1,0 +1,38 @@
+"""Sinh bài cho vòng sàng lọc NỘI BỘ (reviewer = agent Claude độc lập, ngữ cảnh trắng).
+Bài đặt ở thư mục mù trong scratchpad (chỉ chứa doc_XX.md, không có khóa); khóa lưu trong project.
+Dùng: python make_round.py <round_name> <spec.json>
+spec: {"reps": 3, "conditions": {"P0": ["s1","s2","s3"], ...}}"""
+import csv, json, random, sys, pathlib
+
+ROOT = pathlib.Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / "src" / "mini_test"))
+from make_mini_test_02 import render  # noqa: E402  (bài CurCon vùng biên, 3 ô S1–S3)
+
+SCRATCH = pathlib.Path(r"C:\Users\SingPC\AppData\Local\Temp\claude\D--dev-Promt-injection-in-review-papers\90a21d99-6880-45f0-a282-3eb2c310a6a4\scratchpad\blind")
+OUT = ROOT / "experiments" / "internal_screen"
+
+
+def main():
+    rnd, spec = sys.argv[1], json.loads(pathlib.Path(sys.argv[2]).read_text(encoding="utf-8"))
+    reps, conds = spec["reps"], spec["conditions"]
+    models = spec.get("models", ["sonnet", "haiku"])
+    trials = [(c, m, r) for c in conds for m in models for r in range(1, reps + 1)]
+    random.Random(hash(rnd) & 0xFFFF).shuffle(trials)
+    bdir = SCRATCH / rnd
+    (bdir / "docs").mkdir(parents=True, exist_ok=True)
+    (bdir / "reviews").mkdir(exist_ok=True)
+    OUT.mkdir(parents=True, exist_ok=True)
+    rows = []
+    for i, (c, m, r) in enumerate(trials, start=1):
+        name = f"doc_{i:02d}.md"
+        (bdir / "docs" / name).write_text(render(conds[c]), encoding="utf-8")
+        rows.append(dict(doc=name, condition=c, model=m, run=r, S1=conds[c][0], S2=conds[c][1], S3=conds[c][2]))
+    with open(OUT / f"{rnd}_key.csv", "w", encoding="utf-8-sig", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=list(rows[0].keys()))
+        w.writeheader(); w.writerows(rows)
+    for row in rows:
+        print(row["doc"], row["model"])
+
+
+if __name__ == "__main__":
+    main()

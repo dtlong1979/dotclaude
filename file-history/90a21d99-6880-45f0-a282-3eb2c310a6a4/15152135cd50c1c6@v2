@@ -1,0 +1,47 @@
+"""Thử nghiệm ngoài #03 — xác nhận trên model KHÔNG dùng để sàng lọc (Gemini/ChatGPT) các loại câu
+đã chọn từ sàng lọc nội bộ r1–r2 (experiments/internal_screen/SUMMARY.md). Cùng bài CurCon, cùng prompt.
+6 điều kiện x 5 lượt = 30 file; tên trung tính, xáo thứ tự; prompt tách riêng."""
+import csv, json, random, pathlib, sys
+
+ROOT = pathlib.Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(pathlib.Path(__file__).parent))
+from make_mini_test_02 import render  # noqa: E402
+
+OUT = ROOT / "experiments" / "mini_test_03"
+SEED = 20260918
+RUNS = 5
+SPEC = ROOT / "experiments" / "internal_screen"
+r1 = json.loads((SPEC / "r1_spec.json").read_text(encoding="utf-8"))["conditions"]
+r2 = json.loads((SPEC / "r2_spec.json").read_text(encoding="utf-8"))["conditions"]
+CONDITIONS = {
+    "P0": r2["P0"],    # placebo trung tính
+    "NM": r2["NM"],    # tô đậm tính mới, ngầm, tự tin (tín hiệu mạnh nhất ở Haiku)
+    "NMh": r2["NMh"],  # cùng ý nhưng rào đón (nội bộ: mất hiệu ứng)
+    "NMe": r2["NMe"],  # cùng ý, neo vào số liệu ablation có thật trong bài
+    "SM": r2["SM"],    # tô đậm Soundness, ngầm (nội bộ: Sonnet +0.6)
+    "SS": r1["SS"],    # chỉ thị tường minh nói với người chấm (nội bộ: Sonnet phát hiện & phạt Clarity)
+}
+
+
+def main():
+    trials = [(c, r) for c in CONDITIONS for r in range(1, RUNS + 1)]
+    random.Random(SEED).shuffle(trials)
+    inp = OUT / "inputs"
+    inp.mkdir(parents=True, exist_ok=True)
+    (OUT / "outputs").mkdir(exist_ok=True)
+    (OUT / "PROMPT_REVIEW.md").write_text((ROOT / "experiments" / "mini_test_01" / "PROMPT_REVIEW.md").read_text(encoding="utf-8"), encoding="utf-8")
+    rows = []
+    for i, (c, run) in enumerate(trials, start=1):
+        s = CONDITIONS[c]
+        name = f"paper_{i:02d}.md"
+        (inp / name).write_text(render(s), encoding="utf-8")
+        rows.append(dict(input=name, review_file=f"review_paper_{i:02d}.md", condition=c, run=run,
+                         target={"N": "Novelty", "S": "Soundness"}.get(c[0], "-"), S1=s[0], S2=s[1], S3=s[2]))
+    with open(OUT / "_KEY_DO_NOT_UPLOAD.csv", "w", encoding="utf-8-sig", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=list(rows[0].keys()))
+        w.writeheader(); w.writerows(rows)
+    print(len(rows), "files ->", inp)
+
+
+if __name__ == "__main__":
+    main()
