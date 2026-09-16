@@ -1,0 +1,23 @@
+import os
+os.chdir(r"D:/dev/Promt injection in review papers/.project")
+
+s = open("DECISIONS.md", encoding="utf-8").read().rstrip() + """
+
+## 2026-09-16 — Phương pháp tìm câu: đọc kỹ mẫu ngẫu nhiên → lan tỏa ngữ nghĩa → mở rộng từ vựng
+- **Chốt:** thay cách "tự nghĩ cụm từ → search" bằng 3 bước: **A** đọc kỹ toàn văn một mẫu NGẪU NHIÊN (giai đoạn × ngành, sau đó × tầng), gán nhãn mọi câu theo C1–C10 → câu mẫu không định kiến từ vựng + ước lượng tần suất/bài + CHUẨN VÀNG đo recall; **B** lan tỏa ngữ nghĩa bằng embedding trên corpus cục bộ (≤2022 + mẫu 2023–2026), lặp: top-k láng giềng → gán nhãn → câu đúng thành seed mới, dừng khi yield mỗi vòng < ~10%; **C** rút cụm từ/khung đặc trưng TỪ câu đã xác nhận để tìm quy mô lớn trên OpenAlex. Cách cụm từ cũ (research/08, 10) giữ làm baseline để so recall.
+- **Vì sao:** user chỉ ra cách cũ chỉ tìm được cách diễn đạt đã nghĩ trước (vòng lặp tự xác nhận), không đo được độ bao quát; search OpenAlex/Europe PMC chỉ khớp từ, precision chênh 0.12–0.52. So sánh recall giữa các phương pháp cũng là một đóng góp phương pháp cho bài.
+- **Đã loại:** tiếp tục mở rộng danh sách cụm từ thủ công.
+- **Chi phí nếu đổi sau này:** thấp; lưu ý lan tỏa ngữ nghĩa cần corpus cục bộ (search engine công cộng không hỗ trợ tìm theo embedding).
+"""
+open("DECISIONS.md", "w", encoding="utf-8").write(s + "\n")
+
+s = open("STATE.md", encoding="utf-8").read()
+old = "- [ ] ĐANG CHẠY: researcher (phiên 2) → tìm C10/C10-crit tường minh giai đoạn 01/2023–09/2026, đọc tay cân đối với ≤2022, loại peer-review/bài về đánh giá/prompt phụ lục → `research/11-explicit-evaluator-directed-post2023.md`. OpenAlex gần hết quota hôm nay → dùng Europe PMC / WebSearch / arXiv HTML.\n"
+new = ("- [ ] ĐANG CHẠY (đổi phương pháp — DECISIONS 2026-09-16):\n"
+       "  - researcher (phiên 2) → BƯỚC A đọc kỹ mẫu ngẫu nhiên ≥56 bài (CS 20+20, y sinh 8+8; ≤10/2022 vs 2023–09/2026), gán nhãn mọi câu C1–C10; kết quả cụm từ đã có giữ làm baseline; đo recall của họ mẫu F1–F8 → `research/11-close-reading-and-explicit-post2023.md`, `data/found_sentences/close_reading*.jsonl` (main loop cần điền hash)\n"
+       "  - data-analyst (phiên 3) → BƯỚC B lan tỏa ngữ nghĩa: `.venv`, embedding nhỏ CPU, corpus ≤2022 hiện có + mẫu mới 2023–2026 (~300–400 bài CS + ~100 y sinh, < 1 GB), vòng top-k → gán nhãn → seed mới; đề xuất BƯỚC C (truy vấn OpenAlex từ câu đã xác nhận) → `research/12-semantic-expansion.md`, `src/semantic_expand/`, `data/semantic_expand/`, `data/pilot_corpus_post2023/`\n")
+assert old in s
+s = s.replace(old, new, 1)
+s = s.replace("- Khi tạo git repo: thêm `data/`", "- Khi tạo git repo: thêm `.venv/` và `data/`", 1)
+open("STATE.md", "w", encoding="utf-8").write(s)
+print("ok")

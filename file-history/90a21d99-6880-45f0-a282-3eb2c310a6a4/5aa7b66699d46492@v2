@@ -1,0 +1,18 @@
+import os
+os.chdir(r"D:/dev/Promt injection in review papers/.project")
+s = open("STATE.md", encoding="utf-8").read()
+a = s.index("  - researcher (phiên 2) → BƯỚC A")
+b = s.index("\n", a)
+new = ("  - ✅ researcher (phiên 2) XONG BƯỚC A → `research/11-close-reading-and-explicit-post2023.md`, `data/found_sentences/close_reading.jsonl` (227 cụm câu) + `close_reading_docs.jsonl` (56 bài; main loop đã điền hash; báo cáo không lộ DOI). "
+       "Mẫu ngẫu nhiên (π): CS 20 ≤2022 + 20 2024–26, y sinh 8+8. Kết quả: ~4 câu/bài, không bài nào trắng; nhiều nhất C5 (59), C1 (46), C2 (28), C3 (27). "
+       "C10 1/56 bài [0.3–9.5%] (dạng ngầm, không 'should'); sau 2023 0/28 (CI trên 12%). C7 = 0/56; dạng 'should (not) be seen as a strength/limitation' = 0; C9 = 6. "
+       "C2–C5 tăng, C6 giảm (CS 30%→5%) sau 2023 nhưng CI chồng nhau. **0/227 câu khớp chặt họ mẫu F1–F8** → cách cụm từ gần như vô dụng cho câu thật; ~14 dạng diễn đạt mới (§5). "
+       "Giới hạn: mẫu nhỏ; lời nhắc trích câu ĐỔI giữa chừng (3 bài CS cũ cuối có ví dụ C10, nhóm sau 2023 không) → số 0 sau 2023 cần chạy lại cùng lời nhắc; mức sót của bước trích chưa đo; 17/56 trang bị cắt; thiếu năm 2023, chưa phủ Research Square/SSRN; 1 người gán nhãn.")
+s = s[:a] + new + s[b:]
+s = s.replace(
+"- C10 (câu nói thẳng với người chấm): CHƯA quyết.",
+"- **Đề xuất chờ user duyệt (sau research/11):** nhóm chính 'câu tự nhiên' của pilot đổi sang C5, C1, C2, C3, C4, C9 (loại thực sự phổ biến); C10 và C7 chuyển thành nhóm câu SOẠN KHUÔN MẪU (tần suất tự nhiên ~0). Mâu thuẫn với ưu tiên C10 > C7–C9 trong DECISIONS 'Danh mục và phạm vi ngành' → cần user chốt.\n- C10 (câu nói thẳng với người chấm): CHƯA quyết.", 1)
+s = s.replace("## Cạm bẫy đã phát hiện (đọc kỹ trước khi đụng vào)\n",
+"## Cạm bẫy đã phát hiện (đọc kỹ trước khi đụng vào)\n- Khi dùng mô hình/lời nhắc để trích câu cho gán nhãn: GIỮ NGUYÊN lời nhắc cho mọi nhóm so sánh (research/11 đổi giữa chừng → lệch độ nhạy giữa giai đoạn).\n", 1)
+open("STATE.md", "w", encoding="utf-8").write(s)
+print("ok")

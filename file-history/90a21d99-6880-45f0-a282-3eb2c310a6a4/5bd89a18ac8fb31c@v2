@@ -1,0 +1,16 @@
+import os
+os.chdir(r"D:/dev/Promt injection in review papers/.project")
+s = open("STATE.md", encoding="utf-8").read()
+a = s.index("  - data-analyst (phiên 3) → BƯỚC B")
+b = s.index("\n", a)
+new = ("  - ✅ data-analyst (phiên 3) XONG BƯỚC B → `research/12-semantic-expansion.md`, `src/semantic_expand/`, `data/semantic_expand/` (labeled_candidates.jsonl, rounds/, measure/), `data/pilot_corpus_post2023/` (396 bài arXiv HTML + 100 Europe PMC, ~350 MB). "
+       "Corpus 247,076 câu, bge-small-en-v1.5 (rev 5c38ec7c…, CPU), 4 vòng, đọc 1,110 ứng viên → 494 câu C1–C10 (109 không chắc). "
+       "0/494 khớp F1–F8. **Recall so với đọc kỹ chỉ ~5%** (5/98 câu của 28 bài holdout; 2/98 đúng loại) — embedding nắm CHỦ ĐỀ hơn CHỨC NĂNG tu từ → KHÔNG dùng để ước lượng tần suất. "
+       "Giá trị: tìm dạng hiếm — C10 13 câu (3 chắc; không câu nào gọi thẳng reviewer; 3 dạng mới: 'không có lợi bất công', 'mục tiêu là X hơn là tối đa Y', 'không được coi là nhược điểm'); C7 13 câu/11 bài, phần lớn ở METHODS/PHỤ LỤC (đọc kỹ không đọc tới). "
+       "Trước/sau 2022: không khác biệt đáng tin (nhiễu truy xuất/định dạng/Limitations). Nhánh trừ câu cùng chủ đề: 36.8% đúng nhóm vs 22.6%. "
+       "Bước C đề xuất 22 truy vấn OpenAlex (~50 credit đếm, ~270 nếu đo precision) — chưa chạy. arXiv API/list trả 429 cho máy này → dùng metadata mirror HF. Nhãn = 1 agent LLM → không phải chuẩn vàng.")
+s = s[:a] + new + s[b:]
+s = s.replace("- **Đề xuất chờ user duyệt (sau research/11):**",
+"- **Bài học phương pháp (11+12):** cả cụm từ (0 khớp) lẫn embedding (recall ~5%) đều không đủ để ước lượng tần suất; chỉ đọc kỹ đáng tin → hướng mở rộng quy mô hợp lý là **bộ phân loại theo đoạn văn (LLM hoặc fine-tune) được hiệu chỉnh trên mẫu đọc kỹ có 2 người gán nhãn** (cần API key hoặc workhorse). Phạm vi đọc kỹ phải gồm Methods/phụ lục (C7 nằm ở đó).\n- **Đề xuất chờ user duyệt (sau research/11):**", 1)
+open("STATE.md", "w", encoding="utf-8").write(s)
+print("ok")
