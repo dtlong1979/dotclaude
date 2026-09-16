@@ -1,0 +1,20 @@
+import os
+os.chdir(r"C:/Users/SingPC/.claude/agents/experience")
+L = {
+"researcher": [
+"- **Khi** đã tái định vị một bài (đổi khung, bỏ thuật ngữ cũ) → tìm lại prior art bằng TỪ VỰNG CỦA KHUNG MỚI và lọc riêng bài 1–2 tháng gần nhất · vì bài trùng nhất (2608.08975 \"rhetorical sensitivity\") không lộ ra với bộ từ khóa của khung \"injection\" cũ · độ tin: cao · 2026-09-16",
+"- **Khi** WebFetch trả PDF dạng nhị phân mà vẫn đưa ra \"trích dẫn\"/bảng định nghĩa, hoặc báo phụ lục \"NOT FOUND\" trên arXiv HTML → coi trích dẫn là có thể bịa và HTML có thể bị cắt; tải PDF rồi đọc bằng `Read` với `pages` trước khi trích hay kết luận \"bài không có X\" · vì WebFetch từng tự dựng bảng Hyland cho một PDF không có bảng đó, và Appendix G chỉ lấy được qua PDF · độ tin: cao · 2026-09-16",
+],
+"data-analyst": [
+"- **Khi** lấy mẫu arXiv/unarXive \"trước mốc thời gian X\" → lọc theo ngày của BẢN CUỐI (hoặc lấy source đúng version trước X), không theo ID/ngày v1 · vì 25% bài cs.CL/LG/AI nộp 2022 có bản sửa sau 11/2022 → văn bản sau mốc lọt vào im lặng · độ tin: cao · 2026-09-16",
+"- **Khi** đếm cụm từ bằng OpenAlex `fulltext.search` → luôn đếm kèm câu đối chứng trung tính, đọc toàn văn một mẫu để đo precision THEO TỪNG TẦNG/NGÀNH, và dùng `group_by` (1 credit) thay liệt kê (10 credits; quota 1000/ngày) · vì search bỏ stopword/mạo từ và khớp qua ranh giới câu → precision chênh 0.12–0.52 giữa tầng, số thô chênh 4.7× chỉ do độ phủ toàn văn · độ tin: cao · 2026-09-16",
+],
+"ai-engineer": [
+"- **Khi** thiết kế minimal pairs để tách \"làm theo chỉ thị trong văn bản\" khỏi \"thiên lệch dương chung\" ở LLM-as-judge → thêm biến thể ĐẢO CHIỀU chỉ thị (giữ addressee + deontic, đảo hướng) và phép thử phía prompt (bật/tắt spotlighting, văn bản giữ nguyên) · vì chỉ so với placebo không phân biệt được tuân thủ chỉ thị với sycophancy/verbosity; delimiter chỉ tác động lên phần chỉ thị · độ tin: vừa (lập luận, chưa chạy) · 2026-09-16",
+],
+}
+for a, lines in L.items():
+    p = f"{a}.md"
+    s = open(p, encoding="utf-8").read().rstrip() + "\n" + "\n".join(lines) + "\n"
+    open(p, "w", encoding="utf-8").write(s)
+    print(a, len(s.encode("utf-8")))

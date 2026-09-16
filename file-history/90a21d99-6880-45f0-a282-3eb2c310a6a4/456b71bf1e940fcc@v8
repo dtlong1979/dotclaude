@@ -1,0 +1,61 @@
+# STATE.md — Trạng thái hiện tại (cập nhật liên tục)
+
+> NGUỒN SỰ THẬT DUY NHẤT về tiến độ. Đọc file này ĐẦU TIÊN mỗi phiên. Không tin "trí nhớ hội thoại".
+
+**Cập nhật lần cuối:** 2026-09-16
+
+## Đang làm dở
+- [x] 2026-09-16 — Đợt khảo sát 2 (research/05–10) XONG TOÀN BỘ; đang chờ user quyết C10 / số loại / phạm vi ngành / bài học (xem Điểm cần hỏi):
+  - ✅ researcher XONG → `research/05`: khung mới trùng ~50–60%. Bài trùng gần nhất MỚI phát hiện: **arXiv:2608.08975** "Dissecting Rhetorical Sensitivity in AI-Based Peer Review" (8/2026) — viết lại toàn bài theo 6 chiều tu từ, có Hyland, prompt strict không giảm ổn định; KHÔNG có placebo, câu tự nhiên, lỗi cài sẵn, FPR, không tách hiệu ứng từng đặc trưng. Trùng theo RQ: RQ1 60–65% (phải thu hẹp: can thiệp mức cụm câu tự nhiên, placebo + arm gỡ bỏ, hiệu ứng riêng từng lớp), RQ2 35–45%, RQ3 20–30% (an toàn nhất; viết thành đường cong recall–FPR), RQ4 40–50% (phải lấy prompt strict 2608.08975 + verification 2608.28626 làm baseline).
+  - ✅ researcher XONG bản nháp → `research/06`: 10 loại C1–C10 + 4 thuộc tính (bằng chứng E+/E~/E0, người nhận, hype, hedge) + đối chứng P0/L0/OC-r/OC-n. Chưa gán nhãn thử. ✅ Đã ánh xạ sang 6 chiều của 2608.08975 (§2.12): TRÙNG C2 (+C5 một phần); TRÙNG MỘT PHẦN C3, C6; MỚI C1, C4, C7, C8, C9, C10, thuộc tính E (bằng chứng), hedge/hype tách riêng. Thêm C10-crit ("X quan trọng hơn Y"), thuộc tính D (tình thái nghĩa vụ); đơn vị = cụm câu 1 mệnh đề–2 câu; P0 không được nhắc đóng góp (contribution salience của họ +0.192). Đề xuất ưu tiên pilot: C10 > C7–C9 > C4 > E, giữ C2/C5 tối thiểu để so với họ. Bài mới cần thêm vào prior art: arXiv:2609.15191 (Limitations ở ACL/EMNLP, α=0.644).
+  - ✅ data-analyst XONG → `research/07`, `src/ingest/`, `data/pilot_corpus/`: CS 400 bài/112,912 câu (unarXive mirror HF — không ghi license, chỉ dùng nội bộ; mở rộng nên dùng unarXive open subset Zenodo CC BY-SA 4.84GB), bio 99 bài/23,263 câu (Europe PMC). peS2o loại (0/918 có tiêu đề section). ID hash có salt (`_cache/` chứa salt + tra ID gốc — KHÔNG commit). Phát hiện: 25.1% bài cs.CL/LG/AI 2022 có bản sửa sau 11/2022 → lọc theo ngày BẢN CUỐI. Chỉ 3.3% bài CS có mục Limitations riêng [1.9–5.5] (bio 14.1%); câu nhắc limitation có ở 40.7% bài → lớp C7–C9 phải lấy từ Discussion/Conclusion. 42.6% câu CS nhãn section "other", 35% chứa LaTeX. Proxy từ vựng ~5 câu/bài → ~10^5 ứng viên thô cho 20k bài; nghẽn thật là gán nhãn.
+  - ✅ researcher (phiên 2) XONG → `research/08`, dữ liệu `data/found_sentences/sentences.jsonl` (42 câu; main loop đã điền sha1 doc_hash/sent_hash; báo cáo dùng mã D01–D42, không lộ DOI). Kết quả: 0/42 câu đúng dạng (3) "nói thẳng với người chấm + có lợi cho bài" → hiếm (mẫu nhỏ, không ngẫu nhiên). Gọi thẳng người đọc/reviewer trước 2022 có (4 câu) nhưng đều theo hướng thận trọng/mời kiểm dữ liệu → dùng làm đối chứng tự nhiên. Dạng có lợi tự nhiên trước 11/2022 là DẠNG NGẦM: bị động "should not be seen as a limitation / should be regarded as a strength" (12 câu có lợi; chỉ 2 có bằng chứng cụ thể) và tự khẳng định "does not detract / limitation is minor" (14). Dạng (2) "rather than" chủ yếu là quy nguyên nhân. Đếm thô OpenAlex: câu đối chứng tăng 1.9× → phần lớn họ mẫu không tăng sau chuẩn hóa. Câu trích lấy qua WebFetch → D11, D13, D36 chưa chắc; phải đối chiếu bản gốc trước khi dùng.
+  - ✅ ai-engineer XONG → `research/09-llm-mechanisms-evaluator-directed-sentences.md`: 10 thành phần câu, 14 cơ chế; minimal pairs a–f + đảo chiều chỉ thị + i (lỗi cài sẵn mâu thuẫn khẳng định); Stage A ~6k call ~$43 batch (giả định). KHÔNG chạy probe (không có API key) → mọi chữ ký là dự đoán. Bằng chứng mạnh chỉ có cho chỉ thị ẩn mệnh lệnh / certainty words / verbosity; câu chỉ thị tu từ hiển thị vẫn là suy đoán = khoảng trống của project.
+  - ✅ data-analyst (phiên 2) XONG → `research/10` (+ trục NGÀNH), `src/venue_tiers/` s01–s12, `data/venue_tiers/`: giả thuyết "tạp chí hạng thấp/không hạng có nhiều câu hơn" KHÔNG được ủng hộ. Chuẩn hóa theo đối chứng cùng tầng: các tầng ngang nhau (~5–8/1000 hit đối chứng). Precision đọc tay: Q1–Q2 0.52, Q3–Q4 0.29, DOAJ+không hạng 0.12, repo/proceedings 0.37 → sau hiệu chỉnh không hạng ÍT nhất (CI rộng). NB: không hạng ~0.58×, Q4 ~0.48× so Q1, không đổi khi kiểm soát ngành, NHƯNG câu "thận trọng" cũng thấp ở đó → không đặc thù câu có lợi. Ngành chênh ~5× (lớn hơn tầng): phủ nhận hạn chế cao ở y học/tâm lý; "khắc phục mọi hạn chế" cao ở CS/kỹ thuật; "does not detract/minor" cao ở xã hội/nhân văn. 2023–26: không họ mẫu nào tăng nhanh hơn đối chứng (precision chưa đo). Nguồn câu cho pilot hiệu quả nhất: repo preprint (~11 câu hợp lệ/100 hit), Q1–Q2 (~9). Giới hạn: 110 tài liệu kiểm tay, 1 người mã hóa; SJR từ bản sao GitHub; hết quota OpenAlex hôm nay.
+  - Dữ liệu câu `data/found_sentences/sentences.jsonl`: 69 dòng (53 favorable, 62 câu ≤2022), hash đầy đủ; báo cáo 10 không lộ DOI (main loop đã kiểm).
+  - Khi xong: main loop đối chiếu 05 với 06 (nếu độ mới lung lay thì xem lại danh mục trước khi thiết kế pilot).
+- [ ] Chuyển các kế hoạch trong `research/02-04` (viết cho khung tấn công) sang khung kiểm định độ nhạy không đối kháng — SYNTHESIS §7: (a) dựng **danh mục lớp cụm câu** từ corpus trước 11/2022 theo metadiscourse Hyland + CARS (researcher + data-analyst); (b) thiết kế lại pilot với arm **chèn** + arm **gỡ bỏ** + placebo (ai-engineer); (c) viết lại threat model thành khung robustness audit + checklist nguyên tắc không đánh giá lại bài (security-specialist).
+
+## Còn nợ / việc tiếp theo
+- [ ] **Đọc toàn văn các bài gần nhất** (SYNTHESIS §2), ưu tiên 2412.01708 (implicit manipulation — gần khung mới nhất) và 2606.13044 — xác nhận chưa ai làm hướng "tu từ tự nhiên, không chủ đích + khuyến nghị quy trình". Tìm thêm văn liệu metadiscourse/hype (Hyland, Swales bản gốc; arXiv:2509.24638). (researcher)
+- [ ] Tìm thêm một vòng trên Semantic Scholar / OpenReview / Google Scholar, đặt alert cho các từ khóa chính. (researcher)
+- [ ] Mở toàn văn các mục mới xác minh qua snippet (đánh dấu `S` trong research/01) trước khi trích. (researcher)
+- [ ] **Dựng workhorse:** thông tin máy, SSH, GPU, dung lượng đĩa; `requirements.lock`; `.env`. (ai-engineer)
+- [ ] Đăng ký: OpenReview account, Semantic Scholar API key, xin nâng quota API. (user)
+- [ ] Viết pre-registration (giả thuyết chính, N, τ, test, tiêu chí GO). (data-analyst)
+- [ ] Pilot 1 tuần dựa trên `research/02` §Pilot, sau khi thiết kế lại theo SYNTHESIS §7 (chèn + gỡ bỏ + placebo). (ai-engineer + data-analyst)
+- [ ] Soạn Ethics Statement cho khung kiểm định độ nhạy (gồm nguyên tắc không đánh giá lại bài) trước khi viết Abstract. (security-specialist)
+- [ ] Cân nhắc liên hệ chairs các pilot AI-assisted review khi có kết quả pilot (không bắt buộc). (security-specialist + user)
+
+## Đã xong gần đây
+- [ ] ĐANG CHẠY: researcher (phiên 2) → tìm C10/C10-crit tường minh giai đoạn 01/2023–09/2026, đọc tay cân đối với ≤2022, loại peer-review/bài về đánh giá/prompt phụ lục → `research/11-explicit-evaluator-directed-post2023.md`. OpenAlex gần hết quota hôm nay → dùng Europe PMC / WebSearch / arXiv HTML.
+- [x] 2026-09-16 — Chốt: gán 10 loại, pilot 5–6 nhóm; CS chính + y sinh đối chứng (DECISIONS).
+- [x] 2026-09-16 — Ghi thêm 4 bài học (researcher ×2, data-analyst ×2, ai-engineer ×1). Sổ researcher 4.5KB > trần → CẦN CÔ ĐỌNG.
+- [x] 2026-09-16 — Chốt hướng RQ1–RQ4, khung không đối kháng + nguyên tắc không đánh giá lại bài đã bình duyệt (DECISIONS).
+- [x] 2026-09-16 — Ghi 5 bài học vào sổ kinh nghiệm (researcher, security-specialist, ai-engineer, data-analyst, project-manager). Sổ researcher 3.6KB > trần → cần cô đọng.
+- [x] 2026-09-16 — Khởi tạo `.project/`, chốt mô hình chạy remote-workhorse.
+- [x] 2026-09-16 — Khảo sát khả thi / độ mới / tiềm năng bằng 4 agent; báo cáo ở `research/01..04`, tổng hợp ở `SYNTHESIS.md`.
+
+## Cạm bẫy đã phát hiện (đọc kỹ trước khi đụng vào)
+- Khi tạo git repo: thêm `data/` (đặc biệt `data/pilot_corpus/_cache/` chứa salt + tra ID gốc) vào `.gitignore`.
+- Lọc "trước 11/2022" theo ngày bản CUỐI trên arXiv, không theo v1.
+- **Novelty:** thuật ngữ "camouflage" đã bị 2605.22001 (CDG) chiếm; Type I/II trùng 2606.13044 và 2412.01708. Đừng giữ tên "Semantic Camouflage Prompt Injection".
+- **Delimiters/spotlighting không chống được loại tấn công này** — câu mồi nằm trong chính nội dung phải chấm.
+- **Placebo arm bắt buộc**, không có thì hiệu ứng có thể chỉ là verbosity bias.
+- **Prompt caching** tương quan với vị trí chèn (chèn ở Limitations dùng chung prefix dài với baseline) → confound. Pilot tắt cache; main run log `cache_read_input_tokens`.
+- **Randomize thứ tự gọi API** — chạy hết baseline rồi mới perturbed sẽ trộn drift thời gian vào hiệu ứng.
+- `claude-haiku-4-5` retire ≥ 2026-10-15 — không dùng. Tránh model `-preview` và giá khuyến mại khi lập ngân sách.
+- OpenAlex có quota credit/ngày (1000; liệt kê 10 credits/call, group_by 1) — dùng group_by; fulltext.search bỏ stopword + khớp qua ranh giới câu → precision chênh 0.12–0.52 theo tầng, PHẢI đọc tay đo precision theo tầng/ngành.
+- OpenReview `api2.openreview.net/notes` trả 403 cho anonymous (từ 2026-09) → dùng `openreview-py` + account hoặc mirror HF.
+- peS2o dừng 2023-01-03, unarXive dừng ~2022 → không dùng cho giai đoạn sau 2022.
+- Số tần suất OpenAlex ở `research/03` là cho **hidden prompt**, không áp cho câu tu từ hiển thị.
+- Mọi số variance/power trong `research/02-03` là GIẢ ĐỊNH đến khi có pilot — không trích vào bài.
+- `research/02-04` viết cho khung TẤN CÔNG (câu mồi tự chế, disclosure 90 ngày, payload gated). Phần kỹ thuật/thống kê vẫn dùng được; phần threat model/đạo đức phải đọc qua SYNTHESIS §7.
+- **Không được** đưa vào bài bất kỳ kết quả nào theo từng bài thật (điểm, tên, "bài này được lợi") — nguyên tắc cứng trong DECISIONS.
+
+## Điểm cần hỏi user / đang chờ
+- C10 (câu nói thẳng với người chấm): CHƯA quyết. User chỉ ra mẫu đọc tay gần như toàn ≤2022 (62/69; sau 2023 chỉ 5 câu hợp lệ, không câu tường minh) → giả thuyết "dạng tường minh chỉ có ở bài rất mới" chưa được kiểm. Chờ research/11 rồi quyết.
+- Thông tin máy workhorse: hostname/SSH, GPU (có A100 80GB hoặc tương đương?), dung lượng đĩa.
+- Ngân sách API dự kiến (pilot ~$20–36; full ~$480–920 qua batch).
+- Venue mục tiêu và hạn nộp (gợi ý: ARR cho ACL/EMNLP).
+- Cơ quan có IRB/ethics board cho phần human study không?

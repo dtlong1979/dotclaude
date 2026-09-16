@@ -1,0 +1,43 @@
+# DECISIONS.md — Nhật ký quyết định (chỉ thêm, không xóa)
+
+> Ghi mỗi quyết định kiến trúc/hướng đi kèm LÝ DO, để sau này KHÔNG lật lại nhầm.
+> Mỗi mục: ngày · quyết định · vì sao · phương án đã loại (nếu có).
+
+## 2026-09-16 — Mô hình chạy: remote-workhorse
+- **Chốt:** chạy trên một máy mạnh qua SSH; máy hiện tại dùng để điều phối, viết bài, đọc kết quả.
+- **Vì sao:** cần GPU cho model open-weight (~27B) và base model chấm perplexity; corpus lớn; batch API chạy nhiều ngày cần máy bật liên tục; project kéo dài nhiều tháng.
+- **Đã loại:** local-only (main loop khuyến nghị ban đầu — gọi model mở qua provider hosted, thu hẹp corpus); user chọn workhorse để chạy model mở tại chỗ và giữ arm tái lập được. Đa-máy: không cần.
+- **Chi phí nếu đổi sau này:** thấp–vừa — code Python thuần, dữ liệu ngoài git; đổi máy chỉ cần dựng lại env và chép data.
+
+## 2026-09-16 — Không giữ nguyên định vị của đề cương gốc
+- **Chốt:** không triển khai đề cương "Silent Persuasion / Semantic Camouflage Prompt Injection" như bản gốc; phải tái định vị trước khi làm pilot. (Hướng cụ thể CHƯA chốt — xem STATE.md.)
+- **Vì sao:** khảo sát prior art 2026-09-16 thấy khái niệm, Type I/II, ΔScore, Flip Rate và perplexity đều đã có (2606.13044, 2601.06884, 2606.10159, 2605.22001, 2412.01708, 2512.10449). Phòng thủ bằng delimiter sai class. Chi tiết `SYNTHESIS.md`.
+- **Đã loại:** giữ nguyên và chỉ đổi bộ model / thêm corpus — sẽ bị reviewer coi là "đổi domain / lặp lại".
+- **Chi phí nếu đổi sau này:** cao nếu đã chạy thực nghiệm theo định vị cũ — vì thế chốt TRƯỚC pilot.
+
+## 2026-09-16 — Hướng nghiên cứu: RQ1–RQ4, khung KHÔNG ĐỐI KHÁNG (kiểm định độ nhạy của LLM reviewer)
+- **Chốt:** theo RQ1–RQ4 (SYNTHESIS §7), nhưng đối tượng là **các cụm câu tu từ học thuật xuất hiện tự nhiên, không chủ đích** làm lệch đánh giá của LLM — không phải câu tấn công do nhóm tự chế. Đầu ra là **cảnh báo + khuyến nghị quy trình dùng LLM trong bình duyệt an toàn hơn**, không phải kỹ thuật tấn công.
+- **Vì sao:** (1) đúng ý định của user; (2) khác rõ prior art đối kháng (2606.13044, PAA 2601.06884 đều TỐI ƯU câu để nâng điểm) — hướng dựa trên corpus tự nhiên + lý thuyết metadiscourse (Hyland/Swales) là khoảng trống researcher đã chỉ ra; (3) rủi ro dual-use và đạo đức giảm mạnh; (4) kết luận hướng vào sửa QUY TRÌNH, không quy lỗi cho tác giả.
+- **Cách vận hành "không chủ đích":** lấy cụm câu từ văn bản **trước kỷ nguyên LLM** (trước 11/2022) → tác giả không thể có ý định nhắm vào LLM. Không suy luận ý định từ văn bản.
+- **Đã loại:** khung "tấn công/injection" của đề cương gốc (bị scoop + sai với mục đích); RQ5 dạng "bao nhiêu % bài đã accept được lợi" (gắn với kết quả từng bài → đụng nguyên tắc dưới).
+- **Chi phí nếu đổi sau này:** cao sau pilot (bộ câu, đối chứng, khung đạo đức đều phụ thuộc).
+
+## 2026-09-16 — Nguyên tắc: KHÔNG đánh giá lại các bài đã bình duyệt
+- **Chốt:** bài báo thật chỉ là **vật mang** (carrier) để đo hiệu ứng của LỚP cụm câu. Đơn vị phân tích và báo cáo là lớp cụm câu, không phải bài. Cụ thể: không công bố/phát hành điểm theo từng bài; ID bài được hash, không nêu tên; không so điểm LLM với quyết định thật của từng bài để ngụ ý quyết định cũ sai (tương quan LLM–người chỉ báo cáo gộp làm sanity check); tần suất cụm câu trong corpus chỉ để chứng minh chúng phổ biến, KHÔNG nối với kết quả accept/reject; có arm bài tổng hợp (synthetic carrier) để kiểm tra độ vững.
+- **Vì sao:** user lo kết quả bị dùng để nghi ngờ các bài/tác giả đã qua bình duyệt — ảnh hưởng lớn và không công bằng, nhất là khi các review đó không dùng LLM.
+- **Đã loại:** chỉ dùng bài tổng hợp (mất external validity); báo cáo theo bài (rủi ro trên).
+- **Chi phí nếu đổi sau này:** thấp về kỹ thuật, cao về đạo đức — không nới lỏng mà không hỏi user.
+
+## 2026-09-16 — Hạng tạp chí là một biến nghiên cứu (mô tả, báo cáo theo tầng)
+- **Chốt:** tìm câu có lợi/hướng tới người đánh giá ở MỌI tầng nguồn (SJR Q1–Q4, DOAJ không SJR, không hạng, proceedings/repository); tần suất theo tầng là một kết quả nghiên cứu. Nguồn câu tự nhiên cho pilot có thể lấy nhiều từ tầng thấp/không hạng.
+- **Vì sao:** user cho rằng tạp chí hạng cao bình duyệt khắt khe nên ít gặp các câu này; research/08 lấy mẫu chủ yếu từ nguồn OA lớn nên có thể thiếu tầng thấp.
+- **Ràng buộc:** báo cáo CHỈ theo tầng — không nêu tên tạp chí/NXB/bài, không xếp hạng tạp chí theo số câu, không dùng nhãn predatory; tên nguồn chỉ trong data nội bộ. Khác biệt giữa tầng là MÔ TẢ, không claim "bình duyệt khắt khe lọc câu" (nhiễu: lĩnh vực, tác giả không bản ngữ, OA, độ phủ toàn văn). Cơ chế lọc chỉ nhận diện được bằng thiết kế khác (vd preprint vs bản đã đăng) — hướng tương lai.
+- **Đã loại:** chỉ tìm ở tạp chí hạng cao / nguồn OA lớn (lệch mẫu).
+- **Chi phí nếu đổi sau này:** thấp.
+
+## 2026-09-16 — Danh mục và phạm vi ngành cho pilot
+- **Chốt:** (1) hướng dẫn gán nhãn giữ đủ 10 loại C1–C10 (research/06); pilot chạy theo 5–6 nhóm ưu tiên (C10, C7–C9, C4, thuộc tính bằng chứng E, C2/C5 tối thiểu để so với 2608.08975), tách lại sau khi đo độ đồng thuận. (2) Thí nghiệm chính trên bài CS/ML; thêm nhóm y sinh nhỏ làm đối chứng ngành.
+- **Vì sao:** giữ thông tin khi gán nhãn nhưng đủ mẫu mỗi nhóm khi chạy; C7–C9 có thể khó đồng thuận (2609.15191 α=0.644). Ngành chênh ~5× (research/10) lớn hơn chênh theo tầng → cần kiểm tra kết quả có đổi theo ngành; các pilot LLM review thật đang ở hội nghị CS.
+- **Đã loại:** chạy đủ 10 loại ngay (ít mẫu/loại); gộp cứng 6 loại (mất thông tin); chỉ CS (không kiểm được theo ngành); nhiều ngành ngang nhau (tốn, cần rubric riêng từng ngành).
+- **Chi phí nếu đổi sau này:** thấp trước khi gán nhãn quy mô lớn.
+

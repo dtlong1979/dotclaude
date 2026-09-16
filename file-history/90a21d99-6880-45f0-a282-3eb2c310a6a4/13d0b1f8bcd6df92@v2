@@ -1,0 +1,22 @@
+import os
+os.chdir(r"D:/dev/Promt injection in review papers/.project")
+
+s = open("DECISIONS.md", encoding="utf-8").read().rstrip() + """
+
+## 2026-09-16 — Danh mục và phạm vi ngành cho pilot
+- **Chốt:** (1) hướng dẫn gán nhãn giữ đủ 10 loại C1–C10 (research/06); pilot chạy theo 5–6 nhóm ưu tiên (C10, C7–C9, C4, thuộc tính bằng chứng E, C2/C5 tối thiểu để so với 2608.08975), tách lại sau khi đo độ đồng thuận. (2) Thí nghiệm chính trên bài CS/ML; thêm nhóm y sinh nhỏ làm đối chứng ngành.
+- **Vì sao:** giữ thông tin khi gán nhãn nhưng đủ mẫu mỗi nhóm khi chạy; C7–C9 có thể khó đồng thuận (2609.15191 α=0.644). Ngành chênh ~5× (research/10) lớn hơn chênh theo tầng → cần kiểm tra kết quả có đổi theo ngành; các pilot LLM review thật đang ở hội nghị CS.
+- **Đã loại:** chạy đủ 10 loại ngay (ít mẫu/loại); gộp cứng 6 loại (mất thông tin); chỉ CS (không kiểm được theo ngành); nhiều ngành ngang nhau (tốn, cần rubric riêng từng ngành).
+- **Chi phí nếu đổi sau này:** thấp trước khi gán nhãn quy mô lớn.
+"""
+open("DECISIONS.md", "w", encoding="utf-8").write(s + "\n")
+
+s = open("STATE.md", encoding="utf-8").read()
+s = s.replace(
+"- C10 (câu nói thẳng với người chấm): 0/42 câu tự nhiên → dùng nhóm câu soạn khuôn mẫu riêng hay bỏ?\n- Danh mục: 10 loại hay gộp ~6 cho pilot?\n- Phạm vi ngành: chỉ CS hay CS + y sinh?\n",
+"- C10 (câu nói thẳng với người chấm): CHƯA quyết. User chỉ ra mẫu đọc tay gần như toàn ≤2022 (62/69; sau 2023 chỉ 5 câu hợp lệ, không câu tường minh) → giả thuyết \"dạng tường minh chỉ có ở bài rất mới\" chưa được kiểm. Chờ research/11 rồi quyết.\n", 1)
+s = s.replace(
+"- [x] 2026-09-16 — Chốt hướng RQ1–RQ4,",
+"- [ ] ĐANG CHẠY: researcher (phiên 2) → tìm C10/C10-crit tường minh giai đoạn 01/2023–09/2026, đọc tay cân đối với ≤2022, loại peer-review/bài về đánh giá/prompt phụ lục → `research/11-explicit-evaluator-directed-post2023.md`. OpenAlex gần hết quota hôm nay → dùng Europe PMC / WebSearch / arXiv HTML.\n- [x] 2026-09-16 — Chốt: gán 10 loại, pilot 5–6 nhóm; CS chính + y sinh đối chứng (DECISIONS).\n- [x] 2026-09-16 — Ghi thêm 4 bài học (researcher ×2, data-analyst ×2, ai-engineer ×1). Sổ researcher 4.5KB > trần → CẦN CÔ ĐỌNG.\n- [x] 2026-09-16 — Chốt hướng RQ1–RQ4,", 1)
+open("STATE.md", "w", encoding="utf-8").write(s)
+print("ok")
