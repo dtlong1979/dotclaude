@@ -1,0 +1,64 @@
+# SYNTHESIS.md — Tổng hợp đánh giá khả thi / độ mới / tiềm năng (2026-09-16)
+
+> Main loop tổng hợp từ 4 báo cáo trong `research/`. Đây là căn cứ để chọn hướng tái định vị (đang chờ user chốt — xem STATE.md).
+
+## 1. Phán quyết chung
+
+| Tiêu chí | Kết luận | Nguồn |
+|---|---|---|
+| **Độ mới của đề cương gốc** | ❌ Bị scoop ~70–80%. Khái niệm, Type I/II, ΔScore, Flip Rate, perplexity đều đã có | 01, 04 |
+| **Khả thi kỹ thuật** | ✅ Cao. Pilot ~$36 (~$19 batch); full ~$480–920 batch; 4–7 ngày chạy | 02 |
+| **Khả thi thống kê A/B** | ✅ Cao. N=200 bài đủ power cho Δ=0.3 kể cả 36 test | 03 |
+| **Khả thi corpus pre/post 2022** | ⚠️ Yếu. Không claim nhân quả được; DiD không hợp lệ | 03 |
+| **Phòng thủ đề xuất** | ❌ Delimiters vô dụng về cấu trúc; contrastive đã bị bác công khai; chỉ two-pass cứu được nếu có information bottleneck | 04 |
+| **Rủi ro đạo đức** | ⚠️ Cao hơn hidden-text vì deniable + chưa bị cấm. Xử lý được bằng gated release + disclosure | 04 |
+| **Tiềm năng nếu tái định vị** | ✅ Tốt. Rất thời sự: NeurIPS 2026, AAAI-26, NLPCC 2026 đang pilot AI-assisted review | 01 |
+
+## 2. Prior art đe dọa trực tiếp (đọc toàn văn trước khi viết bất cứ gì)
+- **arXiv:2606.13044** — *No Hidden Prompts Needed!* (Yang, …, Wang, 6/2026). Chỉ sửa trình bày: ASR 75.1%, +1.21/10; taxonomy 20+ chiến lược trùng Type I/II. **Không đo detectability, perplexity, defense.**
+- **arXiv:2601.06884** — *PAA* (Kaneko, 1/2026). Paraphrase tối ưu black-box, ràng buộc perplexity ≤1.2×, human naturalness, có defense paraphrase.
+- **arXiv:2606.10159** — *Gaming AI-Assisted Peer Reviews* (Li, …, Gal, 6/2026). Viết lại abstract: ASR ~38%, >50% với bài reject.
+- **arXiv:2605.22001** — *Domain-camouflaged injection* + metric **CDG** (Pai, 5/2026). Đã sở hữu thuật ngữ "camouflage" (khác domain).
+- **arXiv:2412.01708** — Ye et al. 2024: *implicit manipulation* qua mục Limitations, LLM đồng thuận với limitation tác giả tự nêu cao gấp 4.5× → Type II đã có từ 2024.
+- **arXiv:2508.07805** — *Adversarial Persuasion of LLM Judges*: pairwise cũng bị, counter-prompting không cứu.
+- **arXiv:2512.10449** — 15 chiến lược gồm "semantic persuasion", decision flip tới 86.26%.
+
+## 3. Mâu thuẫn giữa các agent — main loop xử lý
+1. **"Hiếm" vs "phổ biến".** data-analyst thấy tấn công thật chỉ k≈27/52M — nhưng đó là **hidden prompt**. Câu tu từ **hiển thị** mà đề cương quan tâm thì ngược lại, **có mặt khắp nơi** (hype trong abstract y sinh 92.5% năm 2020). → Với câu hiển thị, bài toán không phải đo cái hiếm mà là **ranh giới không phân định được**. Đây là luận điểm mạnh, không phải điểm yếu.
+2. **Mức độ scoop.** ai-engineer và security-specialist chỉ thấy một phần (PAA, 2508.07805); researcher tìm ra thêm 2606.13044 và 2606.10159 — trùng nặng hơn. Lấy kết luận của researcher.
+3. **Perplexity.** Đề cương dùng PPL để chứng minh "tự nhiên"; PAA đã làm và còn thấy perplexity của *review* là tín hiệu phát hiện. → PPL chỉ là phụ; bằng chứng stealth chính phải là human 2AFC + detector evasion.
+
+## 4. Chỗ còn trống — các agent hội tụ ở đây
+| Khoảng trống | Ai chỉ ra | Vì sao chưa ai làm |
+|---|---|---|
+| **G-A. Detection gap trong peer review, kèm FPR trên bài accept thật** — "để bắt 50% câu mồi, detector phải gắn cờ X% câu trong bài sạch" | researcher R1, ai-engineer (Pareto), security | 2606.13044 không đo detectability; 2605.22001 khác domain, không đo FPR trên văn bản hợp lệ |
+| **G-B. Ground truth bằng seeded defect** — câu mồi làm reviewer BỎ SÓT lỗi thật (weakness suppression) | security C4/G3 | Tách được "attack" khỏi "viết hay" mà không cần suy intent |
+| **G-C. Control bằng câu tu từ thật từ bài đã accept** | security C5, main loop, researcher R2 | Chưa ai kiểm tra hiệu ứng có phân biệt được với tu từ hợp pháp không |
+| **G-D. Lợi thế vô tình / base rate** — bài trước 2023 (không thể có ý đồ) có câu evaluator-directed có được thưởng điểm không; tỉ lệ bài đã accept chứa các câu như vậy | main loop, researcher R2 | Chưa ai đo; biến bài thành vấn đề **công bằng** (tác giả non-native) |
+| **G-E. Phòng thủ bằng information bottleneck** (evidence-anchored two-pass) có đo utility cost | security, researcher R4 | 2606.13044 chỉ *gợi ý* trong phụ lục; SafeReview chỉ chặn instruction-style |
+| **G-F. Chứng minh họ phòng thủ delimiter/IFC không áp dụng được về cấu trúc** (negative result có lý thuyết) | security | Chưa ai nêu "the evaluand IS the injection vector" |
+
+## 5. Hướng khuyến nghị (main loop) — chờ user chốt
+**Luận điểm:** *Với LLM-as-reviewer, câu hướng tới người chấm không phân biệt được với tu từ học thuật hợp pháp bằng văn bản — nên phòng thủ bằng phát hiện là bất khả thi về nguyên tắc; chỉ thiết kế lại quy trình chấm mới cứu được.*
+
+Tựa tạm (tránh thuật ngữ đã bị chiếm): *"Indistinguishable by Construction: Why Detection Cannot Secure LLM-Assisted Peer Review"* hoặc *"Injection Without Instructions: …"*.
+
+| RQ | Nội dung | Gắn khoảng trống |
+|---|---|---|
+| RQ1 | Câu evidence-null hướng tới người chấm có làm lệch quyết định **vượt placebo VÀ vượt câu tu từ thật** không? Dùng tấn công của 2606.13044/PAA làm phép so sánh | G-C |
+| RQ2 | Chúng có làm reviewer **bỏ sót lỗi đã seed** không? | G-B |
+| RQ3 | Detector hiện có (PhantomLint, Llama Guard, PromptArmor, LLM-auditor) bắt được bao nhiêu, **với FPR bao nhiêu trên bài accept thật**? | G-A, G-F |
+| RQ4 | Two-pass evidence bottleneck giảm ASR bao nhiêu, mất bao nhiêu agreement với người? | G-E |
+| RQ5 (tùy chọn / bài thứ 2) | Base rate câu evaluator-directed trong bài đã accept + lợi thế vô tình của bài trước 2023 | G-D |
+
+Venue: ACL/EMNLP (ARR) cho RQ1–4; Quantitative Science Studies / Research Integrity and Peer Review cho RQ5 nếu tách bài; FAccT/CACM nếu nghiêng chính sách.
+
+## 6. Thay đổi bắt buộc so với đề cương gốc (bất kể chọn hướng nào)
+1. Thêm **placebo arm** (câu trung tính, cùng độ dài) + **control câu tu từ thật từ bài accept**.
+2. Mỗi loại câu mồi **5 biến thể** bề mặt.
+3. Bỏ GPT-4o / Claude 3.5 / Gemini 1.5 / Llama-3 → bộ model 2026 + 1 model open-weight pin revision.
+4. Headline metric: **flip tại ngưỡng trên bài borderline** + **recall lỗi đã seed**, không phải ΔScore trơn.
+5. Bỏ delimiters khỏi vai trò phòng thủ (giữ làm negative result).
+6. Không claim nhân quả pre/post 2022; không dùng DiD.
+7. Randomize thứ tự gọi API; log cache tokens; canary set hằng ngày.
+8. Ethics: không in payload hiệu quả nhất; release gated; disclosure ~90 ngày trước khi công bố.

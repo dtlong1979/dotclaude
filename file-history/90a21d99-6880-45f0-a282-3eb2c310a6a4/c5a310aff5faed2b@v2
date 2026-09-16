@@ -1,0 +1,88 @@
+import os
+os.chdir(r"D:/dev/Promt injection in review papers/.project")
+
+def rep(path, old, new):
+    s = open(path, encoding="utf-8").read()
+    assert old in s, (path, old[:60])
+    open(path, "w", encoding="utf-8").write(s.replace(old, new, 1))
+
+# ---- DECISIONS (append-only)
+s = open("DECISIONS.md", encoding="utf-8").read().rstrip() + """
+
+## 2026-09-16 — Hướng nghiên cứu: RQ1–RQ4, khung KHÔNG ĐỐI KHÁNG (kiểm định độ nhạy của LLM reviewer)
+- **Chốt:** theo RQ1–RQ4 (SYNTHESIS §7), nhưng đối tượng là **các cụm câu tu từ học thuật xuất hiện tự nhiên, không chủ đích** làm lệch đánh giá của LLM — không phải câu tấn công do nhóm tự chế. Đầu ra là **cảnh báo + khuyến nghị quy trình dùng LLM trong bình duyệt an toàn hơn**, không phải kỹ thuật tấn công.
+- **Vì sao:** (1) đúng ý định của user; (2) khác rõ prior art đối kháng (2606.13044, PAA 2601.06884 đều TỐI ƯU câu để nâng điểm) — hướng dựa trên corpus tự nhiên + lý thuyết metadiscourse (Hyland/Swales) là khoảng trống researcher đã chỉ ra; (3) rủi ro dual-use và đạo đức giảm mạnh; (4) kết luận hướng vào sửa QUY TRÌNH, không quy lỗi cho tác giả.
+- **Cách vận hành "không chủ đích":** lấy cụm câu từ văn bản **trước kỷ nguyên LLM** (trước 11/2022) → tác giả không thể có ý định nhắm vào LLM. Không suy luận ý định từ văn bản.
+- **Đã loại:** khung "tấn công/injection" của đề cương gốc (bị scoop + sai với mục đích); RQ5 dạng "bao nhiêu % bài đã accept được lợi" (gắn với kết quả từng bài → đụng nguyên tắc dưới).
+- **Chi phí nếu đổi sau này:** cao sau pilot (bộ câu, đối chứng, khung đạo đức đều phụ thuộc).
+
+## 2026-09-16 — Nguyên tắc: KHÔNG đánh giá lại các bài đã bình duyệt
+- **Chốt:** bài báo thật chỉ là **vật mang** (carrier) để đo hiệu ứng của LỚP cụm câu. Đơn vị phân tích và báo cáo là lớp cụm câu, không phải bài. Cụ thể: không công bố/phát hành điểm theo từng bài; ID bài được hash, không nêu tên; không so điểm LLM với quyết định thật của từng bài để ngụ ý quyết định cũ sai (tương quan LLM–người chỉ báo cáo gộp làm sanity check); tần suất cụm câu trong corpus chỉ để chứng minh chúng phổ biến, KHÔNG nối với kết quả accept/reject; có arm bài tổng hợp (synthetic carrier) để kiểm tra độ vững.
+- **Vì sao:** user lo kết quả bị dùng để nghi ngờ các bài/tác giả đã qua bình duyệt — ảnh hưởng lớn và không công bằng, nhất là khi các review đó không dùng LLM.
+- **Đã loại:** chỉ dùng bài tổng hợp (mất external validity); báo cáo theo bài (rủi ro trên).
+- **Chi phí nếu đổi sau này:** thấp về kỹ thuật, cao về đạo đức — không nới lỏng mà không hỏi user.
+"""
+open("DECISIONS.md", "w", encoding="utf-8").write(s + "\n")
+
+# ---- SYNTHESIS
+rep("SYNTHESIS.md", "## 5. Hướng khuyến nghị (main loop) — chờ user chốt",
+    "## 5. Hướng khuyến nghị ban đầu (main loop) — ĐÃ ĐƯỢC THAY bởi §7")
+s = open("SYNTHESIS.md", encoding="utf-8").read().rstrip() + """
+
+## 7. Định vị ĐÃ CHỐT (2026-09-16) — kiểm định độ nhạy, không đối kháng
+**Luận điểm:** *Tu từ học thuật bình thường — thứ tác giả viết tự nhiên, không nhằm vào máy — đã đủ làm lệch đánh giá của LLM reviewer, thậm chí che đi lỗi thật. Vì không thể (và không nên) lọc những câu này khỏi bài của tác giả, trách nhiệm an toàn thuộc về quy trình sử dụng LLM.*
+
+| RQ | Nội dung | Đầu ra cho khuyến nghị |
+|---|---|---|
+| RQ1 | Lớp cụm câu tu từ nào (lấy từ corpus trước 11/2022, phân loại theo metadiscourse Hyland + move CARS) làm lệch điểm/quyết định **vượt placebo trung tính**? Đo hai chiều: **chèn** vào bài trung tính và **gỡ/trung tính hóa** câu vốn có | Danh mục lớp câu LLM nhạy cảm |
+| RQ2 | Các lớp đó có làm LLM **bỏ sót lỗi đã cài sẵn** không? | Mức nguy hại thật (không chỉ lệch điểm) |
+| RQ3 | Có gắn cờ được các câu này trong bài nộp mà **không gắn cờ nhầm văn viết bình thường** không? (kỳ vọng: không) | Bằng chứng rằng lọc/phạt tác giả là sai hướng |
+| RQ4 | Quy trình dùng LLM nào giảm độ nhạy (tách trích xuất bằng chứng khỏi chấm điểm, trung tính hóa ngôn ngữ đánh giá, bắt buộc trích span bằng chứng), và mất bao nhiêu chất lượng? | Hướng dẫn quy trình an toàn cho venue/reviewer |
+
+**Hệ quả thiết kế so với §6:**
+- "Câu mồi tự chế" → **cụm câu tự nhiên từ corpus**; không tối ưu câu. Taxonomy Type I/II/III gốc ánh xạ sang lớp metadiscourse (booster, attitude marker, self-evaluation, limitation framing, outcome framing).
+- Thêm **arm gỡ bỏ** (ablation) — gần nhất với câu hỏi "văn bản thật đang bị ảnh hưởng thế nào".
+- Tần suất tự nhiên chỉ để chứng minh "phổ biến"; KHÔNG nối với kết quả bình duyệt (DECISIONS — nguyên tắc không đánh giá lại bài).
+- Threat model đối kháng → **khung kiểm định độ vững (robustness audit)**; không có kẻ tấn công, thứ bị tổn hại là tính công bằng của quy trình.
+- Rủi ro còn lại: danh mục "lớp câu làm LLM cho điểm cao" vẫn có thể bị dùng để lách → báo cáo theo lớp, không kèm câu mẫu mạnh nhất, nhấn mạnh khuyến nghị quy trình.
+- Prior art cần phân biệt rõ nhất: 2412.01708 (implicit manipulation qua Limitations) và 2606.13044 (repackaging có chủ đích).
+- Tựa tạm: *"Unintended Persuasion: How Ordinary Academic Rhetoric Sways LLM Reviewers and What Review Workflows Should Do About It"*.
+"""
+open("SYNTHESIS.md", "w", encoding="utf-8").write(s + "\n")
+
+# ---- PROJECT
+rep("PROJECT.md",
+"Bài báo nghiên cứu (hướng Q1 / ACL-EMNLP) về việc câu văn **hiển thị, hợp lệ về học thuật** trong bài nộp có thể điều hướng LLM khi làm reviewer, mà không cần lệnh hay chữ ẩn. Gồm: đo tác động lên quyết định, kiểm tra khả năng phát hiện, và đề xuất phòng thủ.",
+"Bài báo nghiên cứu (hướng Q1 / ACL-EMNLP) kiểm định **độ nhạy của LLM khi làm reviewer trước tu từ học thuật bình thường, không chủ đích** — cụm câu tác giả viết tự nhiên nhưng làm lệch đánh giá, thậm chí che lỗi thật. Mục tiêu cuối: **cảnh báo và khuyến nghị quy trình dùng LLM trong bình duyệt an toàn hơn**. KHÔNG phải nghiên cứu kỹ thuật tấn công, KHÔNG dùng để đánh giá lại các bài đã bình duyệt.")
+rep("PROJECT.md",
+"- **Trạng thái định vị:** đề cương gốc bị scoop phần lớn → đang chờ chốt hướng tái định vị. Xem `SYNTHESIS.md` và `STATE.md`.",
+"- **Định vị đã chốt 2026-09-16:** RQ1–RQ4 khung không đối kháng — xem `SYNTHESIS.md` §7 và `DECISIONS.md`.")
+rep("PROJECT.md",
+"## Bề mặt nhạy cảm (bảo mật / đạo đức)",
+"## Bề mặt nhạy cảm (bảo mật / đạo đức)\n- **KHÔNG đánh giá lại bài đã bình duyệt (nguyên tắc cứng):** bài thật chỉ là vật mang; báo cáo theo lớp cụm câu; không công bố điểm theo bài, hash ID, không nêu tên; không nối tần suất cụm câu với quyết định accept/reject của từng bài. Xem DECISIONS 2026-09-16.")
+rep("PROJECT.md",
+"- **Dual-use:** bộ câu mồi hiệu quả KHÔNG in nguyên văn trong bài; phát hành gated + watermark. Detector/normalizer phát hành công khai.",
+"- **Dual-use (thấp hơn khung tấn công):** báo cáo theo lớp cụm câu, không kèm danh sách câu làm tăng điểm mạnh nhất; nhấn mạnh khuyến nghị quy trình. Công cụ trung tính hóa / quy trình an toàn phát hành công khai.")
+rep("PROJECT.md",
+"- **Responsible disclosure** ~90 ngày trước khi công bố: OpenReview, chairs ACL/ARR/NeurIPS/ICLR/ICML, integrity teams các NXB, COPE.",
+"- **Thông báo trước cho venue** (khuyến khích, không còn bắt buộc như khung tấn công): chairs các pilot AI-assisted review (NeurIPS 2026, AAAI, NLPCC), OpenReview.")
+
+# ---- STATE
+rep("STATE.md",
+"- [ ] **Chốt hướng tái định vị** — đề cương gốc bị scoop phần lớn. Main loop khuyến nghị RQ1–RQ4 trong `SYNTHESIS.md` §5 (không phân biệt được bằng văn bản → phát hiện bất khả thi → phòng thủ bằng evidence bottleneck). Chờ user chọn.",
+"- [ ] Chuyển các kế hoạch trong `research/02-04` (viết cho khung tấn công) sang khung kiểm định độ nhạy không đối kháng — SYNTHESIS §7: (a) dựng **danh mục lớp cụm câu** từ corpus trước 11/2022 theo metadiscourse Hyland + CARS (researcher + data-analyst); (b) thiết kế lại pilot với arm **chèn** + arm **gỡ bỏ** + placebo (ai-engineer); (c) viết lại threat model thành khung robustness audit + checklist nguyên tắc không đánh giá lại bài (security-specialist).")
+rep("STATE.md",
+"- [x] 2026-09-16 — Khởi tạo `.project/`, chốt mô hình chạy remote-workhorse.",
+"- [x] 2026-09-16 — Chốt hướng RQ1–RQ4, khung không đối kháng + nguyên tắc không đánh giá lại bài đã bình duyệt (DECISIONS).\n- [x] 2026-09-16 — Ghi 5 bài học vào sổ kinh nghiệm (researcher, security-specialist, ai-engineer, data-analyst, project-manager). Sổ researcher 3.6KB > trần → cần cô đọng.\n- [x] 2026-09-16 — Khởi tạo `.project/`, chốt mô hình chạy remote-workhorse.")
+rep("STATE.md",
+"- [ ] **Đọc toàn văn 7 bài đe dọa trực tiếp** (SYNTHESIS §2), ưu tiên 2606.13044 và 2601.06884 — xác nhận khoảng trống trước khi khóa contribution. (researcher)",
+"- [ ] **Đọc toàn văn các bài gần nhất** (SYNTHESIS §2), ưu tiên 2412.01708 (implicit manipulation — gần khung mới nhất) và 2606.13044 — xác nhận chưa ai làm hướng \"tu từ tự nhiên, không chủ đích + khuyến nghị quy trình\". Tìm thêm văn liệu metadiscourse/hype (Hyland, Swales bản gốc; arXiv:2509.24638). (researcher)")
+rep("STATE.md",
+"- [ ] Bắt đầu responsible disclosure sớm (~90 ngày) khi có kết quả pilot. (security-specialist + user)",
+"- [ ] Cân nhắc liên hệ chairs các pilot AI-assisted review khi có kết quả pilot (không bắt buộc). (security-specialist + user)")
+rep("STATE.md",
+"- Chọn hướng tái định vị (SYNTHESIS §5): giữ RQ1–RQ4? RQ5 (base rate / lợi thế vô tình) gộp hay tách bài riêng?\n", "")
+rep("STATE.md",
+"- Mọi số variance/power trong `research/02-03` là GIẢ ĐỊNH đến khi có pilot — không trích vào bài.",
+"- Mọi số variance/power trong `research/02-03` là GIẢ ĐỊNH đến khi có pilot — không trích vào bài.\n- `research/02-04` viết cho khung TẤN CÔNG (câu mồi tự chế, disclosure 90 ngày, payload gated). Phần kỹ thuật/thống kê vẫn dùng được; phần threat model/đạo đức phải đọc qua SYNTHESIS §7.\n- **Không được** đưa vào bài bất kỳ kết quả nào theo từng bài thật (điểm, tên, \"bài này được lợi\") — nguyên tắc cứng trong DECISIONS.")
+print("done")

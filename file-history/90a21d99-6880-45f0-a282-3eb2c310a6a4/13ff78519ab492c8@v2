@@ -1,0 +1,10 @@
+# Prompt injection in review papers
+
+> Điểm vào ngắn. Chi tiết nằm trong `.project/`. Khi bắt đầu phiên, ĐỌC `.project/STATE.md` trước.
+
+- **Là gì:** bài báo nghiên cứu về câu văn học thuật hiển thị, hợp lệ có thể điều hướng LLM khi làm reviewer — đo tác động, khả năng phát hiện, và phòng thủ.
+- **Hồ sơ:** `.project/PROJECT.md` (mục tiêu, mô hình chạy, quy ước), `.project/STATE.md` (đang làm gì), `.project/DECISIONS.md` (đã chốt gì), `.project/STAFFING.md` (ai làm gì), `.project/SYNTHESIS.md` (tổng hợp khả thi/độ mới), `.project/research/` (báo cáo khảo sát gốc).
+
+## Tri thức dùng chung được phép đọc (khai báo tường minh)
+<!-- Chỉ uncomment khi file đích ĐÃ TỒN TẠI trong shared-knowledge/. -->
+<!-- @import C:/Users/SingPC/.claude/shared-knowledge/research-writing.md -->

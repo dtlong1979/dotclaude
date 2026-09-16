@@ -1,0 +1,16 @@
+# DECISIONS.md — Nhật ký quyết định (chỉ thêm, không xóa)
+
+> Ghi mỗi quyết định kiến trúc/hướng đi kèm LÝ DO, để sau này KHÔNG lật lại nhầm.
+> Mỗi mục: ngày · quyết định · vì sao · phương án đã loại (nếu có).
+
+## 2026-09-16 — Mô hình chạy: remote-workhorse
+- **Chốt:** chạy trên một máy mạnh qua SSH; máy hiện tại dùng để điều phối, viết bài, đọc kết quả.
+- **Vì sao:** cần GPU cho model open-weight (~27B) và base model chấm perplexity; corpus lớn; batch API chạy nhiều ngày cần máy bật liên tục; project kéo dài nhiều tháng.
+- **Đã loại:** local-only (main loop khuyến nghị ban đầu — gọi model mở qua provider hosted, thu hẹp corpus); user chọn workhorse để chạy model mở tại chỗ và giữ arm tái lập được. Đa-máy: không cần.
+- **Chi phí nếu đổi sau này:** thấp–vừa — code Python thuần, dữ liệu ngoài git; đổi máy chỉ cần dựng lại env và chép data.
+
+## 2026-09-16 — Không giữ nguyên định vị của đề cương gốc
+- **Chốt:** không triển khai đề cương "Silent Persuasion / Semantic Camouflage Prompt Injection" như bản gốc; phải tái định vị trước khi làm pilot. (Hướng cụ thể CHƯA chốt — xem STATE.md.)
+- **Vì sao:** khảo sát prior art 2026-09-16 thấy khái niệm, Type I/II, ΔScore, Flip Rate và perplexity đều đã có (2606.13044, 2601.06884, 2606.10159, 2605.22001, 2412.01708, 2512.10449). Phòng thủ bằng delimiter sai class. Chi tiết `SYNTHESIS.md`.
+- **Đã loại:** giữ nguyên và chỉ đổi bộ model / thêm corpus — sẽ bị reviewer coi là "đổi domain / lặp lại".
+- **Chi phí nếu đổi sau này:** cao nếu đã chạy thực nghiệm theo định vị cũ — vì thế chốt TRƯỚC pilot.

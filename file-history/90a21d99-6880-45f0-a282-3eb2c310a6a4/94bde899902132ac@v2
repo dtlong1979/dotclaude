@@ -1,0 +1,15 @@
+# STAFFING.md — Phân công nhân sự cho project này
+
+> Project này tuyển agent nào từ pool `C:/Users/SingPC/.claude/agents/`, ai phụ trách phần nào.
+> project-manager (main loop) cập nhật khi bắt đầu và khi phân công đổi. Vai giữ nguyên tới hết project trừ khi user yêu cầu đổi.
+
+| Agent | Phần phụ trách | Đầu ra mong đợi | Ghi chú |
+|-------|----------------|-----------------|---------|
+| project-manager | Điều phối (main loop), ghi STATE/DECISIONS | Hồ sơ `.project/` luôn khớp thực tế | Không spawn như subagent |
+| researcher | Prior art, định vị, related work, viết bài (Intro/Related/Discussion) | Bảng so sánh với bài scoop; bản thảo các mục | Đã làm `research/01` |
+| ai-engineer | Pipeline thực nghiệm: ingest, chèn câu, gọi model, structured output, perplexity, detector, phòng thủ two-pass; dựng workhorse | Code `src/`, prompt có hash, kết quả raw | Đã làm `research/02` |
+| data-analyst | Corpus, thiết kế thống kê, power, pre-registration, phân tích kết quả, hình | Pre-registration; bảng/hình kết quả có CI | Đã làm `research/03` |
+| security-specialist | Threat model, tiêu chí phân định attack/viết hay, đánh giá phòng thủ, Ethics Statement, responsible disclosure | Threat model chính thức; Ethics Statement; kế hoạch disclosure | Đã làm `research/04` |
+| reviewer | Soát code pipeline trước khi chạy full (đặc biệt: diff assertion, randomize, logging) | Danh sách lỗi correctness | Dùng khi có code |
+
+> Nhắc mỗi agent khi giao việc: đọc `.project/PROJECT.md`, `STATE.md`, `SYNTHESIS.md` trước khi làm.

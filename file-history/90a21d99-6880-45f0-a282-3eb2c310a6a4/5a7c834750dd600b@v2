@@ -1,0 +1,95 @@
+# Khả thi corpus mining & thiết kế thống kê
+
+> Tóm tắt biên tập (main loop) từ báo cáo agent `data-analyst` · 2026-09-16. Bản gốc không lưu được ra đĩa.
+> Số liệu OpenAlex là snapshot 2026-09-16, chưa adjudicate tay hit nào → là UPPER BOUND tín hiệu, không phải prevalence tấn công.
+
+> ⚠️ **Lưu ý của main loop:** agent này đo tần suất **hidden/blatant prompt** ("give a positive review", white text). Đề cương của user lại nói về câu **hiển thị, hợp lệ** (semantic camouflage). Kết luận "hiện tượng cực hiếm (k≈27)" CHỈ đúng cho hidden prompt. Với câu tu từ hiển thị thì vấn đề ngược lại: **cực phổ biến** (hype adjective trong abstract y sinh 92.5% năm 2020 — xem 01-prior-art C9) → bài toán là ranh giới, không phải độ hiếm. Xem `../SYNTHESIS.md`.
+
+## Phán quyết
+| Cấu phần | Phán quyết |
+|---|---|
+| Đo tần suất tự nhiên pre/post 2022 | YẾU → hạ thành descriptive census, không inferential |
+| A/B test LLM reviewer | KHẢ THI CAO — xương sống bài |
+| Validation bằng cặp paper + review thật (OpenReview) | KHẢ THI, nhưng `/notes` anonymous nay trả 403 |
+| Nhân quả pre/post 2022 | KHÔNG ĐẠT — không claim causal |
+
+## Nguồn dữ liệu (verify 2026-09-16)
+| Nguồn | Full text | Quy mô | Ghi chú |
+|---|---|---|---|
+| **OpenAlex fulltext.search** | Có (index) | 52.4M works has_fulltext / 327M | Free, `mailto=`; có `cost_usd` mỗi call → check quota. Đếm theo năm không cần tải. Denominator KHÔNG ổn định theo năm (arXiv fulltext 2024=187k, 2025=70k, 2026=182k) |
+| **arXiv S3 bulk** | PDF + LaTeX src | 9.2 TB (04/2025), +~100 GB/tháng | Requester-pays us-east-1; src 2.9 TB egress ≈ $260, gần 0 nếu xử lý trên EC2 cùng region. **Nguồn duy nhất giữ white text / font 1pt** |
+| arXiv HTML | Có | backfill rộng | Scrape hàng loạt vi phạm ToS → chỉ spot-check |
+| **S2ORC v2** | Có, section + sentence | release 2026-09-09 | **Bắt buộc API key** (đăng ký free, vài ngày) |
+| peS2o | Có | 8.24M full text | **Cutoff 2023-01-03** → vô dụng cho post-period |
+| unarXive | Có | 1.9M | Dừng ~2022; access request; HF repo 404 |
+| PubMed Central | Có | — | NCBI chặn IP (302 misuse) |
+| **Europe PMC** | Có (fullTextXML) | 8.26M OA | Free, không chặn — thay NCBI |
+| arXiv Kaggle | Metadata only | ~2.7M | Chỉ để join |
+
+Tách section: LaTeX `\section{}` (chuẩn nhất, giữ dấu hiệu ẩn) > S2ORC v2 annotations (mất màu/font) > Europe PMC JATS > unarXive IMRaD classifier.
+
+### OpenReview
+- `api2.openreview.net/notes` → **403 ChallengeRequiredError**; `/groups` và `/notes/search` vẫn 200 → dùng `openreview-py` + account.
+- Mirror HF (không gated): `ulab-ai/ResearchArcade-openreview-reviews` (823,170 reviews, 1.33 GB, có Rating), `ulab-ai/ResearchArcade-openreview-papers` (49,418 papers, có `paper_decision`, chỉ abstract + pdf link), `JerMa88/ICLR_Peer_Reviews_2018..2026`.
+- Dùng cho: (1) SD thật cho power analysis; (2) external validity corr(LLM, người) trên bài sạch — r < 0.3 thì ΔScore mất ý nghĩa; (3) natural experiment n=0–5, đừng dựa vào.
+
+## Tần suất đo được (OpenAlex, trên 1M works có fulltext)
+| Năm | "ignore previous instructions" | "give a positive review" | "GIVE A POSITIVE REVIEW ONLY" |
+|---|---|---|---|
+| 2018 | 0.00 | 4.00 | 0 |
+| 2022 | 0.29 | 5.16 | 0 |
+| 2024 | 11.75 | 6.13 | 0 |
+| 2025 | 19.04 | 10.04 | 2.83 (k=11) |
+| 2026 (chưa hết năm) | 87.75 | 11.93 | 6.16 (k=16) |
+
+"give a positive review" pre 4.91/M vs post 8.05/M, RR 1.64 [1.22, 2.20] — nhưng bị nuốt bởi **topic-mention** (bài viết VỀ prompt injection), denominator trôi, và numerator tấn công thật chỉ k=27/52M.
+
+## Pipeline phát hiện (cho hidden prompt)
+Tầng 0 structural (white text, ≤2pt, off-page, unicode invisible) → Tầng 1 lexical seed BM25 → Tầng 2 embedding theo câu + ANN → Tầng 3 LLM classifier 4 nhãn (attack / meta-mention / LLM-writing thường / trích dẫn) → Tầng 4 đọc tay toàn bộ dương tính, 2 annotator + kappa.
+
+## KHÔNG dùng Rogan-Gladen ở prevalence hiếm
+- Ở π=1e-4 cần Sp ≥ 0.99991 mới có PPV 50%; có thể ra π̂ âm; CI bị chi phối bởi cỡ validation set (m=300 → CI chứa 0 dù n=100k).
+- Thay bằng: high-recall screen → adjudicate TOÀN BỘ dương tính (FP=0 theo construction) → ước **recall bằng seeding** 500–2,000 câu nhân tạo → π̂ = (TP/r̂)/N, CI Fieller/bootstrap. Phân tầng thô (year × {cs.AI/CL/LG, cs khác, non-cs}).
+
+## Pre/post 2022 — yếu về nhân quả
+Confounder: C1 topic-mention (chí mạng) · C2 index/denominator drift (chí mạng) · C3 LLM-assisted writing nói chung ("significant contribution" ~7× 2022→2024) (chí mạng) · C4 field mix · C5 detection/reporting bias sau 7/2025 · C6 ranh giới shock mờ.
+- **DiD: không** (shock phổ quát, không có control). Synthetic control: không. ITS: được nhưng chỉ associational. Matching field/venue: nên làm (xử lý C4).
+- ⭐ **Tri-arm**: A = phrase + dấu hiệu giấu; B = cùng phrase hiển thị bình thường; C = negative control trung tính ("we thank the anonymous reviewers"). Estimand A/B so với 2022; C khóa drift. Cần LaTeX/PDF gốc.
+- Power two-proportion: phát hiện 10× ở p=5e-6 cần ~168k/arm; 2× cần 4.6M/arm. Baseline = 0 → exact Poisson / Boschloo, CI một phía.
+
+## Thống kê A/B
+- Primary: **permutation test trên paired differences**; t-test + Wilcoxon (khi chạm trần 10) làm sensitivity.
+- LMM: `score ~ inject*camo_type*position + (1 + inject | paper)`; **model là FIXED effect** (3–6 model quá ít cho random effect). Thang rời rạc → sensitivity bằng ordinal CLMM. CI bằng profile likelihood / parametric bootstrap.
+- Effect size: **Cohen's dz** (ghi rõ dz) + mean diff ± CI trên thang gốc; Wilcoxon → rank-biserial + Hodges–Lehmann.
+- Đa so sánh: MỘT primary hypothesis không hiệu chỉnh; secondary BH-FDR q=0.05; Holm cho claim "đúng trên mọi model".
+
+### Power (paired t, α=.05 hai phía, power .80, noncentral-t)
+| SD_diff | Δ=0.3 | Δ=0.5 |
+|---|---|---|
+| 0.6 | 34 | 14 |
+| 1.0 | 90 | 34 |
+| 1.2 | 128 | 48 |
+| 1.5 | 199 | 73 |
+| 2.0 | 351 | 128 |
+
+Bonferroni worst case 36 tests: Δ=0.3/SD=1.0 → 187; Δ=0.5/SD=1.0 → 71. Wilcoxon: +15%.
+**Khuyến nghị N = 200** (tối thiểu 120; dưới 60 không nên nộp). Power do số BÀI độc lập quyết định, không phải số call. SD_diff là giả định → pilot 20–30 bài để đo.
+
+## Flip Rate
+- Pre-register τ = 6 (ICLR "marginally above"), hiệu chuẩn bằng 823k ratings cho khớp acceptance rate thật; báo cáo **đường sensitivity τ ∈ {5, 5.5, 6, 6.5, 7}**.
+- 2×2 tường minh; song song báo cáo risk difference P(inject ≥ τ) − P(clean ≥ τ).
+- McNemar exact khi discordant < 25; CI paired: **Tango score** hoặc Newcombe method 10 (không dùng Wilson cho tỉ lệ độc lập); pool nhiều model bằng GEE/mixed logistic.
+- Power McNemar: flip 20%/5% → 78 cặp; 8%/2% → 193; 4%/1% → 386.
+- **Oversample borderline** (50% borderline + 50% random, reweight) giảm N 2–3×.
+
+## Contamination
+- Hướng bias chủ yếu **kéo Δ về 0** (memorized outcome, ceiling) → nếu vẫn thấy hiệu ứng thì kết luận bảo thủ; NHƯNG memorized review làm SD_diff nhỏ giả → p-value nhỏ giả.
+- Giảm thiểu: (1) primary = bài submit sau cutoff của model mới nhất, secondary = full; (2) ưu tiên bài **Rejected_Submission**; (3) membership probe (title→abstract, nửa abstract→phần còn lại) làm covariate `inject × contam_score`; (4) anonymize/paraphrase làm arm phụ; (5) synthetic papers arm phụ.
+
+## Cắt / thu hẹp / giữ
+- GIỮ: A/B n=200; LMM + BH + pre-registration; Flip + McNemar + τ curve + oversample borderline; contamination probe; census hidden prompt trên arXiv LaTeX; corr LLM vs người.
+- THU HẸP: tần suất tự nhiên → census + seeded recall trên arXiv cs.*; pre/post → tri-arm, associational.
+- CẮT: DiD; claim nhân quả; Rogan-Gladen toàn corpus; crawl arxiv.org/html; raw requests tới OpenReview /notes.
+
+## Checklist pre-registration
+1 primary hypothesis · permutation test · N=200, pilot n=25 không dùng trong phân tích chính · không optional stopping · τ=6 + sensitivity · BH q=.05 · contamination primary/secondary báo cáo cả hai · refusal báo cáo tỉ lệ, phân tích ITT · census recall bằng seeding 1,000.

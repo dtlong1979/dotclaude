@@ -1,0 +1,68 @@
+# Threat model, phòng thủ & đạo đức
+
+> Tóm tắt biên tập (main loop) từ báo cáo agent `security-specialist` · 2026-09-16. Bản gốc không lưu được ra đĩa.
+> Agent báo đã kiểm HTTP 200 cho mọi link (qua curl + arXiv API vì WebSearch/WebFetch bị tắt trong phiên của nó).
+
+## Bảy lỗ hổng của đề cương gốc
+| # | Mức | Lỗ hổng |
+|---|---|---|
+| 1 | CRITICAL | Novelty đã bị chiếm (PAA 2601.06884; Adversarial Persuasion 2508.07805; + xem 01-prior-art) |
+| 2 | CRITICAL | Ranh giới "attack" vs "viết hay" chưa định nghĩa → không có ground truth |
+| 3 | CRITICAL | Cả 3 phòng thủ đề xuất sai class (delimiter dành cho ranh giới data/instruction — ở đây payload nằm trong chính evaluand) |
+| 4 | HIGH | Threat model gộp goal / capability / victim / channel |
+| 5 | HIGH | Dual-use nặng hơn hidden text vì tấn công **deniable** và chưa bị policy nào cấm |
+| 6 | MEDIUM | Nguy cơ desk-reject vì ethics |
+| 7 | MEDIUM | Chính cái tên "prompt injection" là liability |
+
+## Novelty còn lại (hẹp, phải giành rõ)
+1. PAA là **paraphrase** bảo toàn ngữ nghĩa; đề cương là **chèn thêm** mệnh đề có thông tin khoa học bằng 0.
+2. 2508.07805 làm trên toán (có ground truth); peer review không có ground truth → vừa khó vừa là đóng góp.
+3. Chưa ai đo ở **document scale** (8–10 trang, vị trí, số câu).
+4. Chưa ai làm **equilibrium analysis** (khi mọi tác giả cùng chèn) cho peer review — 2606.27287 đã làm cho résumé và thấy collapse.
+5. Chưa ai chứng minh họ phòng thủ delimiter/IFC **không áp dụng được về cấu trúc** cho LLM-as-judge.
+
+## Threat model chặt hơn
+- Attacker là **insider hợp pháp của kênh dữ liệu** (tác giả được phép đưa nội dung vào) → phải nói rõ security property nào bị vi phạm.
+- **Property:** P1 evaluation integrity (điểm là hàm của evidence, không phải register ngôn ngữ) — claim chính; P2 rank fidelity dưới quota; P3 decision soundness với bài có defect.
+- **Capability:** K0 không biết gì (kết quả chủ lực — zero-cost, không dấu vết) · K1 có surrogate LLM (PAA ở đây) · **K2 biết review form công khai của venue** (ít ai khai thác — cắm cờ) · K3 biết system prompt · K4 white-box.
+- **Constraints định nghĩa camouflage:** S1 không bị quy kết (expert flag rate ≤ flag rate trên bài accept thật — cần control) · S2 vượt kiểm tra text layer/font/unicode · S3 budget N câu/M từ, báo cáo theo budget · **S4 không bịa số liệu/citation** (lý do bài công bố được) · S5 không sửa nội dung kỹ thuật.
+- **Goals đo riêng:** G1 Δscore (yếu) · **G2 decision flip tại threshold trên bài borderline** (headline) · **G3 weakness suppression** — recall của seeded defect giảm (mạnh, khó bị bác là sycophancy) · G4 tránh desk-reject · G5 rank gain dưới quota + equilibrium.
+- **Victim:** V1 venue full-auto · V2 assistant venue cấp · **V3 reviewer tự paste PDF vào chatbot** ("honest-but-lazy reviewer", 2508.20863) — phổ biến nhất · V4 AC meta-review. Tựa "Automated AI Peer-Review Systems" ngụ ý V1 nhưng threat thật ở V3 → đổi scope sang V2+V3, V1 là upper bound.
+- **Channel:** chỉ visible body text; chủ ý loại metadata/LaTeX comment (thuộc lớp hidden injection đã có người làm).
+- **Out of scope:** tấn công reviewer người, poisoning training data, compromise OpenReview, collusion ring.
+
+## Ranh giới "attack" vs "viết hay" — tiêu chí vận hành (không dựa intent)
+- **C1 Zero Marginal Evidence:** xóa câu s không làm mất claim kiểm chứng được nào → evidence-null. Evidence-null + Δscore > 0 = attack. Hạ tầng: 2607.26066, 2604.04074.
+- **C2 Register/addressee:** object-level (nói về nghiên cứu) vs meta-evaluative (nói về cách bài nên được đánh giá). **Addressee shift** (hướng tới evaluator thay vì độc giả) là dấu hiệu sắc nhất — và là lập luận giữ được chữ "injection".
+- **C3 Claim–evidence distance:** overclaim có nội dung thật = **dual-use zone**, gán nhãn riêng, không gộp vào attack.
+- **C4 Counterfactual seeded defect (ground truth):** seed lỗi đã biết (bỏ baseline, hỏng ablation, mâu thuẫn số bảng–text) → đo recall defect + điểm → chèn camouflage → đo lại. Attack chứng minh khi điểm tăng VÀ/HOẶC recall defect giảm. "Viết hay không được phép làm reviewer bỏ sót lỗi thật."
+- **C5 Control bắt buộc, cùng độ dài:** (i) filler trung tính; (ii) ⭐ **câu tu từ thật lấy nguyên văn từ bài đã accept ở chính venue đó**; (iii) câu object-level thêm evidence thật. Nếu (ii) ≈ attack → phát hiện là "ranh giới không tồn tại, chỉ phòng thủ được bằng evidence-grounding" — vẫn là bài tốt, nhưng phải quyết trước.
+- Ma trận: {thêm evidence / không} × {đổi điểm / không}; **attack = không thêm evidence + đổi điểm**.
+
+## Phòng thủ — nói thẳng
+- **Delimiters/spotlighting/StruQ/Jatmo: vô dụng về cấu trúc** — không có instruction để từ chối; payload nằm trong evaluand. Họ IFC/CaMeL/design patterns cũng không áp dụng vì không có privileged action, output chỉ là con số. → Đặt tên tính chất **"non-separable trust boundary / the evaluand IS the injection vector"**; vẫn chạy thí nghiệm và báo cáo như **negative result có lý thuyết**.
+- **Two-pass: cứu được nếu có information bottleneck thật.** Pass 1 chỉ xuất tuple `(claim, evidence_span, evidence_type, support_level)`, cấm tính từ đánh giá (enforce bằng schema + validator). Pass 2 **không thấy bài gốc**. Câu evidence-null không sinh tuple → tự biến mất. **Bắt buộc báo cáo utility cost** (agreement với người trước/sau).
+- **Contrastive: yếu** — 2508.07805: pairwise cũng bị, persuasion tồn tại dưới counter-prompting. Chỉ dùng dạng self/ablation contrast làm **detector**.
+- Bộ thay thế: D1 **evaluative-language normalization** (targeted register stripping, nâng từ paraphrase defense của PAA) · D2 bắt buộc evidence-span cho mỗi điểm · D3 **ablation-delta detector** score(P) − score(P không có câu meta-evaluative) — nên là contribution thứ hai · D4 register classifier (precision cao, recall thấp là đủ) · D5 ensemble + conformal interval (2609.06367), thận trọng với debate (2509.23055) · D6 anchored calibration với bài tham chiếu · D7 policy: so LaTeX vs PDF, tách evidence package, **đưa semantic manipulation vào code of conduct (hiện chưa venue nào cấm)** · D8 đừng đề xuất fine-tune kháng persuasion mà không chạy.
+
+## Đạo đức & công bố có trách nhiệm
+- Không in nguyên văn câu mồi hiệu quả nhất; công bố taxonomy + template placeholder + hiệu quả tổng hợp; payload đầy đủ **gated** + watermark/canary; **detector + normalizer công khai hoàn toàn**.
+- Lằn ranh đỏ: KHÔNG nộp bản thảo bị thao túng vào venue thật; KHÔNG thử lên hệ thống production của publisher; chỉ mô phỏng offline trên dữ liệu OpenReview công khai + API của nhóm.
+- Human study (2AFC): IRB/ethics board, consent, debrief, trả công; không có IRB thì nói thẳng.
+- **Responsible disclosure ~90 ngày trước public**, ghi mốc vào bài: OpenReview; chairs ACL/ARR, NeurIPS, ICLR, ICML; integrity teams Elsevier, Springer Nature, Wiley, IEEE, ACM; COPE; nhà cung cấp LLM nếu nêu tên model.
+- Thêm câu trong bài: bản thảo không chứa nội dung nhằm tác động hệ thống chấm tự động, hoan nghênh venue quét.
+
+## Desk-reject triggers
+Chết ngay: nộp bài thao túng vào venue thật; test hệ thống production. Rất cao: human study không consent/IRB. Cao: in payload hiệu quả không mitigation; không disclosure; novelty trùng. Trung bình: defense chỉ 1 đoạn; thiếu Ethics Statement. IEEE S&P 2026 có Research Ethics Committee được đề nghị reject; ACL ARR có Responsible NLP checklist; NeurIPS có ethics reviewers.
+
+## Khung Ethics Statement 8 mục
+1 mục tiêu phòng thủ ngay câu đầu · 2 offline, không nạn nhân, không nộp venue thật, không thăm dò production · 3 human subjects/IRB · 4 thừa nhận dual-use (zero-cost + deniable + chưa bị cấm) · 5 release policy · 6 disclosure có mốc thời gian · 7 khuyến nghị policy cụ thể cho code of conduct · 8 khai báo dùng LLM + cam kết bản thảo sạch.
+
+## Tên gọi
+"Semantic Camouflage Prompt Injection" dễ bị bác "không có prompt nào bị inject". Khuyến nghị đổi sang tên mô tả cơ chế — *In-Band Judge Manipulation*, *Evaluand-Embedded Persuasion*, *Instruction-Free Evaluation Hijacking* — và giữ lập luận addressee shift trong Discussion.
+
+## Thứ tự việc agent đề xuất
+1 tái định vị novelty đối chiếu PAA + Adversarial Persuasion · 2 xây corpus seeded-defect · 3 control (ii) câu tu từ từ bài accept · 4 defense chủ lực = two-pass bottleneck; delimiter là negative result · 5 headline metric = flip tại threshold + weakness-suppression recall · 6 bắt đầu disclosure sớm (song song viết) · 7 viết Ethics Statement trước Abstract · 8 equilibrium analysis.
+
+## Tài liệu chính
+Peer review + injection: 2507.06185, 2508.20863, 2509.09912, 2605.25415, **2601.06884 (PAA)**. Judge manipulation: **2508.07805**, 2603.29403 (SoK LLM-as-a-Judge security), 2402.14016, 2403.17710, 2606.27287 (résumé, equilibrium), 2601.04790, 2609.00248, 2509.23055. Phòng thủ không áp dụng: 2403.14720, 2402.06363, 2312.17673, 2503.18813, 2409.19091, 2506.08837. Phòng thủ phù hợp: 2601.08654, 2604.04074, 2607.26066, 2606.07683, 2609.06367. Ethics: USENIX Security '26 CFP, IEEE S&P 2026 CFP, Menlo Report, NeurIPS Ethics Guidelines, ACL Responsible NLP checklist.

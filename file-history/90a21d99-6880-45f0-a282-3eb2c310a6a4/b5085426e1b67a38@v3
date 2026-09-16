@@ -1,0 +1,57 @@
+# PROJECT.md — Kiến trúc & quy ước (đổi chậm)
+
+> Nguồn sự thật về "project này LÀ GÌ và làm việc theo lối nào". Cập nhật khi kiến trúc/quy ước đổi.
+
+## Mục tiêu
+Bài báo nghiên cứu (hướng Q1 / ACL-EMNLP) kiểm định **độ nhạy của LLM khi làm reviewer trước tu từ học thuật bình thường, không chủ đích** — cụm câu tác giả viết tự nhiên nhưng làm lệch đánh giá, thậm chí che lỗi thật. Mục tiêu cuối: **cảnh báo và khuyến nghị quy trình dùng LLM trong bình duyệt an toàn hơn**. KHÔNG phải nghiên cứu kỹ thuật tấn công, KHÔNG dùng để đánh giá lại các bài đã bình duyệt.
+
+- Đề cương gốc của user: *"Silent Persuasion: Quantifying and Mitigating Semantic Camouflage Prompt Injection in Automated AI Peer-Review Systems"* (taxonomy Type I Merit Overweighting / Type II Limitation Downplaying / Type III Outcome Presetting; ΔScore, Flip Rate, perplexity).
+- **Định vị đã chốt 2026-09-16:** RQ1–RQ4 khung không đối kháng — xem `SYNTHESIS.md` §7 và `DECISIONS.md`.
+
+## Mô hình chạy & tính di động (chốt lúc khởi tạo)
+- **Mô hình:** remote-workhorse (SSH) — user chốt 2026-09-16.
+- **Lý do chọn:** dài hơi (nhiều tháng); cần chạy model open-weight tại chỗ (~27B, 1×A100 80GB bf16) để có arm tái lập vĩnh viễn + chấm perplexity bằng base model 7–8B; corpus arXiv LaTeX có thể lên hàng trăm GB–TB; chạy batch hàng chục nghìn call API cần máy bật liên tục.
+- **Tái tạo môi trường:** CHƯA dựng. Dự kiến `requirements.lock` (Python 3.11) + script setup trên workhorse; ghi hash thư viện (SDK, GROBID, tokenizer) vào mỗi dòng kết quả.
+- **Dữ liệu lớn / weights:** trên workhorse, ngoài git. Trong git chỉ giữ code, prompt template (kèm SHA256), danh mục lớp cụm câu (báo cáo theo lớp — xem Bề mặt nhạy cảm), kết quả tổng hợp. Raw response JSONL sẽ archive (Zenodo DOI) khi công bố.
+- **GPU / compute nặng:** máy workhorse (thông tin máy CHƯA có — xem STATE.md). Nếu xử lý arXiv S3 bulk thì cân nhắc EC2 us-east-1 để tránh phí egress (~$260 cho 2.9 TB src).
+- **Secret/.env:** API key Anthropic / OpenAI / Google / OpenReview account / Semantic Scholar key — để trong `.env` trên workhorse, KHÔNG commit.
+
+## Stack & công nghệ (dự kiến, chưa dựng)
+- Ngôn ngữ: Python 3.11
+- Ingest: arXiv LaTeX source (ưu tiên), GROBID (fallback PDF), `openreview-py` hoặc mirror HF `ulab-ai/ResearchArcade-openreview-*`
+- LLM: API chính thức (structured outputs / batch API) + vLLM cho model open-weight (guided decoding)
+- Lưu trữ: parquet / SQLite, 1 dòng = 1 API call
+- Thống kê: mixed-effects (statsmodels hoặc R lme4 / ordinal::clmm), permutation test, McNemar exact, BH-FDR
+- Viết bài: LaTeX (template venue chốt sau)
+
+## Cấu trúc thư mục (dự kiến)
+```
+.project/            hồ sơ dự án (nguồn sự thật)
+.project/research/   báo cáo khảo sát khả thi / prior art (2026-09-16)
+paper/               bản thảo LaTeX
+data/                (ngoài git) corpus, PDF, LaTeX source
+src/ingest/          tải + tách section
+src/inject/          chèn câu mồi, assert diff
+src/run/             gọi model, batch, retry, log
+src/analysis/        thống kê, hình
+prompts/             rubric prompt + JSON schema (có hash)
+results/             kết quả tổng hợp (raw ở ngoài git)
+```
+
+## Cách chạy / build / test
+```bash
+# chưa có — cập nhật khi dựng pipeline
+```
+
+## Quy ước
+- Ngôn ngữ: trao đổi & hồ sơ tiếng Việt; thuật ngữ chuyên môn giữ tiếng Anh; bài báo tiếng Anh.
+- Thực nghiệm: pin model snapshot ID (cấm `-latest`, `-preview`); không trộn version prompt trong một phân tích; randomize thứ tự gọi; pre-register giả thuyết chính trước khi chạy full.
+- Trích dẫn: chỉ dùng nguồn đã mở toàn văn kiểm chứng; nhiều mục trong `research/01` mới xác minh qua snippet.
+
+## Bề mặt nhạy cảm (bảo mật / đạo đức)
+- **KHÔNG đánh giá lại bài đã bình duyệt (nguyên tắc cứng):** bài thật chỉ là vật mang; báo cáo theo lớp cụm câu; không công bố điểm theo bài, hash ID, không nêu tên; không nối tần suất cụm câu với quyết định accept/reject của từng bài. Xem DECISIONS 2026-09-16.
+- **Dual-use (thấp hơn khung tấn công):** báo cáo theo lớp cụm câu, không kèm danh sách câu làm tăng điểm mạnh nhất; nhấn mạnh khuyến nghị quy trình. Công cụ trung tính hóa / quy trình an toàn phát hành công khai.
+- **Lằn ranh đỏ:** không nộp bản thảo bị chèn vào venue/tạp chí thật; không thử lên hệ thống AI review đang vận hành của publisher/hội nghị. Chỉ mô phỏng offline.
+- **Human study** (2AFC, human baseline): cần IRB/ethics board hoặc nói rõ không có; consent, trả công.
+- **Thông báo trước cho venue** (khuyến khích, không còn bắt buộc như khung tấn công): chairs các pilot AI-assisted review (NeurIPS 2026, AAAI, NLPCC), OpenReview.
+- API key trong `.env` trên workhorse.
